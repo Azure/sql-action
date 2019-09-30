@@ -1,10 +1,18 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'Azure SQL Deploy'
+description: 'Deploy a DACPAC or a SQL script to Azure SQL database'
 inputs:
-  myInput:              # change this
-    description: 'input description here'
-    default: 'default value if applicable'
+  server-name:
+    description: 'Name of the Azure SQL Server name, like Fabrikam.database.windows.net,1433 or Fabrikam.database.windows.net.'
+    required: true
+  connection-string:
+    description:  'The connection string, including authentication information, for the Azure SQL Server database.'
+    required: true
+  dacpac-package:
+    description: 'Path to DACPAC file. *.dacpac or a folder to deploy'
+  sql-file:
+    description: 'Path to SQL script file. *.sql or a folder to deploy'
+  arguments:
+    description: 'In case DACPAC option is selected, additional SqlPackage.exe arguments that will be applied. When SQL query option is selected, additional sqlcmd.exe arguments will be applied, -ConnectionTimeout 100 -OutputSqlErrors'
 runs:
   using: 'node12'
   main: 'lib/main.js'
