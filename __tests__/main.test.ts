@@ -1,23 +1,49 @@
-import {wait} from '../src/wait'
-import * as process from 'process'
-import * as cp from 'child_process'
-import * as path from 'path'
+import * as core from "@actions/core";
 
-test('throws invalid number', async() => {
-    await expect(wait('foo')).rejects.toThrow('milleseconds not a number');
+import run from "../src/main";
+import AzureSqlAction from "../src/AzureSqlAction";
+import FirewallManager from "../src/FirewallManager";
+import { AzureSqlActionHelper } from "../src/AzureSqlActionHelper";
+import { ConnectionStringParser } from "../src/ConnectionStringParser";
+
+jest.mock('@actions/core');
+jest.mock('../src/AzureSqlAction');
+jest.mock('../src/FirewallManager');
+jest.mock('../src/AzureSqlResourceManager');
+jest.mock('../src/WebClient/Authorizer/AuthorizerFactory');
+
+test('mock functions using jest', async () => {
+    let connectionStringParserSpy = jest.spyOn(ConnectionStringParser, 'parseConnectionString').mockReturnValue({
+        server: 'tcp:testServer.database.windows.net, 1433',
+        database: 'testDB',
+        userId: 'testUser',
+        password: 'testPassword',
+        authentication: ''
+    });
+
+    let resolveFilePathSpy = jest.spyOn(AzureSqlActionHelper, 'resolveFilePath').mockReturnValue('./TestDacpacPackage.dacpac');
+
+    let getInputSpy = jest.spyOn(core, 'getInput').mockImplementation((name, options) => {
+        switch(name) {
+           case 'server-name': return 'test.database.windows.net';
+           case 'connection-string': return 'Server=tcp:testServer.database.windows.net, 1433;Initial Catalog=testDB;User Id=testUser;Password=testPassword;';
+           case 'dacpac-package': return './TestDacpacPackage.dacpac';
+       }
+
+       return '';
+    }); 
+
+    let addFirewallRuleSpy = jest.spyOn(FirewallManager.prototype, 'addFirewallRule');
+    let actionExecuteSpy = jest.spyOn(AzureSqlAction.prototype, 'execute');
+    let removeFirewallRuleSpy = jest.spyOn(FirewallManager.prototype, 'removeFirewallRule');
+
+    await run();
+
+    expect(AzureSqlAction).toHaveBeenCalled();
+    expect(getInputSpy).toHaveBeenCalledTimes(4);
+    expect(connectionStringParserSpy).toHaveBeenCalled();
+    expect(resolveFilePathSpy).toHaveBeenCalled();
+    expect(addFirewallRuleSpy).toHaveBeenCalled();
+    expect(actionExecuteSpy).toHaveBeenCalled();    
+    expect(removeFirewallRuleSpy).toHaveBeenCalled();                                                                                                
 });
-
-test('wait 500 ms', async() => {
-    const start = new Date();
-    await wait(500);
-    const end = new Date();
-    var delta = Math.abs(end.getTime() - start.getTime());
-    expect(delta).toBeGreaterThan(450);
-});
-
-// shows how the runner will run a javascript action with env / stdout protocol
-test('test runs', () => {
-    process.env['INPUT_MILLISECONDS'] = '500';
-    const ip = path.join(__dirname, '..', 'lib', 'main.js');
-    console.log(cp.execSync(`node ${ip}`).toString());
-})

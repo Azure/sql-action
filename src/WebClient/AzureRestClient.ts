@@ -27,7 +27,6 @@ export interface ApiCallback {
 }
 
 export function ToError(response: WebResponse): AzureError {
-
     let error = new AzureError();
     error.statusCode = response.statusCode;
     error.message = response.body
@@ -46,7 +45,7 @@ export function ToError(response: WebResponse): AzureError {
 export interface IAzureRestClientOptions extends WebRequestOptions {
 }
 
-export class AzureRestClient extends WebClient {
+export default class AzureRestClient extends WebClient {
 
     constructor(authorizer: IAuthorizer, options?: IAzureRestClientOptions) {
         super(options);
@@ -82,7 +81,6 @@ export class AzureRestClient extends WebClient {
     }
 
     public async beginRequest(request: WebRequest): Promise<WebResponse> {
-
         let token = await this._authorizer.getToken();
 
         request.headers = request.headers || {};
@@ -102,7 +100,6 @@ export class AzureRestClient extends WebClient {
     }  
 
     public async accumulateResultFromPagedResult(nextLinkUrl: string): Promise<ApiResult> {
-        
         let result: any[] = [];
         
         while (!!nextLinkUrl) {

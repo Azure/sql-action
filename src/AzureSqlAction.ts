@@ -36,7 +36,7 @@ export enum SqlPackageAction {
     Script
 }
 
-export class AzureSqlAction {
+export default class AzureSqlAction {
     constructor(inputs: IActionInputs) {
         this._inputs = inputs;
     }
@@ -58,28 +58,28 @@ export class AzureSqlAction {
         let sqlPackagePath = await AzureSqlActionHelper.getSqlPackagePath();
         let sqlPackageArgs = this._getSqlPackageArguments(inputs);
 
-        await exec.exec(`"${sqlPackagePath}"`, sqlPackageArgs, {
+        await exec.exec(`"${sqlPackagePath}" ${sqlPackageArgs}`, [], {
             windowsVerbatimArguments: true
         });
-        
+       
         console.log(`Successfully executed action ${SqlPackageAction[inputs.sqlpackageAction]} on target database.`);
     }
 
     private async _executeSqlFile(inputs: ISqlActionInputs) {
         let sqlCmdPath = await AzureSqlActionHelper.getSqlCmdPath();
-        
-        await exec.exec(`"${sqlCmdPath}" -S xaxle.database.windows.net -d ${inputs.parsedConnectionString.database} -U ${inputs.parsedConnectionString.userId} -P ${inputs.parsedConnectionString.password}  -i "${inputs.sqlFile}"`);
+        await exec.exec(`"${sqlCmdPath}" -S ${inputs.serverName} -d ${inputs.parsedConnectionString.database} -U "${inputs.parsedConnectionString.userId}" -P "${inputs.parsedConnectionString.password}" -i "${inputs.sqlFile}" ${inputs.additionalArguments}`, [], {
+            "windowsVerbatimArguments": true
+        });
+
         console.log(`Successfully executed Sql file on target database.`);
     }
 
     private _getSqlPackageArguments(inputs: IDacpacActionInputs) {
-        let args: string[] = [];
+        let args = '';
 
         switch (inputs.sqlpackageAction) {
             case SqlPackageAction.Publish: {
-                args.push(`/Action:Publish`)
-                args.push(`/TargetConnectionString:"${inputs.connectionString}"`);
-                args.push(`/SourceFile:"${inputs.dacpacPackage}"`);
+                args += `/Action:Publish /TargetConnectionString:"${inputs.connectionString}" /SourceFile:"${inputs.dacpacPackage}"`;
                 break;
             }
             default: {
@@ -88,7 +88,7 @@ export class AzureSqlAction {
         }
 
         if (!!inputs.additionalArguments) {
-            args.concat(inputs.additionalArguments.split(' '));
+            args += ' ' + inputs.additionalArguments
         }
 
         return args;

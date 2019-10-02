@@ -2,7 +2,6 @@ import * as exec from '@actions/exec';
 import * as io from '@actions/io';
 import { IAuthorizer } from './AuthorizerFactory';
 
-
 export class AzureCLIAuthorizer implements IAuthorizer {
     private constructor() { }
 

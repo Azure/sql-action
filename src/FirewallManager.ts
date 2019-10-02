@@ -1,12 +1,12 @@
 import * as exec from '@actions/exec';
 import * as core from '@actions/core';
+import AzureSqlResourceManager, { FirewallRule } from './AzureSqlResourceManager';
 import { AzureSqlActionHelper } from "./AzureSqlActionHelper";
-import { AzureSqlResourceManager, FirewallRule } from './AzureSqlResourceManager';
 import { SqlConnectionString } from './ConnectionStringParser';
 
 const ipv4MatchPattern = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/;
 
-export class FirewallManager {
+export default class FirewallManager {
     constructor(azureSqlResourceManager: AzureSqlResourceManager) {
         this._resourceManager = azureSqlResourceManager;
     }
@@ -43,11 +43,12 @@ export class FirewallManager {
         try {
             core.debug(`Validating if client '${process.env.computername}' has access to Sql Server '${serverName}'.`);
             // check if it fails because of writing to stderr
-            await exec.exec(`"${sqlCmdPath}" -U ${connectionString.userId} -P ${connectionString.password} -S ${serverName} -Q "select getdate()"`, [], {
+            await exec.exec(`"${sqlCmdPath}" -S ${serverName} -U "${connectionString.userId}" -P "${connectionString.password}" -Q "select getdate()"`, [], {
                 silent: true,
                 listeners: {
                     stderr: (data: Buffer) => sqlCmdError += data.toString()
-                }
+                },
+                windowsVerbatimArguments: true
             });
         }
         catch (error) {

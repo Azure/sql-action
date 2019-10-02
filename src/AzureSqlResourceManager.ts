@@ -1,6 +1,6 @@
 import { IAuthorizer } from './Webclient/Authorizer/AuthorizerFactory';
 import { WebRequest } from './Webclient/WebClient';
-import { AzureRestClient, ToError } from './Webclient/AzureRestClient'
+import AzureRestClient, { ToError, AzureError } from './Webclient/AzureRestClient'
 
 export interface AzureSqlServer {
     id: string;
@@ -29,7 +29,7 @@ export interface FirewallRule {
     }
 }
 
-export class AzureSqlResourceManager {
+export default class AzureSqlResourceManager {
 
     private constructor(resourceAuthorizer: IAuthorizer) {
         // making the constructor private, so that object initialization can only be done by the class factory GetResourceManager
@@ -37,7 +37,7 @@ export class AzureSqlResourceManager {
         this._restClient = new AzureRestClient(resourceAuthorizer);
     }
 
-    public static async GetResourceManager(serverName: string, resourceAuthorizer: IAuthorizer): Promise<AzureSqlResourceManager> {
+    public static async getResourceManager(serverName: string, resourceAuthorizer: IAuthorizer): Promise<AzureSqlResourceManager> {
         // a factory method to return asynchronously created object
         let resourceManager = new AzureSqlResourceManager(resourceAuthorizer);
         await resourceManager._populateSqlServerData(serverName);
@@ -73,7 +73,11 @@ export class AzureSqlResourceManager {
             return httpResponse.body as FirewallRule;
         }
         catch(error) {
-            throw new Error(JSON.stringify(error));
+            if (error instanceof AzureError) {
+                throw new Error(JSON.stringify(error));
+            }
+            
+            throw error;
         }
     }
 
@@ -91,7 +95,11 @@ export class AzureSqlResourceManager {
             }
         }
         catch(error) {
-            throw new Error(JSON.stringify(error));
+            if (error instanceof AzureError) {
+                throw new Error(JSON.stringify(error));
+            }
+            
+            throw error;
         }
     }
 
@@ -111,16 +119,17 @@ export class AzureSqlResourceManager {
             let httpResponse = await this._restClient.beginRequest(httpRequest);
 
             if (httpResponse.statusCode !== 200) {
+                console.log('httpresponse error');
+                console.log(httpResponse);
                 throw ToError(httpResponse);
             }
 
             let sqlServers = httpResponse.body && httpResponse.body.value as AzureSqlServer[];
             
             if (sqlServers && sqlServers.length > 0) {
-                
                 this._resource = sqlServers.filter((sqlResource) => sqlResource.name === serverName)[0];
                 if (!this._resource) {
-                    throw new Error(`Unable to get details of SQL server ${serverName}.`);
+                    throw new Error(`Unable to get details of SQL server ${serverName}. Sql server '${serverName}' was not found in the subscription.`);
                 }
             }
             else {
@@ -128,7 +137,11 @@ export class AzureSqlResourceManager {
             }
         }
         catch(error) {
-            throw new Error(JSON.stringify(error));
+            if (error instanceof AzureError) {
+                throw new Error(JSON.stringify(error));
+            }
+            
+            throw error;
         }
     }
 

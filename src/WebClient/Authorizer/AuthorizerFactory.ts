@@ -8,8 +8,7 @@ export interface IAuthorizer {
     getCloudEndpointUrl: (name: string) => string;
 }
 
-export class AuthorizerFactory {
-
+export default class AuthorizerFactory {
     public static async getAuthorizer(): Promise<IAuthorizer> {
         try {
             return await AzureCLIAuthorizer.getAuthorizer();

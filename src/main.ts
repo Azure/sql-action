@@ -1,14 +1,14 @@
 import * as core from "@actions/core";
 import * as path from 'path';
 
-import { AzureSqlAction, IActionInputs, ISqlActionInputs, IDacpacActionInputs, ActionType, SqlPackageAction } from "./AzureSqlAction";
+import AzureSqlAction, { IActionInputs, ISqlActionInputs, IDacpacActionInputs, ActionType, SqlPackageAction } from "./AzureSqlAction";
+import AuthorizerFactory  from "./WebClient/Authorizer/AuthorizerFactory";
+import AzureSqlResourceManager from './AzureSqlResourceManager'
+import FirewallManager from "./FirewallManager";
 import { AzureSqlActionHelper } from "./AzureSqlActionHelper";
-import { AuthorizerFactory } from "./WebClient/Authorizer/AuthorizerFactory";
-import { AzureSqlResourceManager } from './AzureSqlResourceManager'
-import { FirewallManager } from "./FirewallManager";
 import { ConnectionStringParser, SqlConnectionString } from "./ConnectionStringParser";
 
-async function run() {
+export default async function run() {
     let firewallManager;
     try {
         let inputs = getInputs();
@@ -16,14 +16,14 @@ async function run() {
         let azureSqlAction = new AzureSqlAction(inputs);
         
         let azureResourceAuthorizer = await AuthorizerFactory.getAuthorizer();
-        let azureSqlResourceManager = await AzureSqlResourceManager.GetResourceManager(inputs.serverName, azureResourceAuthorizer);
+        let azureSqlResourceManager = await AzureSqlResourceManager.getResourceManager(inputs.serverName, azureResourceAuthorizer);
         firewallManager = new FirewallManager(azureSqlResourceManager);
-
+        
         await firewallManager.addFirewallRule(inputs.serverName, inputs.parsedConnectionString);
         await azureSqlAction.execute();
 
-        // remove the below statement before checking-in
-        throw new Error('Test error for re-running checks');
+        //remove the below statement before checking-in
+        //throw new Error('Test error for re-running checks');
     }
     catch (error) {
         core.setFailed(error.message);

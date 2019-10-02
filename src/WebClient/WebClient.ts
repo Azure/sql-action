@@ -42,7 +42,6 @@ export class WebClient {
     }
 
     public async sendRequest(request: WebRequest): Promise<WebResponse> {
-
         let i = 0;
         let retryCount = this._webRequestOptions.retryCount as number; 
         let retryIntervalInSeconds = this._webRequestOptions.retryIntervalInSeconds as number;
