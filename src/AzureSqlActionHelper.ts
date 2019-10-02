@@ -10,21 +10,35 @@ const IS_WINDOWS = process.platform === 'win32';
 export class AzureSqlActionHelper {
 
     public static async getSqlPackagePath(): Promise<string> {
+        if (!!this._sqlPackagePath) {
+            core.debug(`Return the cached path of SqlPackage.exe: ${this._sqlPackagePath}`);
+            return this._sqlPackagePath;
+        }
+
         if (IS_WINDOWS) {
-            return await this._getSqlPackageExecutablePath();
+            this._sqlPackagePath = await this._getSqlPackageExecutablePath();
         }
         else {
-            return this._getSqlPackageBinaryPath();
+            this._sqlPackagePath = this._getSqlPackageBinaryPath();
         }
+
+        return this._sqlPackagePath;
     }
 
     public static async getSqlCmdPath(): Promise<string> {
+        if (!!this._sqlCmdPath) {
+            core.debug(`Return the cached path of SqlCmd.exe: ${this._sqlCmdPath}`);
+            return this._sqlCmdPath;
+        }
+
         if (IS_WINDOWS) {
-            return this._getSqlCmdExecutablePath();
+            this._sqlCmdPath = await this._getSqlCmdExecutablePath();
         }
         else {
-            return this._getSqlCmdBinaryPath();
+            this._sqlCmdPath = this._getSqlCmdBinaryPath();
         }
+
+        return this._sqlCmdPath;
     }
 
     public static getRegistrySubKeys(path: string): Promise<winreg.Registry[]> {
@@ -79,6 +93,10 @@ export class AzureSqlActionHelper {
             filePath = matchedFiles[0];
         }
 
+        if (!fs.existsSync(filePath)) {
+            throw new Error(`Unable to find file at location: ${filePath}`);
+        }
+        
         return filePath;
     }
 
@@ -291,8 +309,8 @@ export class AzureSqlActionHelper {
     }
 
     private static async _getSqlCmdExecutablePath(): Promise<string>{
-
         core.debug('Getting location of sqlcmd.exe');
+
         let sqlServerRegistryKey64 = path.join('\\', 'SOFTWARE', 'Microsoft', 'Microsoft SQL Server'); 
         if (!(await AzureSqlActionHelper.registryKeyExists(sqlServerRegistryKey64))) {
             throw new Error('Unable to find the location for SqlCmd.exe from registry');
@@ -339,4 +357,7 @@ export class AzureSqlActionHelper {
     private static _getSqlCmdBinaryPath(): string {
         throw new Error('This action is not supported on a non-windows environment.');
     }
+
+    private static _sqlPackagePath = '';
+    private static _sqlCmdPath = '';
 }

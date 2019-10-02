@@ -1,4 +1,4 @@
-import { ConnectionStringParser } from "../src/ConnectionStringParser";
+import { SqlConnectionStringBuilder } from "../src/SqlConnectionStringBuilder";
 
 describe('ConnectionStringParser tests', () => {
 
@@ -11,12 +11,13 @@ describe('ConnectionStringParser tests', () => {
             [`User Id=user;Password=JustANormal123@#$password;Initial catalog=testdb`, 'validates values not beginning quotes and not containing quotes or semi-colon', `JustANormal123@#$password`]
         ];
     
-        it.each(validConnectionStrings)('Input `%s` %s', (connectionString, testDescription, passwordOutput) => {
-            let parsedConnectionString = ConnectionStringParser.parseConnectionString(connectionString);
+        it.each(validConnectionStrings)('Input `%s` %s', (connectionStringInput, testDescription, passwordOutput) => {
+            let connectionString = new SqlConnectionStringBuilder(connectionStringInput);
     
-            expect(parsedConnectionString.password).toMatch(passwordOutput);
-            expect(parsedConnectionString.userId).toMatch(`user`);
-            expect(parsedConnectionString.database).toMatch('testdb');
+            expect(connectionString.connectionString).toMatch(connectionStringInput);
+            expect(connectionString.password).toMatch(passwordOutput);
+            expect(connectionString.userId).toMatch(`user`);
+            expect(connectionString.database).toMatch('testdb');
         });
     })
 
@@ -30,7 +31,7 @@ describe('ConnectionStringParser tests', () => {
         ];
 
         it.each(invalidConnectionStrings)('Input `%s` %s', (connectionString) => {
-            expect(() => ConnectionStringParser.parseConnectionString(connectionString)).toThrow();
+            expect(() => new SqlConnectionStringBuilder(connectionString)).toThrow();
         })
     })
 })

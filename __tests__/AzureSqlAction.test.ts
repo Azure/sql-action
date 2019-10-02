@@ -1,6 +1,18 @@
 import * as exec from '@actions/exec';
 import AzureSqlAction, { IDacpacActionInputs, ISqlActionInputs, ActionType, SqlPackageAction } from "../src/AzureSqlAction";
 import { AzureSqlActionHelper } from "../src/AzureSqlActionHelper";
+import { SqlConnectionStringBuilder } from '../src/SqlConnectionStringBuilder';
+
+let sqlConnectionStringBuilderMock = jest.mock('../src/SqlConnectionStringBuilder', () => {
+    return ((connectionString) => {
+        return {
+            connectionString: connectionString,
+            userId: 'testUder',
+            password: 'testPassword',
+            database: 'testDB'
+        }
+    })
+})
 
 describe('AzureSqlAction tests', () => {
 
@@ -19,7 +31,7 @@ describe('AzureSqlAction tests', () => {
 
         expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
         expect(execSpy).toHaveBeenCalledTimes(1);
-        expect(execSpy).toHaveBeenCalledWith(`"SqlPackage.exe" /Action:Publish /TargetConnectionString:"${inputs.connectionString}" /SourceFile:"${inputs.dacpacPackage}" /TargetTimeout:20`, [], {"windowsVerbatimArguments": true});
+        expect(execSpy).toHaveBeenCalledWith(`"SqlPackage.exe" /Action:Publish /TargetConnectionString:"${inputs.connectionString.connectionString}" /SourceFile:"${inputs.dacpacPackage}" /TargetTimeout:20`);
     });
   
     it('throws if SqlPackage.exe fails to publish dacpac', async () => {
@@ -45,7 +57,7 @@ describe('AzureSqlAction tests', () => {
 
         expect(getSqlCmdPathSpy).toHaveBeenCalledTimes(1);
         expect(execSpy).toHaveBeenCalledTimes(1);
-        expect(execSpy).toHaveBeenCalledWith(`"SqlCmd.exe" -S testServer.database.windows.net -d testDB -U "testUser" -P "testPassword" -i "./TestFile.sql" -t 20`, [], {"windowsVerbatimArguments": true});
+        expect(execSpy).toHaveBeenCalledWith(`"SqlCmd.exe" -S testServer.database.windows.net -d testDB -U "testUser" -P "testPassword" -i "./TestFile.sql" -t 20`);
     });
 
     it('throws if SqlCmd.exe fails to execute sql', async () => {
@@ -66,15 +78,9 @@ function getInputs(actionType: ActionType) {
             return{
                 serverName: 'testServer.database.windows.net',
                 actionType: ActionType.DacpacAction,
-                connectionString: 'Server=tcp:testServer.database.windows.net, 1443;Initial Catalog=testDB;User Id=testUser;Password=testPassword',
+                connectionString: new SqlConnectionStringBuilder('Server=tcp:testServer.database.windows.net, 1443;Initial Catalog=testDB;User Id=testUser;Password=testPassword'),
                 dacpacPackage: './TestPackage.dacpac',
                 sqlpackageAction: SqlPackageAction.Publish,
-                parsedConnectionString: {
-                    server: 'tcp:testServer.database.windows.net, 1443',
-                    database: 'testDB',
-                    userId: 'testUser',
-                    password: 'testPassword'
-                },
                 additionalArguments: '/TargetTimeout:20'
             } as IDacpacActionInputs;
         }
@@ -82,14 +88,8 @@ function getInputs(actionType: ActionType) {
             return {
                 serverName: 'testServer.database.windows.net',
                 actionType: ActionType.SqlAction,
-                connectionString: 'Server=tcp:testServer.database.windows.net, 1443;Initial Catalog=testDB;User Id=testUser;Password=testPassword',
+                connectionString: new SqlConnectionStringBuilder('Server=tcp:testServer.database.windows.net, 1443;Initial Catalog=testDB;User Id=testUser;Password=testPassword'),
                 sqlFile: './TestFile.sql',
-                parsedConnectionString: {
-                    server: 'tcp:testServer.database.windows.net, 1443',
-                    database: 'testDB',
-                    userId: 'testUser',
-                    password: 'testPassword'
-                },
                 additionalArguments: '-t 20'
             } as ISqlActionInputs;
         }

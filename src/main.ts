@@ -6,7 +6,7 @@ import AuthorizerFactory  from "./WebClient/Authorizer/AuthorizerFactory";
 import AzureSqlResourceManager from './AzureSqlResourceManager'
 import FirewallManager from "./FirewallManager";
 import { AzureSqlActionHelper } from "./AzureSqlActionHelper";
-import { ConnectionStringParser, SqlConnectionString } from "./ConnectionStringParser";
+import { SqlConnectionStringBuilder } from "./SqlConnectionStringBuilder";
 
 export default async function run() {
     let firewallManager;
@@ -19,11 +19,11 @@ export default async function run() {
         let azureSqlResourceManager = await AzureSqlResourceManager.getResourceManager(inputs.serverName, azureResourceAuthorizer);
         firewallManager = new FirewallManager(azureSqlResourceManager);
         
-        await firewallManager.addFirewallRule(inputs.serverName, inputs.parsedConnectionString);
+        await firewallManager.addFirewallRule(inputs.serverName, inputs.connectionString);
         await azureSqlAction.execute();
 
         //remove the below statement before checking-in
-        //throw new Error('Test error for re-running checks');
+        throw new Error('Test error for re-running checks');
     }
     catch (error) {
         core.setFailed(error.message);
@@ -40,7 +40,7 @@ function getInputs(): IActionInputs {
     let serverName = core.getInput('server-name', { required: true });
     
     let connectionString = core.getInput('connection-string', { required: true });
-    let parsedConnectionString: SqlConnectionString = ConnectionStringParser.parseConnectionString(connectionString);
+    let connectionStringBuilder = new SqlConnectionStringBuilder(connectionString);
     
     let additionalArguments = core.getInput('arguments');
     let dacpacPackage = core.getInput('dacpac-package');
@@ -53,8 +53,7 @@ function getInputs(): IActionInputs {
 
         return {
             serverName: serverName,
-            connectionString: connectionString,
-            parsedConnectionString: parsedConnectionString,
+            connectionString: connectionStringBuilder,
             dacpacPackage: dacpacPackage,
             sqlpackageAction: SqlPackageAction.Publish,
             actionType: ActionType.DacpacAction,
@@ -72,8 +71,7 @@ function getInputs(): IActionInputs {
 
         return {
             serverName: serverName,
-            connectionString: connectionString,
-            parsedConnectionString: parsedConnectionString,
+            connectionString: connectionStringBuilder,
             sqlFile: sqlFilePath,
             actionType: ActionType.SqlAction,
             additionalArguments: additionalArguments

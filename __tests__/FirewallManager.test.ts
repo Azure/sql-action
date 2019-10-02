@@ -3,6 +3,7 @@ import FirewallManager from "../src/FirewallManager";
 import AuthorizerFactory, { IAuthorizer }  from "../src/WebClient/Authorizer/AuthorizerFactory";
 import AzureSqlResourceManager from '../src/AzureSqlResourceManager'
 import { AzureSqlActionHelper } from "../src/AzureSqlActionHelper";
+import { SqlConnectionStringBuilder } from '../src/SqlConnectionStringBuilder';
 
 jest.mock('../src/WebClient/Authorizer/AuthorizerFactory', () => ({
     getAuthorizer: () => ({
@@ -20,6 +21,18 @@ jest.mock('../src/AzureSqlResourceManager', () => ({
         removeFirewallRule: () => jest.fn()
     })
 }));
+
+let sqlConnectionStringBuilderMock = jest.mock('../src/SqlConnectionStringBuilder', () => {
+    return ((connectionString) => {
+        return {
+            connectionString: connectionString,
+            userId: 'testUder',
+            password: 'testPassword',
+            database: 'testDB'
+        }
+    })
+})
+
 
 describe.only('FirewallManager tests', () => {
     let azureSqlResourceManager: AzureSqlResourceManager;
@@ -46,13 +59,7 @@ describe.only('FirewallManager tests', () => {
             }); 
             
             let addFirewallRuleSpy = jest.spyOn(azureSqlResourceManager, 'addFirewallRule').mockResolvedValue({ name: 'FirewallRuleName' } as any);
-            await firewallManager.addFirewallRule('testServer.database.windows.net', {
-                server: 'tcp:testServer.database.windows.net, 1443',
-                database: 'testDB',
-                userId: 'testUser',
-                password: 'testPassword',
-                authentication: ''
-            });
+            await firewallManager.addFirewallRule('testServer.database.windows.net', new SqlConnectionStringBuilder('Server=tcp:testServer.database.windows.net, 1443;Initial Catalog=testDB;User Id=testUser;Password=testPassword'));
     
             expect(getSqlCmdPathSpy).toHaveBeenCalledTimes(1);
             expect(execSpy.mock.calls[0][0]).toMatch(`"SqlCmd.exe" -S testServer.database.windows.net -U "testUser" -P "testPassword" -Q "select getdate()"`);
@@ -73,13 +80,7 @@ describe.only('FirewallManager tests', () => {
         let execSpy = jest.spyOn(exec, 'exec').mockResolvedValue(0);
         
         let addFirewallRuleSpy = jest.spyOn(azureSqlResourceManager, 'addFirewallRule').mockResolvedValue({ name: 'FirewallRuleName' } as any);
-        await firewallManager.addFirewallRule('testServer.database.windows.net', {
-            server: 'tcp:testServer.database.windows.net, 1443',
-            database: 'testDB',
-            userId: 'testUser',
-            password: 'testPassword',
-            authentication: ''
-        });
+        await firewallManager.addFirewallRule('testServer.database.windows.net', new SqlConnectionStringBuilder('Server=tcp:testServer.database.windows.net, 1443;Initial Catalog=testDB;User Id=testUser;Password=testPassword'));
 
         expect(getSqlCmdPathSpy).toHaveBeenCalledTimes(1);
         expect(execSpy).toHaveBeenCalledTimes(1);

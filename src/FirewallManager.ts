@@ -2,7 +2,7 @@ import * as exec from '@actions/exec';
 import * as core from '@actions/core';
 import AzureSqlResourceManager, { FirewallRule } from './AzureSqlResourceManager';
 import { AzureSqlActionHelper } from "./AzureSqlActionHelper";
-import { SqlConnectionString } from './ConnectionStringParser';
+import { SqlConnectionStringBuilder } from './SqlConnectionStringBuilder';
 
 const ipv4MatchPattern = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/;
 
@@ -11,7 +11,7 @@ export default class FirewallManager {
         this._resourceManager = azureSqlResourceManager;
     }
 
-    public async addFirewallRule(serverName: string, connectionString: SqlConnectionString) {
+    public async addFirewallRule(serverName: string, connectionString: SqlConnectionStringBuilder) {
         let ipAddress = await this._detectIPAddress(serverName, connectionString);
         if (!ipAddress) {
             core.debug(`Client has access to Sql server. Skip adding firewall exception.`);
@@ -34,7 +34,7 @@ export default class FirewallManager {
         }
     }
 
-    private async _detectIPAddress(serverName: string, connectionString: SqlConnectionString): Promise<string> {
+    private async _detectIPAddress(serverName: string, connectionString: SqlConnectionStringBuilder): Promise<string> {
         let sqlCmdPath = await AzureSqlActionHelper.getSqlCmdPath();
 
         let ipAddress = '';
@@ -42,13 +42,12 @@ export default class FirewallManager {
         
         try {
             core.debug(`Validating if client '${process.env.computername}' has access to Sql Server '${serverName}'.`);
-            // check if it fails because of writing to stderr
+            core.debug(`"${sqlCmdPath}" -S ${serverName} -U "${connectionString.userId}" -Q "select getdate()"`);
             await exec.exec(`"${sqlCmdPath}" -S ${serverName} -U "${connectionString.userId}" -P "${connectionString.password}" -Q "select getdate()"`, [], {
                 silent: true,
                 listeners: {
                     stderr: (data: Buffer) => sqlCmdError += data.toString()
-                },
-                windowsVerbatimArguments: true
+                }
             });
         }
         catch (error) {
