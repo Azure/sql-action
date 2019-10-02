@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import { HttpClient, HttpClientResponse } from "typed-rest-client/HttpClient";
-import { RequestClient } from './requestClient';
+import { RequestClient } from './RequestClient';
 
 export interface WebRequest {
     method: string;
