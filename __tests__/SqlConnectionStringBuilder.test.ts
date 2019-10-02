@@ -1,6 +1,6 @@
 import { SqlConnectionStringBuilder } from "../src/SqlConnectionStringBuilder";
 
-describe('ConnectionStringParser tests', () => {
+describe('SqlConnectionStringBuilder tests', () => {
 
     describe('validate correct connection strings', () => {
         let validConnectionStrings = [
