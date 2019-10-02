@@ -1,6 +1,6 @@
 import { IAuthorizer } from './Webclient/Authorizer/AuthorizerFactory';
 import { WebRequest } from './Webclient/WebClient';
-import AzureRestClient, { ToError, AzureError } from './Webclient/AzureRestClient'
+import AzureRestClient, { ToError, AzureError } from './WebClient/AzureRestClient'
 
 export interface AzureSqlServer {
     id: string;
