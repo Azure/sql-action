@@ -1,18 +1,26 @@
 import * as core from "@actions/core";
+import * as crypto from "crypto";
 import * as path from 'path';
+import { AuthorizerFactory } from "azure-actions-webclient/AuthorizerFactory";
 
 import AzureSqlAction, { IActionInputs, ISqlActionInputs, IDacpacActionInputs, ActionType, SqlPackageAction } from "./AzureSqlAction";
-import AuthorizerFactory  from "./WebClient/Authorizer/AuthorizerFactory";
 import AzureSqlResourceManager from './AzureSqlResourceManager'
 import FirewallManager from "./FirewallManager";
-import { AzureSqlActionHelper } from "./AzureSqlActionHelper";
-import { SqlConnectionStringBuilder } from "./SqlConnectionStringBuilder";
+import AzureSqlActionHelper from "./AzureSqlActionHelper";
+import SqlConnectionStringBuilder from "./SqlConnectionStringBuilder";
+
+let userAgentPrefix = !!process.env.AZURE_HTTP_USER_AGENT ? `${process.env.AZURE_HTTP_USER_AGENT}` : "";
 
 export default async function run() {
     let firewallManager;
     try {
+        // Set user agent variable
+        let usrAgentRepo = crypto.createHash('sha256').update(`${process.env.GITHUB_REPOSITORY}`).digest('hex');
+        let actionName = 'AzureSqlAction';
+        let userAgentString = (!!userAgentPrefix ? `${userAgentPrefix}+` : '') + `GITHUBACTIONS_${actionName}_${usrAgentRepo}`;
+        core.exportVariable('AZURE_HTTP_USER_AGENT', userAgentString);
+        
         let inputs = getInputs();
-
         let azureSqlAction = new AzureSqlAction(inputs);
         
         let azureResourceAuthorizer = await AuthorizerFactory.getAuthorizer();
@@ -21,9 +29,6 @@ export default async function run() {
         
         await firewallManager.addFirewallRule(inputs.serverName, inputs.connectionString);
         await azureSqlAction.execute();
-
-        //remove the below statement before checking-in
-        throw new Error('Test error for re-running checks');
     }
     catch (error) {
         core.setFailed(error.message);
@@ -32,11 +37,14 @@ export default async function run() {
         if (firewallManager) {
             await firewallManager.removeFirewallRule();
         }
+
+        // Reset AZURE_HTTP_USER_AGENT
+        core.exportVariable('AZURE_HTTP_USER_AGENT', userAgentPrefix);
     }
 }
 
 function getInputs(): IActionInputs {
-    core.debug('Getting inputs.');
+    core.debug('Get action inputs.');
     let serverName = core.getInput('server-name', { required: true });
     
     let connectionString = core.getInput('connection-string', { required: true });
@@ -62,7 +70,6 @@ function getInputs(): IActionInputs {
     }
 
     let sqlFilePath = core.getInput('sql-file');
-
     if (!!sqlFilePath) {
         sqlFilePath = AzureSqlActionHelper.resolveFilePath(sqlFilePath);
         if (path.extname(sqlFilePath).toLowerCase() !== '.sql') {

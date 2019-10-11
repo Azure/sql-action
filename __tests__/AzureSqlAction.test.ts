@@ -1,7 +1,7 @@
 import * as exec from '@actions/exec';
 import AzureSqlAction, { IDacpacActionInputs, ISqlActionInputs, ActionType, SqlPackageAction } from "../src/AzureSqlAction";
-import { AzureSqlActionHelper } from "../src/AzureSqlActionHelper";
-import { SqlConnectionStringBuilder } from '../src/SqlConnectionStringBuilder';
+import AzureSqlActionHelper from "../src/AzureSqlActionHelper";
+import SqlConnectionStringBuilder from '../src/SqlConnectionStringBuilder';
 
 let sqlConnectionStringBuilderMock = jest.mock('../src/SqlConnectionStringBuilder', () => {
     return ((connectionString) => {
@@ -15,7 +15,6 @@ let sqlConnectionStringBuilderMock = jest.mock('../src/SqlConnectionStringBuilde
 })
 
 describe('AzureSqlAction tests', () => {
-
     afterEach(() => {
        jest.restoreAllMocks();
     })

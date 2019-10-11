@@ -1,21 +1,22 @@
-import AuthorizerFactory, { IAuthorizer }  from "../src/WebClient/Authorizer/AuthorizerFactory";
-import AzureRestClient, { ToError } from "../src/Webclient/AzureRestClient";
+import { AuthorizerFactory }  from 'azure-actions-webclient/AuthorizerFactory';
+import { ServiceClient as AzureRestClient } from "azure-actions-webclient/AzureRestClient";
 import AzureSqlResourceManager from '../src/AzureSqlResourceManager'
 
-jest.mock('../src/WebClient/Authorizer/AuthorizerFactory', () => ({
-    getAuthorizer: () => ({
-        getToken: (force) => Promise.resolve('BearerToken'),
-        getActiveSubscription: () => 'SubscriptionId',
-        getCloudEndpointUrl: (name) => '',
-        getCloudSuffixUrl: (suffixName) => '.database.windows.net',
-        getResourceManagerUrl: () => ''
-    } as IAuthorizer)
-}));
-
-jest.mock('../src/Webclient/AzureRestClient');
+jest.mock('azure-actions-webclient/AuthorizerFactory');
+jest.mock('azure-actions-webclient/AzureRestClient');
 
 describe.only('AzureSqlResourceManager tests', () => {
     
+    beforeAll(() => {
+        jest.spyOn(AuthorizerFactory, 'getAuthorizer').mockResolvedValue({
+            getToken: (force) => Promise.resolve('BearerToken'),
+            subscriptionID: 'SubscriptionId',
+            baseUrl: 'http://baseUrl',
+            getCloudEndpointUrl: (name) => '',
+            getCloudSuffixUrl: (suffixName) => '.database.windows.net'
+        });
+    })
+
     afterEach(() => {
         jest.restoreAllMocks();
     })

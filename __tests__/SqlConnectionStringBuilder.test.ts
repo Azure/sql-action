@@ -1,4 +1,7 @@
-import { SqlConnectionStringBuilder } from "../src/SqlConnectionStringBuilder";
+import * as core from '@actions/core';
+import SqlConnectionStringBuilder from "../src/SqlConnectionStringBuilder";
+
+jest.mock('@actions/core');
 
 describe('SqlConnectionStringBuilder tests', () => {
 
@@ -34,4 +37,11 @@ describe('SqlConnectionStringBuilder tests', () => {
             expect(() => new SqlConnectionStringBuilder(connectionString)).toThrow();
         })
     })
+
+    it('should mask connection string password', () => {
+        let setSecretSpy = jest.spyOn(core, 'setSecret');
+        new SqlConnectionStringBuilder('User Id=user;Password=1234;Initial Catalog=testDB');
+
+        expect(setSecretSpy).toHaveBeenCalled();
+    });
 })

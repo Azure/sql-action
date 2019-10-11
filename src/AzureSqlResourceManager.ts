@@ -1,6 +1,6 @@
-import { IAuthorizer } from './Webclient/Authorizer/AuthorizerFactory';
-import { WebRequest } from './Webclient/WebClient';
-import AzureRestClient, { ToError, AzureError } from './WebClient/AzureRestClient'
+import { IAuthorizer } from 'azure-actions-webclient/Authorizer/IAuthorizer';
+import { WebRequest } from 'azure-actions-webclient/WebClient';
+import { ServiceClient as AzureRestClient, ToError, AzureError } from 'azure-actions-webclient/AzureRestClient'
 
 export interface AzureSqlServer {
     id: string;
@@ -30,7 +30,6 @@ export interface FirewallRule {
 }
 
 export default class AzureSqlResourceManager {
-
     private constructor(resourceAuthorizer: IAuthorizer) {
         // making the constructor private, so that object initialization can only be done by the class factory GetResourceManager
         this._authorizer = resourceAuthorizer;
@@ -119,8 +118,6 @@ export default class AzureSqlResourceManager {
             let httpResponse = await this._restClient.beginRequest(httpRequest);
 
             if (httpResponse.statusCode !== 200) {
-                console.log('httpresponse error');
-                console.log(httpResponse);
                 throw ToError(httpResponse);
             }
 

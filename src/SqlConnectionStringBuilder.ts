@@ -21,6 +21,8 @@
     ^[;\s]*{KeyValueRegex}(;[;\s]*{KeyValueRegex})*[;\s]*$
     where KeyValueRegex = ([\w\s]+=(?:('[^']*(''[^']*)*')|("[^"]*(""[^"]*)*")|((?!['"])[^;]*))))
 */
+import * as core from '@actions/core';
+
 const connectionStringParserRegex = /(?<key>[\w\s]+)=(?<val>('[^']*(''[^']*)*')|("[^"]*(""[^"]*)*")|((?!['"])[^;]*))/g 
 const connectionStringTester = /^[;\s]*([\w\s]+=(?:('[^']*(''[^']*)*')|("[^"]*(""[^"]*)*")|((?!['"])[^;]*)))(;[;\s]*([\w\s]+=(?:('[^']*(''[^']*)*')|("[^"]*(""[^"]*)*")|((?!['"])[^;]*))))*[;\s]*$/
 
@@ -32,7 +34,7 @@ export interface SqlConnectionString {
     authentication: string;
 }
 
-export class SqlConnectionStringBuilder {
+export default class SqlConnectionStringBuilder {
     constructor(connectionString: string) {
         this._connectionString = connectionString;
         this._validateConnectionString();
@@ -95,7 +97,7 @@ export class SqlConnectionStringBuilder {
                     case 'pwd': {
                         parsedConnectionString.password = val;
                         // masking the connection string password to prevent logging to console
-                        console.log(`::add-mask::${val}`);
+                        core.setSecret(val);
                         break;
                     }
                     case 'initial catalog': {

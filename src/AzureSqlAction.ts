@@ -1,7 +1,8 @@
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
-import { AzureSqlActionHelper } from './AzureSqlActionHelper';
-import { SqlConnectionStringBuilder } from './SqlConnectionStringBuilder';
+
+import AzureSqlActionHelper from './AzureSqlActionHelper';
+import SqlConnectionStringBuilder from './SqlConnectionStringBuilder';
 
 export enum ActionType {
     DacpacAction,

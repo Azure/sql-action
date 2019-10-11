@@ -7,8 +7,8 @@ import winreg from 'winreg';
 
 const IS_WINDOWS = process.platform === 'win32';
 
-export class AzureSqlActionHelper {
-
+export default class AzureSqlActionHelper {
+    
     public static async getSqlPackagePath(): Promise<string> {
         if (!!this._sqlPackagePath) {
             core.debug(`Return the cached path of SqlPackage.exe: ${this._sqlPackagePath}`);
@@ -276,7 +276,6 @@ export class AzureSqlActionHelper {
             if (!!versionSpecificRootDir) {
                 let sqlPackagePath = path.join(versionSpecificRootDir, 'Dac', 'bin', 'SqlPackage.exe');
                 if (fs.existsSync(sqlPackagePath)) {
-                    // below should be core.debug
                     core.debug(`SqlPackage.exe (installed with SSMS) found at location: ${sqlPackagePath}`);
                     return [sqlPackagePath, parseInt(registryKey.key.split("\\").slice(-1)[0])];
                 }

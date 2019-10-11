@@ -1,8 +1,9 @@
 import * as exec from '@actions/exec';
 import * as core from '@actions/core';
+
 import AzureSqlResourceManager, { FirewallRule } from './AzureSqlResourceManager';
-import { AzureSqlActionHelper } from "./AzureSqlActionHelper";
-import { SqlConnectionStringBuilder } from './SqlConnectionStringBuilder';
+import AzureSqlActionHelper from "./AzureSqlActionHelper";
+import SqlConnectionStringBuilder from './SqlConnectionStringBuilder';
 
 const ipv4MatchPattern = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/;
 
@@ -18,7 +19,7 @@ export default class FirewallManager {
             return;
         }
         
-        console.log(`Client does not have access to Sql server. Adding firewall rule for client with IP Address ${ipAddress}.`)
+        console.log(`Client does not have access to Sql server. Adding firewall exception for client's IP address.`)
         
         this._firewallRule = await this._resourceManager.addFirewallRule(ipAddress, ipAddress);
         core.debug(JSON.stringify(this._firewallRule));

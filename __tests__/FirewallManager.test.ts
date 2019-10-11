@@ -1,20 +1,12 @@
 import * as exec from '@actions/exec';
+import { AuthorizerFactory }  from 'azure-actions-webclient/AuthorizerFactory';
+
 import FirewallManager from "../src/FirewallManager";
-import AuthorizerFactory, { IAuthorizer }  from "../src/WebClient/Authorizer/AuthorizerFactory";
 import AzureSqlResourceManager from '../src/AzureSqlResourceManager'
-import { AzureSqlActionHelper } from "../src/AzureSqlActionHelper";
-import { SqlConnectionStringBuilder } from '../src/SqlConnectionStringBuilder';
+import AzureSqlActionHelper from "../src/AzureSqlActionHelper";
+import SqlConnectionStringBuilder from '../src/SqlConnectionStringBuilder';
 
-jest.mock('../src/WebClient/Authorizer/AuthorizerFactory', () => ({
-    getAuthorizer: () => ({
-        getToken: (force) => Promise.resolve('BearerToken'),
-        getActiveSubscription: () => 'SubscriptionId',
-        getCloudEndpointUrl: (name) => '',
-        getCloudSuffixUrl: (suffixName) => '.database.windows.net',
-        getResourceManagerUrl: () => ''
-    } as IAuthorizer)
-}));
-
+jest.mock('azure-actions-webclient/AuthorizerFactory');
 jest.mock('../src/AzureSqlResourceManager', () => ({
     getResourceManager: () => ({
         addFirewallRule: () => jest.fn(),
@@ -33,22 +25,24 @@ let sqlConnectionStringBuilderMock = jest.mock('../src/SqlConnectionStringBuilde
     })
 })
 
-
-describe.only('FirewallManager tests', () => {
+describe('FirewallManager tests', () => {
     let azureSqlResourceManager: AzureSqlResourceManager;
     let firewallManager: FirewallManager;
 
     beforeAll(async () => {
+        jest.spyOn(AuthorizerFactory, 'getAuthorizer').mockResolvedValue({
+            getToken: (force) => Promise.resolve('BearerToken'),
+            subscriptionID: 'SubscriptionId',
+            baseUrl: 'http://baseUrl',
+            getCloudEndpointUrl: (name) => '',
+            getCloudSuffixUrl: (suffixName) => '.database.windows.net'
+        });
+
         azureSqlResourceManager = await AzureSqlResourceManager.getResourceManager('testServer.database.windows.net', await AuthorizerFactory.getAuthorizer());    
         firewallManager = new FirewallManager(azureSqlResourceManager);
     })
 
-    afterEach(() => {
-        jest.restoreAllMocks();
-    })
-
-    describe('it adds and removes firewall rules successfully', () => {
-         
+    describe('it adds and removes firewall rules successfully', () => {     
         it('detects ip address and adds firewall rule successfully', async () => {
             let getSqlCmdPathSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlCmdPath').mockResolvedValue('SqlCmd.exe');
     
