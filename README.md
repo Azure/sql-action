@@ -18,6 +18,17 @@ The definition of this Github Action is in [action.yml](https://github.com/Azure
 
 * Authenticate using [Azure Login](https://github.com/Azure/login)
 
+For the action to run, the IP Address of the automation agent must be added to the 'Allowed IP Addresses' by setting [SQL server firewall rules](https://docs.microsoft.com/en-us/azure/sql-database/sql-database-server-level-firewall-rule) in Azure.  Without the firewall rules, the GitHub Action runner cannot communicate with Azure SQL Database.
+
+By default, the action would auto-detect the IP Address of the automation agent to automatically add firewall exception rule. These firewall rules will be deleted after the action executes.
+
+However, this auto-provisioning of firewall rules needs a pre-req that the workflow includes an `azure/login@v1` action before the `azure/sql-action@v1` Action. Also, the service principal used in the Azure logic action needs to have elevated permissions, i.e. membership in SQL Security Manager RBAC role, or a similarly high permission in the database to create the firewall rule.
+
+If the login action is not included, then the sql action would fail with a firewall exception and appropriate messaging.
+
+Alternatively, if enough permissions are not granted on the service principal or logic action is not included, then the firewall rules have to be explicitly managed by user using CLI/PS scripts.
+
+
 ## Create SQL database and deploy using GitHub Actions
 1. Follow the tutorial [Azure SQL Quickstart](https://docs.microsoft.com/en-in/azure/sql-database/sql-database-single-database-get-started?tabs=azure-portal)
 2. Pick the sql-deploy.yml template from https://github.com/Azure/actions-workflow-samples and place the template into `.github/workflows/` within your project repository.
