@@ -1,0 +1,9 @@
+on: push
+jobs:
+  trigger-integration-tests:
+    name: Trigger Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger test run
+        run: |
+          curl -X POST -H "Authorization: token ${{ secrets.TEST_REPO_TOKEN }}" https://api.github.com/repos/Azure/azure-actions-integration-tests/dispatches --data '{"event_type": "TriggerSqlActionL2Tests", "client_payload": {"action": "SqlAction", "commit": "${{ github.sha }}", "branch": "${{ github.ref }}" }}'
