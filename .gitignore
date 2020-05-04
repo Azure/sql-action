@@ -91,3 +91,6 @@ typings/
 
 # DynamoDB Local files
 .dynamodb/
+/.vs/sql-action/v16/.suo
+/.vs/ProjectSettings.json
+/.vs/slnx.sqlite

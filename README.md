@@ -83,6 +83,19 @@ jobs:
         dacpac-package: './Database.dacpac'
  ```
 
+  **Note:-** 
+ The above means you have to create secrets in GitHub which can be found within your repository within **Settings** and then **Secrets** and also
+ be careful to check the connection string which you copy from Azure SQL as the connection string has this **Password={your_password}** and you will need to supply
+ the correct password for your connection string.
+
+ ## How to create a dacpac file from your existing SQL Server Database
+ 
+ For the above action to work you will need to create a file calles Database.dacpac and place it into the root of your
+ GitHub repository. The following link will show you how to go about creating a dacpac file but make sure the file is called Database.dacpac
+
+ https://docs.microsoft.com/en-us/sql/relational-databases/data-tier-applications/export-a-data-tier-application?view=sql-server-ver15
+
+
 
 # Contributing
 
