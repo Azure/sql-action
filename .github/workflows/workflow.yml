@@ -1,6 +1,8 @@
 # .github/workflows/sql-deploy.yml
 on: [push]
 
+
+
 jobs:
   build:
     runs-on: windows-latest
