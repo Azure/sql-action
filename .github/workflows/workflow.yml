@@ -15,4 +15,4 @@ jobs:
       with:
         server-name: mysqlserver-ramullig.database.windows.net
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
-        sql-file: '*.sql'
+        sql-file: 'sql/test1.sql'
