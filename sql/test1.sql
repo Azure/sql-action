@@ -1,5 +1,5 @@
 
-
+/*
 ALTER TABLE  [SalesLT].[Customer]
 ADD Test1 varchar(255);
 
@@ -9,3 +9,4 @@ WHERE CustomerID = 1;
 
 select Test1 from [SalesLT].[Customer]
 WHERE CustomerID = 1;
+*/
