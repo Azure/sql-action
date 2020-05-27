@@ -1,12 +1,11 @@
-ALTER TABLE [SalesLT].[Customer]
-DROP COLUMN Test2;
+
 
 ALTER TABLE  [SalesLT].[Customer]
-ADD Test2 varchar(255);
+ADD Test1 varchar(255);
 
 Update [SalesLT].[Customer]
-Set Test2 = 'ray'
+Set Test1 = 'ray'
 WHERE CustomerID = 1;
 
-select Test2 from [SalesLT].[Customer]
+select Test1 from [SalesLT].[Customer]
 WHERE CustomerID = 1;
