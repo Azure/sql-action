@@ -15,10 +15,13 @@ The definition of this Github Action is in [action.yml](https://github.com/Azure
 # End-to-End Sample Workflow
 
 ## Dependencies on other Github Actions
+If *can* use the option [Allow Azure Services and resources to access this server](https://docs.microsoft.com/en-us/azure/azure-sql/database/firewall-configure#connections-from-inside-azure), you are all set and you don't need to to anything else to allow GitHub Action to connect to your Azure SQL database.
+
+If you *cannot* use the aformentioned option, additional steps are needed. 
 
 * Authenticate using [Azure Login](https://github.com/Azure/login)
 
-For the action to run, the IP Address of the GitHub Action runner (automation agent) must be added to the 'Allowed IP Addresses' by setting [SQL server firewall rules](https://docs.microsoft.com/en-us/azure/sql-database/sql-database-server-level-firewall-rule) in Azure.  Without the firewall rules, the runner cannot communicate with Azure SQL Database.
+In fact, for the action to run, the IP Address of the GitHub Action runner (automation agent) must be added to the 'Allowed IP Addresses' by setting [SQL server firewall rules](https://docs.microsoft.com/en-us/azure/sql-database/sql-database-server-level-firewall-rule) in Azure.  Without the firewall rules, the runner cannot communicate with Azure SQL Database.
 
 By default, the action would auto-detect the IP Address of the runner to automatically add firewall exception rule. These firewall rules will be deleted after the action executes.
 
@@ -28,20 +31,22 @@ If the login action is not included, then the sql action would fail with a firew
 
 Alternatively, if enough permissions are not granted on the service principal or login action is not included, then the firewall rules have to be explicitly managed by user using CLI/PS scripts.
 
-
 ## Create SQL database and deploy using GitHub Actions
 1. Follow the tutorial [Azure SQL Quickstart](https://docs.microsoft.com/en-in/azure/sql-database/sql-database-single-database-get-started?tabs=azure-portal)
 2. Copy the [SQL-on-Azure.yml template](https://github.com/Azure/actions-workflow-samples) and paste the contents into `.github/workflows/` within your project repository as `workflow.yml`.
 3. Change `server-name` to your Azure SQL Server name.
 4. Commit and push your project to GitHub repository, you should see a new GitHub Action initiated in **Actions** tab.
 
-## Configure GitHub Secrets with Azure Credentials and SQL Connection Strings
+## Configure GitHub Secrets 
 For using any sensitive data/secrets like Azure Service Principal or SQL Connection strings within an Action, add them as [secrets](https://help.github.com/en/github/automating-your-workflow-with-github-actions/virtual-environments-for-github-actions#creating-and-using-secrets-encrypted-variables) in the GitHub repository and then use them in the workflow.
 
 Follow the steps to configure the secret:
   * Define a new secret under your repository **Settings** > **Secrets** > **Add a new secret** menu
   * Paste the contents of the Secret (Example: Connection String) as Value
-  * For Azure credentials, paste the output of the below [az cli](https://docs.microsoft.com/en-us/cli/azure/?view=azure-cli-latest) command as the value of secret variable, for example 'AZURE_CREDENTIALS'
+  
+If you need to configure Azure Credentials to automatically manage firewall rules, you need to create a Service Principal, and store the related credentials into a GitHub Secrect so that it can be used by the Azure Login actions to authenticate and authorize any subsequent request.
+
+Paste the output of the below [az cli](https://docs.microsoft.com/en-us/cli/azure/?view=azure-cli-latest) command as the value of secret variable, for example 'AZURE_CREDENTIALS'
 ```bash  
 
    az ad sp create-for-rbac --name "mySQLServer" --role contributor \
