@@ -8,6 +8,7 @@ import AzureSqlResourceManager from './AzureSqlResourceManager'
 import FirewallManager from "./FirewallManager";
 import AzureSqlActionHelper from "./AzureSqlActionHelper";
 import SqlConnectionStringBuilder from "./SqlConnectionStringBuilder";
+import SqlUtils from "./SqlUtils";
 
 let userAgentPrefix = !!process.env.AZURE_HTTP_USER_AGENT ? `${process.env.AZURE_HTTP_USER_AGENT}` : "";
 
@@ -23,11 +24,13 @@ export default async function run() {
         let inputs = getInputs();
         let azureSqlAction = new AzureSqlAction(inputs);
         
-        let azureResourceAuthorizer = await AuthorizerFactory.getAuthorizer();
-        let azureSqlResourceManager = await AzureSqlResourceManager.getResourceManager(inputs.serverName, azureResourceAuthorizer);
-        firewallManager = new FirewallManager(azureSqlResourceManager);
-        
-        await firewallManager.addFirewallRule(inputs.serverName, inputs.connectionString);
+        const runnerIPAddress = await SqlUtils.detectIPAddress(inputs.serverName, inputs.connectionString);
+        if(runnerIPAddress) {
+            let azureResourceAuthorizer = await AuthorizerFactory.getAuthorizer();
+            let azureSqlResourceManager = await AzureSqlResourceManager.getResourceManager(inputs.serverName, azureResourceAuthorizer);
+            firewallManager = new FirewallManager(azureSqlResourceManager);
+            await firewallManager.addFirewallRule(runnerIPAddress);
+        }
         await azureSqlAction.execute();
     }
     catch (error) {
