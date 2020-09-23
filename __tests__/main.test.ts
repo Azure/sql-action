@@ -6,6 +6,7 @@ import AzureSqlAction from "../src/AzureSqlAction";
 import FirewallManager from "../src/FirewallManager";
 import AzureSqlActionHelper from '../src/AzureSqlActionHelper';
 import SqlConnectionStringBuilder from '../src/SqlConnectionStringBuilder';
+import SqlUtils from '../src/SqlUtils';
 
 jest.mock('@actions/core');
 jest.mock('azure-actions-webclient/AuthorizerFactory');
@@ -36,17 +37,21 @@ describe('main.ts tests', () => {
         let actionExecuteSpy = jest.spyOn(AzureSqlAction.prototype, 'execute');
         let removeFirewallRuleSpy = jest.spyOn(FirewallManager.prototype, 'removeFirewallRule');
         let setFaledSpy = jest.spyOn(core, 'setFailed');
+        let detectIPAddressSpy = SqlUtils.detectIPAddress = jest.fn().mockImplementationOnce(() => {
+            return "";
+        });
 
         await run();
 
         expect(AzureSqlAction).toHaveBeenCalled();
-        expect(getAuthorizerSpy).toHaveBeenCalled();
+        expect(detectIPAddressSpy).toHaveBeenCalled();
+        expect(getAuthorizerSpy).not.toHaveBeenCalled();
         expect(getInputSpy).toHaveBeenCalledTimes(4);
         expect(SqlConnectionStringBuilder).toHaveBeenCalled();
         expect(resolveFilePathSpy).toHaveBeenCalled();
-        expect(addFirewallRuleSpy).toHaveBeenCalled();
+        expect(addFirewallRuleSpy).not.toHaveBeenCalled();
         expect(actionExecuteSpy).toHaveBeenCalled();    
-        expect(removeFirewallRuleSpy).toHaveBeenCalled();     
+        expect(removeFirewallRuleSpy).not.toHaveBeenCalled();     
         expect(setFaledSpy).not.toHaveBeenCalled(); 
     })
 
@@ -66,17 +71,21 @@ describe('main.ts tests', () => {
         let addFirewallRuleSpy = jest.spyOn(FirewallManager.prototype, 'addFirewallRule');
         let actionExecuteSpy = jest.spyOn(AzureSqlAction.prototype, 'execute');
         let removeFirewallRuleSpy = jest.spyOn(FirewallManager.prototype, 'removeFirewallRule');
+        let detectIPAddressSpy = SqlUtils.detectIPAddress = jest.fn().mockImplementationOnce(() => {
+            return "";
+        });
 
         await run();
 
         expect(AzureSqlAction).toHaveBeenCalled();
-        expect(getAuthorizerSpy).toHaveBeenCalled();
+        expect(detectIPAddressSpy).toHaveBeenCalled();
+        expect(getAuthorizerSpy).not.toHaveBeenCalled();
         expect(getInputSpy).toHaveBeenCalledTimes(5);
         expect(SqlConnectionStringBuilder).toHaveBeenCalled();
         expect(resolveFilePathSpy).toHaveBeenCalled();
-        expect(addFirewallRuleSpy).toHaveBeenCalled();
+        expect(addFirewallRuleSpy).not.toHaveBeenCalled();
         expect(actionExecuteSpy).toHaveBeenCalled();    
-        expect(removeFirewallRuleSpy).toHaveBeenCalled();      
+        expect(removeFirewallRuleSpy).not.toHaveBeenCalled();      
         expect(setFaledSpy).not.toHaveBeenCalled(); 
     })
 
@@ -93,11 +102,15 @@ describe('main.ts tests', () => {
                 default: return '';
             }
         }); 
+        let detectIPAddressSpy = SqlUtils.detectIPAddress = jest.fn().mockImplementationOnce(() => {
+            return "";
+        });
 
         let setFaledSpy = jest.spyOn(core, 'setFailed');
         await run();
 
         expect(AzureSqlAction).not.toHaveBeenCalled();
+        expect(detectIPAddressSpy).not.toHaveBeenCalled();
         expect(setFaledSpy).toHaveBeenCalledWith('Unable to find file at location'); 
     })
 })
