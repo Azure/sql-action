@@ -1,4 +1,5 @@
-# GitHub Action for deploying updates to Azure SQL database
+# Azure SQL Action for GitHub
+> GitHub Action for deploying updates to Azure SQL database
 
 With the Azure SQL Action for GitHub, you can automate your workflow to deploy updates to [Azure SQL database](https://azure.microsoft.com/en-in/services/sql-database/).
 
