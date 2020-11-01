@@ -103,7 +103,7 @@ the correct password for your connection string.
 For the above action to work, you will need to create a file called `Database.dacpac` and place it into the root of your
 GitHub repository. The following link will show you how to go about creating a dacpac file but make sure the file is called `Database.dacpac`.
 
-[Export a data tier application - MS docs](https://docs.microsoft.com/en-us/sql/relational-databases/data-tier-applications/export-a-data-tier-application?view=sql-server-ver15)
+[Export a Data-tier application](https://docs.microsoft.com/en-us/sql/relational-databases/data-tier-applications/export-a-data-tier-application?view=sql-server-ver15)
 
 ## Contributing
 
