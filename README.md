@@ -105,7 +105,7 @@ GitHub repository. The following link will show you how to go about creating a d
 
 [Export a Data-tier application](https://docs.microsoft.com/en-us/sql/relational-databases/data-tier-applications/export-a-data-tier-application?view=sql-server-ver15)
 
-Azure SQL Action for GitHub is supported on  'AzureUSGovernment' .Login to the respective Azure Cloud before this using [Azure Login](https://github.com/Azure/login)
+Azure SQL Action for GitHub is supported on 'AzureUSGovernment' .Login to the respective Azure Cloud before this using [Azure Login](https://github.com/Azure/login)
 
 ## Contributing
 
