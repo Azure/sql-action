@@ -27,7 +27,7 @@ In fact, for the action to run, the IP Address of the GitHub Action runner (auto
 
 By default, the action would auto-detect the IP Address of the runner to automatically add firewall exception rule. These firewall rules will be deleted after the action executes.
 
-However, this auto-provisioning of firewall rules needs a pre-req that the workflow includes an `azure/login@v1` action before the `azure/sql-action@v1` Action. Also, the service principal used in the Azure logic action needs to have elevated permissions, i.e. membership in SQL Security Manager RBAC role, or a similarly high permission in the database to create the firewall rule.
+However, this auto-provisioning of firewall rules needs a pre-req that the workflow includes an `azure/login@v1` action before the `azure/sql-action@v1` Action. Also, the service principal used in the Azure login action needs to have elevated permissions, i.e. membership in SQL Security Manager RBAC role, or a similarly high permission in the database to create the firewall rule.
 
 If the login action is not included, then the sql action would fail with a firewall exception and appropriate messaging.
 
