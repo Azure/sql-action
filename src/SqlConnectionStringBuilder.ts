@@ -120,8 +120,8 @@ export default class SqlConnectionStringBuilder {
             }
         }
 
-        if (!parsedConnectionString.userId || !parsedConnectionString.password || !parsedConnectionString.database) {
-            throw new Error(`Missing required keys in connection string. Please ensure that the keys 'User Id', 'Password', 'Initial Catalog' are provided in the connection string.`);
+        if (!parsedConnectionString.userId || !parsedConnectionString.password || !parsedConnectionString.database || !parsedConnectionString.server) {
+            throw new Error(`Missing required keys in connection string. Please ensure that the keys 'User Id', 'Password', 'Initial Catalog' and 'Server' are provided in the connection string.`);
         }
 
         return parsedConnectionString;
