@@ -48,11 +48,14 @@ export default async function run() {
 
 function getInputs(): IActionInputs {
     core.debug('Get action inputs.');
-    let serverName = core.getInput('server-name', { required: true });
     
     let connectionString = core.getInput('connection-string', { required: true });
     let connectionStringBuilder = new SqlConnectionStringBuilder(connectionString);
-    
+    let serverName = connectionStringBuilder.server;
+    if (!!serverName) {
+        throw new Error(`Server address not found in the provided connection-string`);
+    }
+
     let additionalArguments = core.getInput('arguments');
     let dacpacPackage = core.getInput('dacpac-package');
 

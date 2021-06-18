@@ -7,7 +7,7 @@ let sqlConnectionStringBuilderMock = jest.mock('../src/SqlConnectionStringBuilde
     return ((connectionString) => {
         return {
             connectionString: connectionString,
-            userId: 'testUder',
+            userId: 'testUser',
             password: 'testPassword',
             database: 'testDB'
         }
@@ -56,7 +56,7 @@ describe('AzureSqlAction tests', () => {
 
         expect(getSqlCmdPathSpy).toHaveBeenCalledTimes(1);
         expect(execSpy).toHaveBeenCalledTimes(1);
-        expect(execSpy).toHaveBeenCalledWith(`"SqlCmd.exe" -S testServer.database.windows.net -d testDB -U "testUser" -P "testPassword" -i "./TestFile.sql" -t 20`);
+        expect(execSpy).toHaveBeenCalledWith(`"SqlCmd.exe" -S tcp:testServer.database.windows.net:1433 -d testDB -U "testUser" -P "testPassword" -i "./TestFile.sql" -t 20`);
     });
 
     it('throws if SqlCmd.exe fails to execute sql', async () => {
@@ -72,12 +72,14 @@ describe('AzureSqlAction tests', () => {
 });
 
 function getInputs(actionType: ActionType) {
+    var conn = new SqlConnectionStringBuilder('Server=tcp:testServer.database.windows.net:1433;Initial Catalog=testDB;User Id=testUser;Password=testPassword')
+
     switch(actionType) {
         case ActionType.DacpacAction: {
             return{
-                serverName: 'testServer.database.windows.net',
+                serverName: conn.server,
                 actionType: ActionType.DacpacAction,
-                connectionString: new SqlConnectionStringBuilder('Server=tcp:testServer.database.windows.net, 1443;Initial Catalog=testDB;User Id=testUser;Password=testPassword'),
+                connectionString: conn,
                 dacpacPackage: './TestPackage.dacpac',
                 sqlpackageAction: SqlPackageAction.Publish,
                 additionalArguments: '/TargetTimeout:20'
@@ -85,9 +87,9 @@ function getInputs(actionType: ActionType) {
         }
         case ActionType.SqlAction: {
             return {
-                serverName: 'testServer.database.windows.net',
+                serverName: conn.server,
                 actionType: ActionType.SqlAction,
-                connectionString: new SqlConnectionStringBuilder('Server=tcp:testServer.database.windows.net, 1443;Initial Catalog=testDB;User Id=testUser;Password=testPassword'),
+                connectionString: conn,
                 sqlFile: './TestFile.sql',
                 additionalArguments: '-t 20'
             } as ISqlActionInputs;
