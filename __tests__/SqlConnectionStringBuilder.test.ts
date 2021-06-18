@@ -32,7 +32,11 @@ describe('SqlConnectionStringBuilder tests', () => {
             [`Server=test1.database.windows.net;User Id=user;Password='abc;1""2"adf=33;Initial catalog=testdb`, 'validates values beginning with single quote but not ending with single quote'],
             [`Server=test1.database.windows.net;User Id=user;Password="abc;1""2"adf(012j^72''asj;')'=33";Initial catalog=testdb`, 'validates values enclosed in double quotes but does not escape double quotes in between'],
             [`Server=test1.database.windows.net;User Id=user;Password='ab""c;1'2''"''adf("0""12j^72''asj;'')''=33';Initial catalog=testdb`, 'validates values enclosed in single quotes but does not escape single quotes in between'],
-            [`Server=test1.database.windows.net;User Id=user;Password=NotANormal123@;#$password;Initial catalog=testdb`, 'validates values not enclosed in quotes and containing semi-colon']
+            [`Server=test1.database.windows.net;User Id=user;Password=NotANormal123@;#$password;Initial catalog=testdb`, 'validates values not enclosed in quotes and containing semi-colon'],
+            [`User Id=user;Password=password;Initial catalog=testdb`, 'missing server'],
+            [`Server=test1.database.windows.net;Password=password;Initial catalog=testdb`, 'missing user id'],
+            [`Server=test1.database.windows.net;User Id=user;Initial catalog=testdb`, 'missing password'],
+            [`Server=test1.database.windows.net;User Id=user;Password=password;`, 'missing initial catalog']
         ];
 
         it.each(invalidConnectionStrings)('Input `%s` %s', (connectionString) => {
