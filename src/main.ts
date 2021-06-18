@@ -52,7 +52,7 @@ function getInputs(): IActionInputs {
     let connectionString = core.getInput('connection-string', { required: true });
     let connectionStringBuilder = new SqlConnectionStringBuilder(connectionString);
     let serverName = connectionStringBuilder.server;
-    if (!!serverName) {
+    if (!serverName) {
         throw new Error(`Server address not found in the provided connection-string`);
     }
 
