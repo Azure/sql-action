@@ -72,14 +72,14 @@ describe('AzureSqlAction tests', () => {
 });
 
 function getInputs(actionType: ActionType) {
-    var conn = new SqlConnectionStringBuilder('Server=tcp:testServer.database.windows.net:1433;Initial Catalog=testDB;User Id=testUser;Password=testPassword')
+    let connectionString = new SqlConnectionStringBuilder('Server=tcp:testServer.database.windows.net:1433;Initial Catalog=testDB;User Id=testUser;Password=testPassword')
 
     switch(actionType) {
         case ActionType.DacpacAction: {
             return{
-                serverName: conn.server,
+                serverName: connectionString.server,
                 actionType: ActionType.DacpacAction,
-                connectionString: conn,
+                connectionString: connectionString,
                 dacpacPackage: './TestPackage.dacpac',
                 sqlpackageAction: SqlPackageAction.Publish,
                 additionalArguments: '/TargetTimeout:20'
@@ -87,9 +87,9 @@ function getInputs(actionType: ActionType) {
         }
         case ActionType.SqlAction: {
             return {
-                serverName: conn.server,
+                serverName: connectionString.server,
                 actionType: ActionType.SqlAction,
-                connectionString: conn,
+                connectionString: connectionString,
                 sqlFile: './TestFile.sql',
                 additionalArguments: '-t 20'
             } as ISqlActionInputs;
