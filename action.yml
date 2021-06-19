@@ -1,9 +1,6 @@
 name: 'Azure SQL Deploy'
 description: 'Deploy a DACPAC or a SQL script to Azure SQL database'
 inputs:
-  server-name:
-    description: 'Name of the Azure SQL Server name, like Fabrikam.database.windows.net.'
-    required: true
   connection-string:
     description:  'The connection string, including authentication information, for the Azure SQL Server database.'
     required: true
