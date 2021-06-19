@@ -36,8 +36,9 @@ Alternatively, if enough permissions are not granted on the service principal or
 ### Create SQL database and deploy using GitHub Actions
 
 1. Follow the tutorial [Azure SQL Quickstart](https://docs.microsoft.com/azure/sql-database/sql-database-single-database-get-started?tabs=azure-portal)
-2. Copy the [SQL-on-Azure.yml template](https://github.com/Azure/actions-workflow-samples) and paste the contents in `.github/workflows/` in your project repository as `workflow.yml`.
-3. Commit and push your project to GitHub repository, you should see a new GitHub Action initiated in **Actions** tab.
+1. Copy the [SQL-on-Azure.yml template](https://github.com/Azure/actions-workflow-samples) and paste the contents in `.github/workflows/` in your project repository as `workflow.yml`.
+1. Update the connection string with your values. Connection string format is: `Server=<server.database.windows.net>;User ID=<user>;Password=<password>;Initial Catalog=<database>`
+1. Commit and push your project to GitHub repository, you should see a new GitHub Action initiated in **Actions** tab.
 
 ### Configure GitHub Secrets
 
