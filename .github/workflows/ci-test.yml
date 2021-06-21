@@ -10,10 +10,10 @@ jobs:
       if: contains(github.event.pull_request.labels.*.name, 'wf-test')
       runs-on: windows-latest
       steps:
-      - uses: actions/checkout@v2
-      - uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+#       - uses: actions/checkout@v2
+#       - uses: azure/login@v1
+#         with:
+#           creds: ${{ secrets.AZURE_CREDENTIALS }}
             
       - uses: actions/checkout@v2
 #       if: steps.job-type.outputs.type == 'cron'
