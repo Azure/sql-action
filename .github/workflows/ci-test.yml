@@ -1,20 +1,12 @@
 name: ci-test
 
 on:
-  push:
-    branches:
-      - master
-      - dev
-      - releases/*
-    paths-ignore:
-      - '**.md'
   pull_request:
-    types: [labeled]
       
 jobs:
 
     deploy:
-      if: ${{ github.event.label.name == 'test-wf' }}
+#       if: ${{ github.event.label.name == 'test-wf' }}
       runs-on: windows-latest
       steps:
       - uses: actions/checkout@v2
