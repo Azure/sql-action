@@ -3,6 +3,9 @@ name: pr-test
 on:
   pull_request_target:
     types: [labeled, opened]
+    branches:
+      - master
+      - 'releases/*'
       
 jobs:
 
