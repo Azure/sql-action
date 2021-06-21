@@ -49,9 +49,11 @@ export default async function run() {
 function getInputs(): IActionInputs {
     core.debug('Get action inputs.');
     
+    let serverName = core.getInput('server-name', { required: false });
+
     let connectionString = core.getInput('connection-string', { required: true });
     let connectionStringBuilder = new SqlConnectionStringBuilder(connectionString);
-    let serverName = connectionStringBuilder.server;    
+    if (connectionStringBuilder.server) serverName = connectionStringBuilder.server;    
 
     let additionalArguments = core.getInput('arguments');
     let dacpacPackage = core.getInput('dacpac-package');
@@ -62,6 +64,10 @@ function getInputs(): IActionInputs {
             throw new Error(`Invalid dacpac file path provided as input ${dacpacPackage}`);
         }
 
+        if (!serverName) {
+            throw new Error(`Missing server name or address in the configuration.`);
+        }
+    
         return {
             serverName: serverName,
             connectionString: connectionStringBuilder,
@@ -77,6 +83,10 @@ function getInputs(): IActionInputs {
         sqlFilePath = AzureSqlActionHelper.resolveFilePath(sqlFilePath);
         if (path.extname(sqlFilePath).toLowerCase() !== '.sql') {
             throw new Error(`Invalid sql file path provided as input ${sqlFilePath}`);
+        }
+
+        if (!serverName) {
+            throw new Error(`Missing server name or address in the configuration.`);
         }
 
         return {

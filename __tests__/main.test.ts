@@ -23,7 +23,8 @@ describe('main.ts tests', () => {
     it('gets inputs and executes dacpac action', async () => {
         let resolveFilePathSpy = jest.spyOn(AzureSqlActionHelper, 'resolveFilePath').mockReturnValue('./TestDacpacPackage.dacpac');
         let getInputSpy = jest.spyOn(core, 'getInput').mockImplementation((name, options) => {
-            switch(name) {                
+            switch(name) {               
+                case 'server-name': return 'testServer.database.windows.net';
                 case 'connection-string': return 'Server=tcp:testServer.database.windows.net, 1433;Initial Catalog=testDB;User Id=testUser;Password=testPassword;';
                 case 'dacpac-package': return './TestDacpacPackage.dacpac';
             }
@@ -45,7 +46,7 @@ describe('main.ts tests', () => {
         expect(AzureSqlAction).toHaveBeenCalled();
         expect(detectIPAddressSpy).toHaveBeenCalled();
         expect(getAuthorizerSpy).not.toHaveBeenCalled();
-        expect(getInputSpy).toHaveBeenCalledTimes(3);
+        expect(getInputSpy).toHaveBeenCalledTimes(4);
         expect(SqlConnectionStringBuilder).toHaveBeenCalled();
         expect(resolveFilePathSpy).toHaveBeenCalled();
         expect(addFirewallRuleSpy).not.toHaveBeenCalled();
@@ -58,6 +59,7 @@ describe('main.ts tests', () => {
         let resolveFilePathSpy = jest.spyOn(AzureSqlActionHelper, 'resolveFilePath').mockReturnValue('./TestSqlFile.sql');
         let getInputSpy = jest.spyOn(core, 'getInput').mockImplementation((name, options) => {
             switch(name) {
+                case 'server-name': return 'testServer.database.windows.net';
                 case 'connection-string': return 'Server=tcp:testServer.database.windows.net, 1433;Initial Catalog=testDB;User Id=testUser;Password=testPassword;';
                 case 'sql-file': return './TestSqlFile.sql';
                 default: return '';
@@ -78,7 +80,7 @@ describe('main.ts tests', () => {
         expect(AzureSqlAction).toHaveBeenCalled();
         expect(detectIPAddressSpy).toHaveBeenCalled();
         expect(getAuthorizerSpy).not.toHaveBeenCalled();
-        expect(getInputSpy).toHaveBeenCalledTimes(4);
+        expect(getInputSpy).toHaveBeenCalledTimes(5);
         expect(SqlConnectionStringBuilder).toHaveBeenCalled();
         expect(resolveFilePathSpy).toHaveBeenCalled();
         expect(addFirewallRuleSpy).not.toHaveBeenCalled();
@@ -94,6 +96,7 @@ describe('main.ts tests', () => {
         
         jest.spyOn(core, 'getInput').mockImplementation((name, options) => {
             switch(name) {
+                case 'server-name': return 'testServer.database.windows.net';
                 case 'connection-string': return 'Server=tcp:testServer.database.windows.net, 1433;Initial Catalog=testDB;User Id=testUser;Password=testPassword;';
                 case 'sql-file': return './TestSqlFile.sql';
                 default: return '';
