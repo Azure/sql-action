@@ -1,7 +1,8 @@
 name: ci-test
 
 on:
-  pull_request:
+  pull_request_target:
+    types: [labeled, opened]
       
 jobs:
 
