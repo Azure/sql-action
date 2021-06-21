@@ -10,8 +10,6 @@ on:
       - '**.md'
   pull_request_target:
     types: [labeled]
-    paths-ignore:
-      - '**.md'
       
 jobs:
     build:
