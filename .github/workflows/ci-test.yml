@@ -8,15 +8,13 @@ on:
       - releases/*
     paths-ignore:
       - '**.md'
-  pull_request_target:
+  pull_request:
     types: [labeled]
       
 jobs:
-    build:
-       if: ${{ github.event.label.name == 'test-wf' }}
-       runs-on: windows-latest
 
     deploy:
+      if: ${{ github.event.label.name == 'test-wf' }}
       runs-on: windows-latest
       steps:
       - uses: actions/checkout@v2
