@@ -25,8 +25,16 @@ jobs:
       - uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
+            
+      - uses: actions/checkout@v2
+#       if: steps.job-type.outputs.type == 'cron'
+        name: Checkout from PR branch
 
-      - uses: azure/sql-action@v1
+      - name: Building latest changes
+        run: |
+          npm install --prod
+
+      - uses: ./
         with:
           connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
           sql-file: testsql.sql
