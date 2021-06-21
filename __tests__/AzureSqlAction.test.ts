@@ -3,17 +3,6 @@ import AzureSqlAction, { IDacpacActionInputs, ISqlActionInputs, ActionType, SqlP
 import AzureSqlActionHelper from "../src/AzureSqlActionHelper";
 import SqlConnectionStringBuilder from '../src/SqlConnectionStringBuilder';
 
-let sqlConnectionStringBuilderMock = jest.mock('../src/SqlConnectionStringBuilder', () => {
-    return ((connectionString) => {
-        return {
-            connectionString: connectionString,
-            userId: 'testUser',
-            password: 'testPassword',
-            database: 'testDB'
-        }
-    })
-})
-
 describe('AzureSqlAction tests', () => {
     afterEach(() => {
        jest.restoreAllMocks();
@@ -76,7 +65,7 @@ function getInputs(actionType: ActionType) {
 
     switch(actionType) {
         case ActionType.DacpacAction: {
-            return{
+            return {
                 serverName: connectionString.server,
                 actionType: ActionType.DacpacAction,
                 connectionString: connectionString,
