@@ -57,6 +57,10 @@ export default class SqlConnectionStringBuilder {
         return this._parsedConnectionString.database;
     }
 
+    public get server(): string {
+        return this._parsedConnectionString.server;
+    }
+
     private _validateConnectionString() {
         if (!connectionStringTester.test(this._connectionString)) {
             throw new Error('Invalid connection string. A valid connection string is a series of keyword/value pairs separated by semi-colons. If there are any special characters like quotes, semi-colons in the keyword value, enclose the value within quotes. Refer this link for more info on conneciton string https://aka.ms/sqlconnectionstring');
@@ -116,8 +120,8 @@ export default class SqlConnectionStringBuilder {
             }
         }
 
-        if (!parsedConnectionString.userId || !parsedConnectionString.password || !parsedConnectionString.database) {
-            throw new Error(`Missing required keys in connection string. Please ensure that the keys 'User Id', 'Password', 'Initial Catalog' are provided in the connection string.`);
+        if (!parsedConnectionString.userId || !parsedConnectionString.password || !parsedConnectionString.database || !parsedConnectionString.server) {
+            throw new Error(`Missing required keys in connection string. Please ensure that the keys 'User Id', 'Password', 'Initial Catalog' and 'Server' are provided in the connection string.`);
         }
 
         return parsedConnectionString;
