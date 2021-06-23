@@ -87,6 +87,7 @@ jobs:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
     - uses: azure/sql-action@v1
       with:        
+        server-name: REPLACE_THIS_WITH_YOUR_SQL_SERVER_NAME
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         dacpac-package: './Database.dacpac'
 ```
@@ -94,6 +95,8 @@ jobs:
 **Note:**
 
 The above means you have to create secrets in GitHub which can be found within your repository within **Settings** and then **Secrets** and also be careful to check the connection string which you copy from Azure SQL as the connection string has this **Password={your_password}** and you will need to supply the correct password for your connection string.
+
+The `server-name` is optional and is there only to provide backward compatibility. It is strongly recommended to put the server name in the connection string. The connection string uses this template: `Server=<servername>; User ID=<user_id>; Password=<password>; Initial Catalog=<database>`. In case the server name is put both in the `server-name` and in the `connection-string`, the server name used will be the one specified in the `server-name` YAML key.
 
 ### How to create a .dacpac file from your existing SQL Server Database
 
