@@ -53,7 +53,7 @@ function getInputs(): IActionInputs {
 
     let connectionString = core.getInput('connection-string', { required: true });
     let connectionStringBuilder = new SqlConnectionStringBuilder(connectionString);
-    if (connectionStringBuilder.server) serverName = connectionStringBuilder.server;    
+    if (!serverName) serverName = connectionStringBuilder.server;    
 
     let additionalArguments = core.getInput('arguments');
     let dacpacPackage = core.getInput('dacpac-package');
