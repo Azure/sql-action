@@ -53,6 +53,11 @@ function getInputs(): IActionInputs {
 
     let connectionString = core.getInput('connection-string', { required: true });
     let connectionStringBuilder = new SqlConnectionStringBuilder(connectionString);
+    
+    if ((!!serverName && !!connectionStringBuilder.server) && (serverName != connectionStringBuilder.server)) 
+        core.debug("'server-name' is conflicting with 'server' property specified in the connection string. 'server-name' will take precedence.");
+    
+    // if serverName has not been specified, use the server name from the connection string
     if (!serverName) serverName = connectionStringBuilder.server;    
 
     let additionalArguments = core.getInput('arguments');
