@@ -16,7 +16,7 @@ jobs:
 
       - name: Installing node_modules
         run: |
-          npm install --prod
+          npm install
           
       - name: Build GitHub Action
         run: npm run build
