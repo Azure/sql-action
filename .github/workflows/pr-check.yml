@@ -21,6 +21,10 @@ jobs:
       - name: Build GitHub Action
         run: npm run build
 
+      - uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          
       - uses: ./
         with:
           server-name: sql-action-test-server.database.windows.net
