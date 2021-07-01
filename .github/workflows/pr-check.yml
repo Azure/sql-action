@@ -2,9 +2,9 @@ name: pr-check
 
 on:
   pull_request_target:
-    branches:
-      - master
-      - 'releases/*'
+#     branches:
+#       - master
+#       - 'releases/*'
       
 jobs:
     deploy:
