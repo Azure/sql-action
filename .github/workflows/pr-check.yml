@@ -14,9 +14,12 @@ jobs:
       - name: Checkout from PR branch  
         uses: actions/checkout@v2
 
-      - name: Building latest changes
+      - name: Installing node_modules
         run: |
           npm install --prod
+          
+      - name: Build GitHub Action
+        run: npm run build
 
       - uses: ./
         with:
