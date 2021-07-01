@@ -2,7 +2,6 @@ name: pr-test
 
 on:
   pull_request_target:
-    types: [labeled, opened]
     branches:
       - master
       - 'releases/*'
@@ -10,7 +9,7 @@ on:
 jobs:
 
     deploy:
-      if: contains(github.event.pull_request.labels.*.name, 'safe to run test')
+      environment: Automation test
       runs-on: windows-latest
       steps:
       - name: Checkout from PR branch  
