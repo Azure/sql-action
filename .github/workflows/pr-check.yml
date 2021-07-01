@@ -1,4 +1,4 @@
-name: pr-test
+name: pr-check
 
 on:
   pull_request_target:
