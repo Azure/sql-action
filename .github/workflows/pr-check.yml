@@ -13,6 +13,8 @@ jobs:
       steps:
       - name: Checkout from PR branch  
         uses: actions/checkout@v2
+        with: 
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Installing node_modules
         run: |
