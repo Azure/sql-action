@@ -9,7 +9,10 @@ on:
 jobs:
     deploy:
       environment: Automation test
-      runs-on: windows-latest
+      runs-on: ${{ matrix.os }}
+      strategy:
+        matrix:
+          os: [windows-latest, ubuntu-latest]
       steps:
       - name: Checkout from PR branch  
         uses: actions/checkout@v2
