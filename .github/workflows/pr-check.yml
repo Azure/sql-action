@@ -9,10 +9,31 @@ on:
 jobs:
     deploy:
       environment: Automation test
-      runs-on: ${{ matrix.os }}
-      strategy:
-        matrix:
-          os: [windows-latest]
+      runs-on: windows-latest
+      steps:
+      - name: Checkout from PR branch  
+        uses: actions/checkout@v2
+
+      - name: Installing node_modules
+        run: |
+          npm install
+          
+      - name: Build GitHub Action
+        run: npm run build
+
+      - uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          
+      - uses: ./
+        with:
+          server-name: sql-action-test-server.database.windows.net
+          connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+          sql-file: ./testsql.sql
+
+    deploy:
+      environment: Automation test
+      runs-on: ubuntu-latest
       steps:
       - name: Checkout from PR branch  
         uses: actions/checkout@v2
