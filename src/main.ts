@@ -87,8 +87,25 @@ function getInputs(): IActionInputs {
             additionalArguments: additionalArguments
         } as ISqlActionInputs;
     }
+
+    let sqlProjPath = core.getInput('project-file');
+    if (!!sqlProjPath) {
+        sqlProjPath = AzureSqlActionHelper.resolveFilePath(sqlProjPath);
+        if (path.extname(sqlFilePath).toLowerCase() !== '.sqlproj') {
+            throw new Error(`Invalid database project file path provided as input ${sqlFilePath}`);
+        }
+
+        return {
+            serverName: serverName,
+            connectionString: connectionStringBuilder,
+            dacpacPackage: dacpacPackage,
+            sqlpackageAction: SqlPackageAction.Publish,
+            actionType: ActionType.DacpacAction,
+            additionalArguments: additionalArguments
+        } as IDacpacActionInputs;
+    }
   
-    throw new Error('Required SQL file or DACPAC package to execute action.');
+    throw new Error('Required SQL file, DACPAC package, or database project file to execute action.');
 }
 
 run();
