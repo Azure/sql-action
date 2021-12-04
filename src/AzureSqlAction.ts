@@ -18,7 +18,7 @@ export interface IActionInputs {
 
 export interface IDacpacActionInputs extends IActionInputs {
     dacpacPackage: string;
-    sqlpackageAction: SqlPackageAction; 
+    sqlpackageAction: SqlPackageAction;
 }
 
 export interface ISqlActionInputs extends IActionInputs {

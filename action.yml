@@ -11,6 +11,8 @@ inputs:
     description: 'Path to DACPAC file to deploy'
   sql-file:
     description: 'Path to SQL script file to deploy'
+  project-file:
+    description: 'Path to the SQL database project file to deploy'
   arguments:
     description: 'In case DACPAC option is selected, additional SqlPackage.exe arguments that will be applied. When SQL query option is selected, additional sqlcmd.exe arguments will be applied.'
 runs:
