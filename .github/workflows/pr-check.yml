@@ -33,6 +33,6 @@ jobs:
           
       - uses: ./
         with:
-          server-name: sql-action-test-server.database.windows.net
-          connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+          server-name: sql-action.database.windows.net
+          connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
           sql-file: ./testsql.sql
