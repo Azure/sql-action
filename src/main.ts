@@ -9,6 +9,7 @@ import FirewallManager from "./FirewallManager";
 import AzureSqlActionHelper from "./AzureSqlActionHelper";
 import SqlConnectionStringBuilder from "./SqlConnectionStringBuilder";
 import SqlUtils from "./SqlUtils";
+import Constants from "./Constants";
 
 let userAgentPrefix = !!process.env.AZURE_HTTP_USER_AGENT ? `${process.env.AZURE_HTTP_USER_AGENT}` : "";
 
@@ -58,7 +59,7 @@ function getInputs(): IActionInputs {
 
     if (!!dacpacPackage) {
         dacpacPackage = AzureSqlActionHelper.resolveFilePath(dacpacPackage);
-        if (path.extname(dacpacPackage).toLowerCase() !== '.dacpac') {
+        if (path.extname(dacpacPackage).toLowerCase() !== Constants.dacpacExtension) {
             throw new Error(`Invalid dacpac file path provided as input ${dacpacPackage}`);
         }
 
@@ -91,7 +92,7 @@ function getInputs(): IActionInputs {
     let sqlProjPath = core.getInput('project-file');
     if (!!sqlProjPath) {
         sqlProjPath = AzureSqlActionHelper.resolveFilePath(sqlProjPath);
-        if (path.extname(sqlFilePath).toLowerCase() !== '.sqlproj') {
+        if (path.extname(sqlFilePath).toLowerCase() !== Constants.sqlprojExtension) {
             throw new Error(`Invalid database project file path provided as input ${sqlFilePath}`);
         }
 
