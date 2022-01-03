@@ -7,7 +7,7 @@ let sqlConnectionStringBuilderMock = jest.mock('../src/SqlConnectionStringBuilde
     return ((connectionString) => {
         return {
             connectionString: connectionString,
-            userId: 'testUder',
+            userId: 'testUser',
             password: 'testPassword',
             database: 'testDB'
         }
@@ -40,11 +40,11 @@ describe('AzureSqlAction tests', () => {
         let getSqlPackagePathSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlPackagePath').mockResolvedValue('SqlPackage.exe');
         jest.spyOn(exec, 'exec').mockRejectedValue(1); 
         
-        expect(action.execute()).rejects;
+        expect(action.execute().catch(() => null)).rejects;
         expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('executes sal action for SqlAction type', async () => {
+    it('executes sql action for SqlAction type', async () => {
         let inputs = getInputs(ActionType.SqlAction) as ISqlActionInputs;
         inputs.additionalArguments = '-t 20'
         let action = new AzureSqlAction(inputs);
@@ -64,9 +64,9 @@ describe('AzureSqlAction tests', () => {
         let action = new AzureSqlAction(inputs);
 
         let getSqlCmdPathSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlCmdPath').mockResolvedValue('SqlCmd.exe');
-        jest.spyOn(exec, 'exec').mockRejectedValue(1); 
-        
-        expect(action.execute()).rejects;
+        jest.spyOn(exec, 'exec').mockRejectedValue(1);
+
+        expect(action.execute().catch(() => null)).rejects;
         expect(getSqlCmdPathSpy).toHaveBeenCalledTimes(1);
     });
 });
@@ -77,7 +77,7 @@ function getInputs(actionType: ActionType) {
             return{
                 serverName: 'testServer.database.windows.net',
                 actionType: ActionType.DacpacAction,
-                connectionString: new SqlConnectionStringBuilder('Server=tcp:testServer.database.windows.net, 1443;Initial Catalog=testDB;User Id=testUser;Password=testPassword'),
+                connectionString: new SqlConnectionStringBuilder('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=testPassword'),
                 dacpacPackage: './TestPackage.dacpac',
                 sqlpackageAction: SqlPackageAction.Publish,
                 additionalArguments: '/TargetTimeout:20'
@@ -87,7 +87,7 @@ function getInputs(actionType: ActionType) {
             return {
                 serverName: 'testServer.database.windows.net',
                 actionType: ActionType.SqlAction,
-                connectionString: new SqlConnectionStringBuilder('Server=tcp:testServer.database.windows.net, 1443;Initial Catalog=testDB;User Id=testUser;Password=testPassword'),
+                connectionString: new SqlConnectionStringBuilder('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=testPassword'),
                 sqlFile: './TestFile.sql',
                 additionalArguments: '-t 20'
             } as ISqlActionInputs;
