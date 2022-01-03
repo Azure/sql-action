@@ -12,7 +12,7 @@ inputs:
   sql-file:
     description: 'Path to SQL script file to deploy'
   arguments:
-    description: 'In case DACPAC option is selected, additional SqlPackage.exe arguments that will be applied. When SQL query option is selected, additional sqlcmd.exe arguments will be applied.'
+    description: 'In case DACPAC option is selected, additional SqlPackage arguments that will be applied. When SQL query option is selected, additional sqlcmd arguments will be applied.'
 runs:
   using: 'node12'
   main: 'lib/main.js'
