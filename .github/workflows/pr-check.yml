@@ -38,7 +38,6 @@ jobs:
           server-name: sql-action.database.windows.net
           connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
           dacpac-package: ./__testdata__/sql-action.dacpac
-          arguments: '/p:DatabaseEdition=Basic'
 
       # Executes testsql.sql via SQLCMD on server
       - name: Tests SQL Action
