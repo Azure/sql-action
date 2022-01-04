@@ -88,7 +88,7 @@ jobs:
     - uses: azure/sql-action@v1
       with:
         server-name: REPLACE_THIS_WITH_YOUR_SQL_SERVER_NAME
-        connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+        connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         dacpac-package: './Database.dacpac'
 ```
 

@@ -63,6 +63,10 @@ export default class AzureSqlAction {
 
             // Reuse DacpacAction for publish
             const publishInputs = {
+                serverName: this._inputs.serverName,
+                actionType: ActionType.DacpacAction,
+                connectionString: this._inputs.connectionString,
+                additionalArguments: this._inputs.additionalArguments,
                 dacpacPackage: dacpacPath,
                 sqlpackageAction: SqlPackageAction.Publish
             } as IDacpacActionInputs;
@@ -73,13 +77,13 @@ export default class AzureSqlAction {
         }
     }
 
-    private async _executeDacpacAction(inputs: IDacpacActionInputs) {   
+    private async _executeDacpacAction(inputs: IDacpacActionInputs) {
         core.debug('Begin executing action')
         let sqlPackagePath = await AzureSqlActionHelper.getSqlPackagePath();
         let sqlPackageArgs = this._getSqlPackageArguments(inputs);
 
         await exec.exec(`"${sqlPackagePath}" ${sqlPackageArgs}`);
-       
+
         console.log(`Successfully executed action ${SqlPackageAction[inputs.sqlpackageAction]} on target database.`);
     }
 
@@ -95,24 +99,22 @@ export default class AzureSqlAction {
         const additionalBuildArguments = inputs.buildArguments ?? '';
         const parsedArgs = DotnetUtils.parseCommandArguments(additionalBuildArguments);
         let outputDir = '';
-        
+
         // Set output dir if it is set in the build arguments
         const outputArg = DotnetUtils.findArgument(parsedArgs, "--output", "-o");
         if (!outputArg) {
             outputDir = outputArg;
         } else {
             // Set output dir to ./bin/<configuration> if configuration is set via arguments
-            // Default to Debug if it is not set
+            // Default to Debug if configuration is not set
             const configuration = await DotnetUtils.findArgument(parsedArgs, "--configuration", "-c") ?? "Debug";
             outputDir = path.join(path.dirname(inputs.projectFile), "bin", configuration);
         }
-        
-        await exec.exec(`dotnet build "${inputs.projectFile}" ${additionalBuildArguments}`);
+
+        await exec.exec(`dotnet build "${inputs.projectFile}" -p:NetCoreBuild=true ${additionalBuildArguments}`);
 
         const dacpacPath = path.join(outputDir, projectName + Constants.dacpacExtension);
-        await fs.promises.access(dacpacPath);
-
-        console.log(`Successfully built project file to ${dacpacPath}`);
+        console.log(`Successfully built database project to ${dacpacPath}`);
         return dacpacPath;
     }
 
