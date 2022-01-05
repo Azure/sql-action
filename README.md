@@ -19,7 +19,7 @@ The definition of this GitHub Action is in [action.yml](https://github.com/Azure
 
 If you *can* use the option [Allow Azure Services and resources to access this server](https://docs.microsoft.com/en-us/azure/azure-sql/database/firewall-configure#connections-from-inside-azure), you are all set and you don't need to to anything else to allow GitHub Action to connect to your Azure SQL database.
 
-If you *cannot* use the aformentioned option, additional steps are needed. 
+If you *cannot* use the aforementioned option, additional steps are needed.
 
 - Authenticate using [Azure Login](https://github.com/Azure/login)
 
@@ -35,30 +35,30 @@ Alternatively, if enough permissions are not granted on the service principal or
 
 ### Create SQL database and deploy using GitHub Actions
 
-1. Follow the tutorial [Azure SQL Quickstart](https://docs.microsoft.com/en-in/azure/sql-database/sql-database-single-database-get-started?tabs=azure-portal)
-2. Copy the [SQL-on-Azure.yml template](https://github.com/Azure/actions-workflow-samples) and paste the contents in `.github/workflows/` in your project repository as `workflow.yml`.
-3. Change `server-name` to your Azure SQL Server name.
-4. Commit and push your project to GitHub repository, you should see a new GitHub Action initiated in **Actions** tab.
+1. Follow the tutorial [Azure SQL Quickstart](https://docs.microsoft.com/azure/sql-database/sql-database-single-database-get-started?tabs=azure-portal)
+1. Copy the [SQL-on-Azure.yml template](https://github.com/Azure/actions-workflow-samples) and paste the contents in `.github/workflows/` in your project repository as `workflow.yml`.
+1. Update the connection string with your values. Connection string format is: `Server=<server.database.windows.net>;User ID=<user>;Password=<password>;Initial Catalog=<database>`
+1. Commit and push your project to GitHub repository, you should see a new GitHub Action initiated in **Actions** tab.
 
-### Configure GitHub Secrets 
+### Configure GitHub Secrets
 
 For using any sensitive data/secrets like Azure Service Principal or SQL Connection strings within an Action, add them as [secrets](https://help.github.com/en/github/automating-your-workflow-with-github-actions/virtual-environments-for-github-actions#creating-and-using-secrets-encrypted-variables) in the GitHub repository and then use them in the workflow.
 
 Follow the steps to configure the secret:
 
-* Define a new secret under your repository **Settings** > **Secrets** > **Add a new secret** menu
-* Paste the contents of the Secret (Example: Connection String) as Value
+- Define a new secret under your repository **Settings** > **Secrets** > **Add a new secret** menu
+- Paste the contents of the Secret (Example: Connection String) as Value
   
-If you need to configure Azure Credentials to automatically manage firewall rules, you need to create a Service Principal, and store the related credentials into a GitHub Secrect so that it can be used by the Azure Login actions to authenticate and authorize any subsequent request.
+If you need to configure Azure Credentials to automatically manage firewall rules, you need to create a Service Principal, and store the related credentials into a GitHub Secret so that it can be used by the Azure Login actions to authenticate and authorize any subsequent request.
 
-Paste the output of the below [az cli](https://docs.microsoft.com/en-us/cli/azure/?view=azure-cli-latest) command as the value of secret variable, for example `AZURE_CREDENTIALS`.
+Paste the output of the below [az cli](https://docs.microsoft.com/cli/azure/?view=azure-cli-latest) command as the value of secret variable, for example `AZURE_CREDENTIALS`.
 
 ```bash  
 az ad sp create-for-rbac --name "mySQLServer" --role contributor \
                          --scopes /subscriptions/{subscription-id}/resourceGroups/{resource-group} \
                          --sdk-auth
                             
-# Replace {subscription-id}, {resource-group} and {server-name} with the subscription, resource group and name of the Azure SQL server
+# Replace {subscription-id}, {resource-group} with the subscription, resource group and name of the Azure SQL server
   
 # The command should output a JSON object similar to this:
 
@@ -70,7 +70,7 @@ az ad sp create-for-rbac --name "mySQLServer" --role contributor \
   // ...
 } 
 ```
- 
+
 ### Sample workflow to deploy to an Azure SQL database
 
 ```yaml
@@ -86,26 +86,27 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
     - uses: azure/sql-action@v1
-      with:
+      with:        
         server-name: REPLACE_THIS_WITH_YOUR_SQL_SERVER_NAME
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         dacpac-package: './Database.dacpac'
 ```
 
-**Note:** 
+**Note:**
 
-The above means you have to create secrets in GitHub which can be found within your repository within **Settings** and then **Secrets** and also
-be careful to check the connection string which you copy from Azure SQL as the connection string has this **Password={your_password}** and you will need to supply
-the correct password for your connection string.
+The above means you have to create secrets in GitHub which can be found within your repository within **Settings** and then **Secrets** and also be careful to check the connection string which you copy from Azure SQL as the connection string has this **Password={your_password}** and you will need to supply the correct password for your connection string.
 
-### How to create a dacpac file from your existing SQL Server Database
- 
+The `server-name` is optional and is there only to provide backward compatibility. It is strongly recommended to put the server name in the connection string. The connection string uses this template: `Server=<servername>; User ID=<user_id>; Password=<password>; Initial Catalog=<database>`. In case the server name is put both in the `server-name` and in the `connection-string`, the server name used will be the one specified in the `server-name` YAML key.
+
+### How to create a .dacpac file from your existing SQL Server Database
+
 For the above action to work, you will need to create a file called `Database.dacpac` and place it into the root of your
 GitHub repository. The following link will show you how to go about creating a dacpac file but make sure the file is called `Database.dacpac`.
 
-[Export a Data-tier application](https://docs.microsoft.com/en-us/sql/relational-databases/data-tier-applications/export-a-data-tier-application?view=sql-server-ver15)
+[Export a Data-tier application](https://docs.microsoft.com/sql/relational-databases/data-tier-applications/export-a-data-tier-application?view=sql-server-ver15)
 
 Azure SQL Action for GitHub is supported for the Azure public cloud as well as Azure government clouds ('AzureUSGovernment' or 'AzureChinaCloud'). Before running this action, login to the respective Azure Cloud  using [Azure Login](https://github.com/Azure/login) by setting appropriate value for the `environment` parameter.
+
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
