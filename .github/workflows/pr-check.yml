@@ -1,7 +1,7 @@
 name: pr-check
 
 on:
-  pull_request_target:
+  pull_request:
 #     branches:
 #       - master
 #       - 'releases/*'
@@ -9,10 +9,16 @@ on:
 jobs:
     deploy:
       environment: Automation test
-      runs-on: windows-latest
+      runs-on: ${{ matrix.os }}
+      strategy:
+        matrix:
+          os: [windows-latest, ubuntu-latest]
       steps:
       - name: Checkout from PR branch  
         uses: actions/checkout@v2
+        with: 
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Installing node_modules
         run: |
@@ -27,6 +33,6 @@ jobs:
           
       - uses: ./
         with:
-          server-name: sql-action-test-server.database.windows.net
-          connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+          server-name: sql-action.database.windows.net
+          connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
           sql-file: ./testsql.sql

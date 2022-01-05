@@ -11,7 +11,7 @@ describe('SqlUtils tests', () => {
             options!.listeners!.stderr!(Buffer.from(sqlClientError));
             return Promise.reject(1);
         }); 
-        let ipAddress = await SqlUtils.detectIPAddress('serverName', new SqlConnectionStringBuilder('Server=tcp:testServer.database.windows.net, 1443;Initial Catalog=testDB;User Id=testUser;Password=testPassword'));
+        let ipAddress = await SqlUtils.detectIPAddress('serverName', new SqlConnectionStringBuilder('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=testPassword'));
 
         expect(getSqlCmdPathSpy).toHaveBeenCalledTimes(1);
         expect(execSpy).toHaveBeenCalledTimes(1);
@@ -21,7 +21,7 @@ describe('SqlUtils tests', () => {
     it('detectIPAddress should return empty', async () => {
         let getSqlCmdSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlCmdPath').mockResolvedValue('SqlCmd.exe');
         let execSpy = jest.spyOn(exec, 'exec').mockResolvedValue(0);
-        let ipAddress = await SqlUtils.detectIPAddress('serverName', new SqlConnectionStringBuilder('Server=tcp:testServer.database.windows.net, 1443;Initial Catalog=testDB;User Id=testUser;Password=testPassword'));
+        let ipAddress = await SqlUtils.detectIPAddress('serverName', new SqlConnectionStringBuilder('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=testPassword'));
 
         expect(getSqlCmdSpy).toHaveBeenCalledTimes(1);
         expect(execSpy).toHaveBeenCalledTimes(1);
@@ -30,13 +30,8 @@ describe('SqlUtils tests', () => {
 
     it('detectIPAddress should throw error', () => {
         let getSqlCmdSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlCmdPath').mockResolvedValue('SqlCmd.exe')
-        let execSpy = jest.spyOn(exec, 'exec').mockImplementation((_commandLine, _args, options) => {
-            let sqlClientError = `error does not contain IPAddress`;
-            options!.listeners!.stderr!(Buffer.from(sqlClientError));
-            return Promise.reject(1);
-        }); 
 
-        expect(SqlUtils.detectIPAddress('serverName', new SqlConnectionStringBuilder('Server=tcp:testServer.database.windows.net, 1443;Initial Catalog=testDB;User Id=testUser;Password=testPassword'))).rejects;
+        expect(SqlUtils.detectIPAddress('serverName', new SqlConnectionStringBuilder('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=testPassword'))).rejects;
         expect(getSqlCmdSpy).toHaveBeenCalledTimes(1);
     });
 

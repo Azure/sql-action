@@ -6,20 +6,24 @@ import * as glob from 'glob';
 import winreg from 'winreg';
 
 const IS_WINDOWS = process.platform === 'win32';
+const IS_LINUX = process.platform === 'linux';
 
 export default class AzureSqlActionHelper {
     
     public static async getSqlPackagePath(): Promise<string> {
         if (!!this._sqlPackagePath) {
-            core.debug(`Return the cached path of SqlPackage.exe: ${this._sqlPackagePath}`);
+            core.debug(`Return the cached path of SqlPackage executable: ${this._sqlPackagePath}`);
             return this._sqlPackagePath;
         }
 
         if (IS_WINDOWS) {
             this._sqlPackagePath = await this._getSqlPackageExecutablePath();
         }
+        else if (IS_LINUX) {
+            this._sqlPackagePath = this._getSqlPackageBinaryPathLinux();
+        }
         else {
-            this._sqlPackagePath = this._getSqlPackageBinaryPath();
+            this._sqlPackagePath = this._getSqlPackageBinaryPathMac();
         }
 
         return this._sqlPackagePath;
@@ -27,15 +31,18 @@ export default class AzureSqlActionHelper {
 
     public static async getSqlCmdPath(): Promise<string> {
         if (!!this._sqlCmdPath) {
-            core.debug(`Return the cached path of SqlCmd.exe: ${this._sqlCmdPath}`);
+            core.debug(`Return the cached path of SqlCmd executable: ${this._sqlCmdPath}`);
             return this._sqlCmdPath;
         }
 
         if (IS_WINDOWS) {
             this._sqlCmdPath = await this._getSqlCmdExecutablePath();
         }
+        else if (IS_LINUX) {
+            this._sqlCmdPath = this._getSqlCmdBinaryPathLinux();
+        }
         else {
-            this._sqlCmdPath = this._getSqlCmdBinaryPath();
+            this._sqlCmdPath = this._getSqlCmdBinaryPathMac();
         }
 
         return this._sqlCmdPath;
@@ -349,12 +356,20 @@ export default class AzureSqlActionHelper {
         throw new Error('Unable to find location of sqlcmd.exe');
     }
 
-    private static _getSqlPackageBinaryPath(): string {
-        throw new Error('This action is not supported on a non-windows environment.');
+    private static _getSqlPackageBinaryPathLinux(): string {
+        return 'sqlpackage';
     }
 
-    private static _getSqlCmdBinaryPath(): string {
-        throw new Error('This action is not supported on a non-windows environment.');
+    private static _getSqlCmdBinaryPathLinux(): string {
+        return 'sqlcmd';
+    }
+
+    private static _getSqlPackageBinaryPathMac(): string {
+        throw new Error('This action is not supported on a Mac environment.');
+    }
+
+    private static _getSqlCmdBinaryPathMac(): string {
+        throw new Error('This action is not supported on a Mac environment.');
     }
 
     private static _sqlPackagePath = '';
