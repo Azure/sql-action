@@ -94,3 +94,7 @@ typings/
 /.vs/sql-action/v16/.suo
 /.vs/ProjectSettings.json
 /.vs/slnx.sqlite
+
+# Test sqlproj build artifacts
+/__testdata__/TestProject/bin/*
+/__testdata__/TestProject/obj/*

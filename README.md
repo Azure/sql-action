@@ -35,7 +35,7 @@ Alternatively, if enough permissions are not granted on the service principal or
 
 ### Create SQL database and deploy using GitHub Actions
 
-1. Follow the tutorial [Azure SQL Quickstart](https://docs.microsoft.com/en-in/azure/sql-database/sql-database-single-database-get-started?tabs=azure-portal)
+1. Follow the tutorial [Azure SQL Quickstart](https://docs.microsoft.com/azure/sql-database/sql-database-single-database-get-started?tabs=azure-portal)
 2. Copy the [SQL-on-Azure.yml template](https://github.com/Azure/actions-workflow-samples) and paste the contents in `.github/workflows/` in your project repository as `workflow.yml`.
 3. Change `server-name` to your Azure SQL Server name.
 4. Commit and push your project to GitHub repository, you should see a new GitHub Action initiated in **Actions** tab.
@@ -70,8 +70,33 @@ az ad sp create-for-rbac --name "mySQLServer" --role contributor \
   // ...
 } 
 ```
- 
-### Sample workflow to deploy to an Azure SQL database
+### Sample workflow to deploy a database project to an Azure SQL database
+
+```yaml
+# .github/workflows/sql-deploy.yml
+on: [push]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    - uses: azure/sql-action@v1
+      with:
+        server-name: REPLACE_THIS_WITH_YOUR_SQL_SERVER_NAME
+        connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+        project-file: './Database.sqlproj'
+        build-arguments: '-c Release'                 # Optional arguments passed to dotnet build
+        arguments: '/p:DropObjectsNotInSource=true'   # Optional parameters for SqlPackage Publish
+```
+
+**Note:**
+The database project must use the [Microsoft.Build.Sql](https://www.nuget.org/packages/microsoft.build.sql/) SDK.
+
+### Sample workflow to deploy a DACPAC to an Azure SQL database
 
 ```yaml
 # .github/workflows/sql-deploy.yml
@@ -106,6 +131,7 @@ GitHub repository. The following link will show you how to go about creating a d
 [Export a Data-tier application](https://docs.microsoft.com/en-us/sql/relational-databases/data-tier-applications/export-a-data-tier-application?view=sql-server-ver15)
 
 Azure SQL Action for GitHub is supported for the Azure public cloud as well as Azure government clouds ('AzureUSGovernment' or 'AzureChinaCloud'). Before running this action, login to the respective Azure Cloud  using [Azure Login](https://github.com/Azure/login) by setting appropriate value for the `environment` parameter.
+
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
