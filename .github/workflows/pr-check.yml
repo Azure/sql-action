@@ -5,7 +5,7 @@ on:
 #     branches:
 #       - master
 #       - 'releases/*'
-      
+
 jobs:
     deploy:
       environment: Automation test
@@ -14,25 +14,35 @@ jobs:
         matrix:
           os: [windows-latest, ubuntu-latest]
       steps:
-      - name: Checkout from PR branch  
+      - name: Checkout from PR branch
         uses: actions/checkout@v2
-        with: 
+        with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Installing node_modules
-        run: |
-          npm install
-          
+        run: npm install
+
       - name: Build GitHub Action
         run: npm run build
 
-      - uses: azure/login@v1
+      - name: Azure Login
+        uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-          
-      - uses: ./
+
+      # Deploy a DACPAC with only a table to server
+      - name: Test DACPAC Action
+        uses: ./
         with:
           server-name: sql-action.database.windows.net
           connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
-          sql-file: ./testsql.sql
+          dacpac-package: ./__testdata__/sql-action.dacpac
+
+      # Execute testsql.sql via SQLCMD on server
+      - name: Test SQL Action
+        uses: ./
+        with:
+          server-name: sql-action.database.windows.net
+          connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+          sql-file: ./__testdata__/testsql.sql
