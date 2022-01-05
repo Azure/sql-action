@@ -70,6 +70,7 @@ az ad sp create-for-rbac --name "mySQLServer" --role contributor \
   // ...
 } 
 ```
+
 ### Sample workflow to deploy a database project to an Azure SQL database
 
 ```yaml

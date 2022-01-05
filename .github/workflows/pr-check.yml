@@ -39,6 +39,14 @@ jobs:
           connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
           dacpac-package: ./__testdata__/sql-action.dacpac
 
+      # Build and publish sqlproj that should create a new view
+      - name: Test Build and Publish
+        uses: ./
+        with:
+          server-name: sql-action.database.windows.net
+          connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+          project-file: ./__testdata__/TestProject/sql-action.sqlproj
+
       # Execute testsql.sql via SQLCMD on server
       - name: Test SQL Action
         uses: ./

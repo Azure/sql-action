@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as exec from '@actions/exec';
-import AzureSqlAction, { IDacpacActionInputs, ISqlActionInputs, ActionType, SqlPackageAction, IBuildAndPublishInputs } from "../src/AzureSqlAction";
+import AzureSqlAction, { IBuildAndPublishInputs, IDacpacActionInputs, ISqlActionInputs, ActionType, SqlPackageAction } from "../src/AzureSqlAction";
 import AzureSqlActionHelper from "../src/AzureSqlActionHelper";
 import DotnetUtils from '../src/DotnetUtils';
 import SqlConnectionStringBuilder from '../src/SqlConnectionStringBuilder';

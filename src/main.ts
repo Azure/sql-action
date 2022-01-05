@@ -3,7 +3,7 @@ import * as crypto from "crypto";
 import * as path from 'path';
 import { AuthorizerFactory } from "azure-actions-webclient/AuthorizerFactory";
 
-import AzureSqlAction, { IActionInputs, ISqlActionInputs, IDacpacActionInputs, ActionType, SqlPackageAction, IBuildAndPublishInputs } from "./AzureSqlAction";
+import AzureSqlAction, { IActionInputs, ISqlActionInputs, IDacpacActionInputs, IBuildAndPublishInputs, ActionType, SqlPackageAction } from "./AzureSqlAction";
 import AzureSqlResourceManager from './AzureSqlResourceManager'
 import FirewallManager from "./FirewallManager";
 import AzureSqlActionHelper from "./AzureSqlActionHelper";
@@ -49,10 +49,11 @@ export default async function run() {
 
 function getInputs(): IActionInputs {
     core.debug('Get action inputs.');
-    let serverName = core.getInput('server-name', { required: false });
+
     let connectionString = core.getInput('connection-string', { required: true });
     let connectionStringBuilder = new SqlConnectionStringBuilder(connectionString);
     
+    let serverName = core.getInput('server-name', { required: false });
     if ((!!serverName && !!connectionStringBuilder.server) && (serverName != connectionStringBuilder.server)) 
         core.debug("'server-name' is conflicting with 'server' property specified in the connection string. 'server-name' will take precedence.");
     
