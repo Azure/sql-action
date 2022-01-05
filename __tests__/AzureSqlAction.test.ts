@@ -56,7 +56,7 @@ describe('AzureSqlAction tests', () => {
 
         expect(getSqlCmdPathSpy).toHaveBeenCalledTimes(1);
         expect(execSpy).toHaveBeenCalledTimes(1);
-        expect(execSpy).toHaveBeenCalledWith(`"SqlCmd.exe" -S tcp:testServer.database.windows.net:1433 -d testDB -U "testUser" -P "testPassword" -i "./TestFile.sql" -t 20`);
+        expect(execSpy).toHaveBeenCalledWith(`"SqlCmd.exe" -S testServer.database.windows.net -d testDB -U "testUser" -P "testPassword" -i "./TestFile.sql" -t 20`);
     });
 
     it('throws if SqlCmd.exe fails to execute sql', async () => {
@@ -75,20 +75,22 @@ function getInputs(actionType: ActionType) {
 
     switch(actionType) {
         case ActionType.DacpacAction: {
+            const connectionString = new SqlConnectionStringBuilder('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=testPassword');
             return {
                 serverName: connectionString.server,
                 actionType: ActionType.DacpacAction,
-                connectionString: new SqlConnectionStringBuilder('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=testPassword'),
+                connectionString: connectionString,
                 dacpacPackage: './TestPackage.dacpac',
                 sqlpackageAction: SqlPackageAction.Publish,
                 additionalArguments: '/TargetTimeout:20'
             } as IDacpacActionInputs;
         }
         case ActionType.SqlAction: {
+            const connectionString = new SqlConnectionStringBuilder('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=testPassword');
             return {
                 serverName: connectionString.server,
                 actionType: ActionType.SqlAction,
-                connectionString: new SqlConnectionStringBuilder('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=testPassword'),
+                connectionString: connectionString,
                 sqlFile: './TestFile.sql',
                 additionalArguments: '-t 20'
             } as ISqlActionInputs;
