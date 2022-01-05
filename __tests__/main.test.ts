@@ -84,11 +84,11 @@ describe('main.ts tests', () => {
         expect(SqlConnectionStringBuilder).toHaveBeenCalled();
         expect(resolveFilePathSpy).toHaveBeenCalled();
         expect(addFirewallRuleSpy).not.toHaveBeenCalled();
-        expect(actionExecuteSpy).toHaveBeenCalled();
-        expect(removeFirewallRuleSpy).not.toHaveBeenCalled();
-        expect(setFailedSpy).not.toHaveBeenCalled();
+        expect(actionExecuteSpy).toHaveBeenCalled();    
+        expect(removeFirewallRuleSpy).not.toHaveBeenCalled();     
+        expect(setFailedSpy).not.toHaveBeenCalled(); 
     })
-
+ 
     it('gets inputs and executes sql action', async () => {
         let resolveFilePathSpy = jest.spyOn(AzureSqlActionHelper, 'resolveFilePath').mockReturnValue('./TestSqlFile.sql');
         let getInputSpy = jest.spyOn(core, 'getInput').mockImplementation((name, options) => {
@@ -118,9 +118,9 @@ describe('main.ts tests', () => {
         expect(SqlConnectionStringBuilder).toHaveBeenCalled();
         expect(resolveFilePathSpy).toHaveBeenCalled();
         expect(addFirewallRuleSpy).not.toHaveBeenCalled();
-        expect(actionExecuteSpy).toHaveBeenCalled();
-        expect(removeFirewallRuleSpy).not.toHaveBeenCalled();
-        expect(setFailedSpy).not.toHaveBeenCalled();
+        expect(actionExecuteSpy).toHaveBeenCalled();    
+        expect(removeFirewallRuleSpy).not.toHaveBeenCalled();      
+        expect(setFailedSpy).not.toHaveBeenCalled(); 
     })
 
     it('throws if input file is not found', async() => {
@@ -140,11 +140,11 @@ describe('main.ts tests', () => {
             return "";
         });
 
-        let setFaledSpy = jest.spyOn(core, 'setFailed');
+        let setFailedSpy = jest.spyOn(core, 'setFailed');
         await run();
 
         expect(AzureSqlAction).not.toHaveBeenCalled();
         expect(detectIPAddressSpy).not.toHaveBeenCalled();
-        expect(setFaledSpy).toHaveBeenCalledWith('Unable to find file at location');
+        expect(setFailedSpy).toHaveBeenCalledWith('Unable to find file at location'); 
     })
 })

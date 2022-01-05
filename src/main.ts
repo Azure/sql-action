@@ -49,9 +49,16 @@ export default async function run() {
 
 function getInputs(): IActionInputs {
     core.debug('Get action inputs.');
-    let serverName = core.getInput('server-name', { required: true });
+    let serverName = core.getInput('server-name', { required: false });
     let connectionString = core.getInput('connection-string', { required: true });
     let connectionStringBuilder = new SqlConnectionStringBuilder(connectionString);
+    
+    if ((!!serverName && !!connectionStringBuilder.server) && (serverName != connectionStringBuilder.server)) 
+        core.debug("'server-name' is conflicting with 'server' property specified in the connection string. 'server-name' will take precedence.");
+    
+    // if serverName has not been specified, use the server name from the connection string
+    if (!serverName) serverName = connectionStringBuilder.server;    
+
     let additionalArguments = core.getInput('arguments');
 
     let dacpacPackage = core.getInput('dacpac-package');
@@ -61,6 +68,10 @@ function getInputs(): IActionInputs {
             throw new Error(`Invalid dacpac file path provided as input ${dacpacPackage}`);
         }
 
+        if (!serverName) {
+            throw new Error(`Missing server name or address in the configuration.`);
+        }
+    
         return {
             serverName: serverName,
             connectionString: connectionStringBuilder,
@@ -76,6 +87,10 @@ function getInputs(): IActionInputs {
         sqlFilePath = AzureSqlActionHelper.resolveFilePath(sqlFilePath);
         if (path.extname(sqlFilePath).toLowerCase() !== '.sql') {
             throw new Error(`Invalid sql file path provided as input ${sqlFilePath}`);
+        }
+
+        if (!serverName) {
+            throw new Error(`Missing server name or address in the configuration.`);
         }
 
         return {
