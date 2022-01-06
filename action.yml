@@ -13,6 +13,10 @@ inputs:
   sql-file:
     description: 'Path to SQL script file to deploy'
     required: false
+  skipFirewallSetting:
+    description: 'Parameters which skip Firewall Setting'
+    required: false
+    default: 'false'
   arguments:
     description: 'In case DACPAC option is selected, additional SqlPackage arguments that will be applied. When SQL query option is selected, additional sqlcmd arguments will be applied.'
     required: false

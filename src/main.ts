@@ -20,16 +20,19 @@ export default async function run() {
         let actionName = 'AzureSqlAction';
         let userAgentString = (!!userAgentPrefix ? `${userAgentPrefix}+` : '') + `GITHUBACTIONS_${actionName}_${usrAgentRepo}`;
         core.exportVariable('AZURE_HTTP_USER_AGENT', userAgentString);
-        
+
         let inputs = getInputs();
         let azureSqlAction = new AzureSqlAction(inputs);
-        
-        const runnerIPAddress = await SqlUtils.detectIPAddress(inputs.serverName, inputs.connectionString);
-        if(runnerIPAddress) {
-            let azureResourceAuthorizer = await AuthorizerFactory.getAuthorizer();
-            let azureSqlResourceManager = await AzureSqlResourceManager.getResourceManager(inputs.serverName, azureResourceAuthorizer);
-            firewallManager = new FirewallManager(azureSqlResourceManager);
-            await firewallManager.addFirewallRule(runnerIPAddress);
+
+        let skipFirewallSetting = (core.getInput('skipFirewallSetting') != 'true');
+        if (skipFirewallSetting) {
+            const runnerIPAddress = await SqlUtils.detectIPAddress(inputs.serverName, inputs.connectionString);
+            if (runnerIPAddress) {
+                let azureResourceAuthorizer = await AuthorizerFactory.getAuthorizer();
+                let azureSqlResourceManager = await AzureSqlResourceManager.getResourceManager(inputs.serverName, azureResourceAuthorizer);
+                firewallManager = new FirewallManager(azureSqlResourceManager);
+                await firewallManager.addFirewallRule(runnerIPAddress);
+            }
         }
         await azureSqlAction.execute();
     }
@@ -48,17 +51,17 @@ export default async function run() {
 
 function getInputs(): IActionInputs {
     core.debug('Get action inputs.');
-    
+
     let serverName = core.getInput('server-name', { required: false });
 
     let connectionString = core.getInput('connection-string', { required: true });
     let connectionStringBuilder = new SqlConnectionStringBuilder(connectionString);
-    
-    if ((!!serverName && !!connectionStringBuilder.server) && (serverName != connectionStringBuilder.server)) 
+
+    if ((!!serverName && !!connectionStringBuilder.server) && (serverName != connectionStringBuilder.server))
         core.debug("'server-name' is conflicting with 'server' property specified in the connection string. 'server-name' will take precedence.");
-    
+
     // if serverName has not been specified, use the server name from the connection string
-    if (!serverName) serverName = connectionStringBuilder.server;    
+    if (!serverName) serverName = connectionStringBuilder.server;
 
     let additionalArguments = core.getInput('arguments');
     let dacpacPackage = core.getInput('dacpac-package');
@@ -72,7 +75,7 @@ function getInputs(): IActionInputs {
         if (!serverName) {
             throw new Error(`Missing server name or address in the configuration.`);
         }
-    
+
         return {
             serverName: serverName,
             connectionString: connectionStringBuilder,
@@ -102,7 +105,7 @@ function getInputs(): IActionInputs {
             additionalArguments: additionalArguments
         } as ISqlActionInputs;
     }
-  
+
     throw new Error('Required SQL file or DACPAC package to execute action.');
 }
 
