@@ -46,7 +46,7 @@ describe('main.ts tests', () => {
         expect(AzureSqlAction).toHaveBeenCalled();
         expect(detectIPAddressSpy).toHaveBeenCalled();
         expect(getAuthorizerSpy).not.toHaveBeenCalled();
-        expect(getInputSpy).toHaveBeenCalledTimes(4);
+        expect(getInputSpy).toHaveBeenCalledTimes(5);
         expect(SqlConnectionStringBuilder).toHaveBeenCalled();
         expect(resolveFilePathSpy).toHaveBeenCalled();
         expect(addFirewallRuleSpy).not.toHaveBeenCalled();
@@ -80,7 +80,7 @@ describe('main.ts tests', () => {
         expect(AzureSqlAction).toHaveBeenCalled();
         expect(detectIPAddressSpy).toHaveBeenCalled();
         expect(getAuthorizerSpy).not.toHaveBeenCalled();
-        expect(getInputSpy).toHaveBeenCalledTimes(5);
+        expect(getInputSpy).toHaveBeenCalledTimes(6);
         expect(SqlConnectionStringBuilder).toHaveBeenCalled();
         expect(resolveFilePathSpy).toHaveBeenCalled();
         expect(addFirewallRuleSpy).not.toHaveBeenCalled();
