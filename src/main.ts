@@ -14,6 +14,8 @@ let userAgentPrefix = !!process.env.AZURE_HTTP_USER_AGENT ? `${process.env.AZURE
 
 export default async function run() {
     let firewallManager;
+    let skipFirewallSettings = (core.getInput('skipFirewallSettings') == 'true');
+
     try {
         // Set user agent variable
         let usrAgentRepo = crypto.createHash('sha256').update(`${process.env.GITHUB_REPOSITORY}`).digest('hex');
@@ -24,8 +26,7 @@ export default async function run() {
         let inputs = getInputs();
         let azureSqlAction = new AzureSqlAction(inputs);
 
-        let skipFirewallSetting = (core.getInput('skipFirewallSetting') != 'true');
-        if (skipFirewallSetting) {
+        if (!skipFirewallSettings) {
             const runnerIPAddress = await SqlUtils.detectIPAddress(inputs.serverName, inputs.connectionString);
             if (runnerIPAddress) {
                 let azureResourceAuthorizer = await AuthorizerFactory.getAuthorizer();
@@ -40,7 +41,7 @@ export default async function run() {
         core.setFailed(error.message);
     }
     finally {
-        if (firewallManager) {
+        if (!skipFirewallSettings && firewallManager) {
             await firewallManager.removeFirewallRule();
         }
 

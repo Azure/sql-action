@@ -13,8 +13,8 @@ inputs:
   sql-file:
     description: 'Path to SQL script file to deploy'
     required: false
-  skipFirewallSetting:
-    description: 'Parameters which skip Firewall Setting'
+  skipFirewallSettings:
+    description: 'Parameters which skip Firewall Settings'
     required: false
     default: 'false'
   arguments:
