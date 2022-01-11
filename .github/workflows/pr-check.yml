@@ -45,6 +45,6 @@ jobs:
       - name: Test SQL Action
         uses: ./
         with:
-          connection-string: '${{ secrets.AZURE_SQL_CONNECTION_STRING_NO_DATABASE }}Initial Catalog=${{ env.TEST_DB }};'
+          connection-string: '${{ secrets.AZURE_SQL_CONNECTION_STRING_NO_DATABASE }}Initial Catalog=master;'
           sql-file: ./__testdata__/testsql.sql
           arguments: '-v DbName="${{ env.TEST_DB }}"'
