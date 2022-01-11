@@ -15,7 +15,6 @@ jobs:
           os: [windows-latest, ubuntu-latest]
       env:
         TEST_DB: 'SqlActionTest-${{ matrix.os }}'
-        CONNECTION_STRING: 'Server=${{ secrets.AZURE_TEST_SERVER_NAME }};Database=${{ env.testDb }};User ID=${{ secrets.AZURE_TEST_SQL_USER }};Password=${{ secrets.AZURE_TEST_SQL_PASSWORD }};Persist Security Info=False;Encrypt=True;Connection Timeout=30;'
         
       steps:
       - name: Checkout from PR branch
@@ -39,13 +38,13 @@ jobs:
       - name: Test DACPAC Action
         uses: ./
         with:
-          connection-string: ${{ env.CONNECTION_STRING }}
+          connection-string: '${{ secrets.AZURE_SQL_CONNECTION_STRING_NO_DATABASE }} Database=${{ env.TEST_DB }};'
           dacpac-package: ./__testdata__/sql-action.dacpac
 
       # Execute testsql.sql via SQLCMD on server
       - name: Test SQL Action
         uses: ./
         with:
-          connection-string: ${{ env.CONNECTION_STRING }}
+          connection-string: '${{ secrets.AZURE_SQL_CONNECTION_STRING_NO_DATABASE }} Database=${{ env.TEST_DB }};'
           sql-file: ./__testdata__/testsql.sql
           arguments: '-v DbName="${{ env.TEST_DB }}"'
