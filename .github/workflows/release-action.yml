@@ -1,0 +1,39 @@
+name: release-action
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        required: true
+        description: The version of the release (example v1.1)
+
+jobs:
+  release-branch:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Build GitHub Action
+      run: npm run build
+
+    - name: create a release branch
+      uses: peterjgrainger/action-create-branch@v2.1.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        branch: "releases/${{ github.event.inputs.release_tag }}"
+
+    - name: add any files that changed during build
+      uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        commit_message: Add build changes
+        branch: "releases/${{ github.event.inputs.release_tag }}"
+      
+    - name: create the release draft
+      uses: ncipollo/release-action@v1
+      with:
+        draft: true
+        tag: ${{ github.event.inputs.release_tag }}
+        commit: "releases/${{ github.event.inputs.release_tag }}"
+        name: "${{ github.event.inputs.release_tag }}: draft"
