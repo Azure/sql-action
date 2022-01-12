@@ -85,7 +85,7 @@ jobs:
     - uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
-    - uses: azure/sql-action@v1
+    - uses: azure/sql-action@v1.2
       with:        
         server-name: REPLACE_THIS_WITH_YOUR_SQL_SERVER_NAME
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
