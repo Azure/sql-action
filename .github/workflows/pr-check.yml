@@ -1,10 +1,7 @@
 name: pr-check
 
 on:
-  pull_request:
-#     branches:
-#       - master
-#       - 'releases/*'
+  pull_request_target:
 
 jobs:
     deploy:
