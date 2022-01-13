@@ -3,51 +3,54 @@ name: pr-check
 on:
   pull_request_target:
 
+  pull_request:
+
 jobs:
-    deploy:
-      environment: Automation test
-      runs-on: ${{ matrix.os }}
-      strategy:
-        matrix:
-          os: [windows-latest, ubuntu-latest]
-      env:
-        TEST_DB: 'SqlActionTest-${{ matrix.os }}'
-        
-      steps:
-      - name: Checkout from PR branch
-        uses: actions/checkout@v2
-        with:
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          ref: ${{ github.event.pull_request.head.ref }}
+  deploy:
+    if: (github.event == "pull_request" && github.event.pull_request.head.repo == github.repository.full_name) || (github.event == "pull_request_target" && github.event.pull_request.head.repo != github.repository.full_name)
+    environment: Automation test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    env:
+      TEST_DB: 'SqlActionTest-${{ matrix.os }}'
 
-      - name: Installing node_modules
-        run: npm install
+    steps:
+    - name: Checkout from PR branch
+      uses: actions/checkout@v2
+      with:
+        repository: ${{ github.event.pull_request.head.repo.full_name }}
+        ref: ${{ github.event.pull_request.head.ref }}
 
-      - name: Build GitHub Action
-        run: npm run build
+    - name: Installing node_modules
+      run: npm install
 
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+    - name: Build GitHub Action
+      run: npm run build
 
-      # Deploy a DACPAC with only a table to server
-      - name: Test DACPAC Action
-        uses: ./
-        with:
-          connection-string: '${{ secrets.AZURE_SQL_CONNECTION_STRING_NO_DATABASE }}Initial Catalog=${{ env.TEST_DB }};'
-          dacpac-package: ./__testdata__/sql-action.dacpac
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # Execute testsql.sql via SQLCMD on server
-      - name: Test SQL Action
-        uses: ./
-        with:
-          connection-string: '${{ secrets.AZURE_SQL_CONNECTION_STRING_NO_DATABASE }}Initial Catalog=${{ env.TEST_DB }};'
-          sql-file: ./__testdata__/testsql.sql
+    # Deploy a DACPAC with only a table to server
+    - name: Test DACPAC Action
+      uses: ./
+      with:
+        connection-string: '${{ secrets.AZURE_SQL_CONNECTION_STRING_NO_DATABASE }}Initial Catalog=${{ env.TEST_DB }};'
+        dacpac-package: ./__testdata__/sql-action.dacpac
 
-      - name: Cleanup Test Database
-        uses: ./
-        with: 
-          connection-string: '${{ secrets.AZURE_SQL_CONNECTION_STRING_NO_DATABASE }}Initial Catalog=master;'
-          sql-file: ./__testdata__/cleanup.sql
-          arguments: '-v DbName="${{ env.TEST_DB }}"'
+    # Execute testsql.sql via SQLCMD on server
+    - name: Test SQL Action
+      uses: ./
+      with:
+        connection-string: '${{ secrets.AZURE_SQL_CONNECTION_STRING_NO_DATABASE }}Initial Catalog=${{ env.TEST_DB }};'
+        sql-file: ./__testdata__/testsql.sql
+
+    - name: Cleanup Test Database
+      uses: ./
+      with: 
+        connection-string: '${{ secrets.AZURE_SQL_CONNECTION_STRING_NO_DATABASE }}Initial Catalog=master;'
+        sql-file: ./__testdata__/cleanup.sql
+        arguments: '-v DbName="${{ env.TEST_DB }}"'
