@@ -1,13 +1,17 @@
 name: pr-check
 
+# Note: If you need to make changes to this file, please use a branch off the main branch instead of a fork.
+# The pull_request target from a forked repo will not have access to the secrets needed for this workflow.
+
 on:
   pull_request_target:
 
   pull_request:
+    paths:
+      - '.github/workflows/**'
 
 jobs:
   deploy:
-    if: github.event.pull_request.head.repo == github.repository.full_name || github.event.pull_request.head.repo != github.repository.full_name
     environment: Automation test
     runs-on: ${{ matrix.os }}
     strategy:
