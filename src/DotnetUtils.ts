@@ -45,10 +45,6 @@ export default class DotnetUtils {
      * @param alias The alias of the argument to look for.
      */
     public static async findArgument(args: object, argumentToFind: string, alias?: string): Promise<string | undefined> {
-        if (alias === undefined) {
-            return args[argumentToFind];
-        } else {
-            return args[argumentToFind] ?? args[alias];
-        }
+        return args[argumentToFind] ?? (alias ? args[alias] : undefined);
     }
 }
