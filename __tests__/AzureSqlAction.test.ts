@@ -10,7 +10,7 @@ let sqlConnectionStringBuilderMock = jest.mock('../src/SqlConnectionStringBuilde
         return {
             connectionString: connectionString,
             userId: 'testUser',
-            password: 'testPassword',
+            password: 'placeholder',
             database: 'testDB'
         }
     })
@@ -58,7 +58,7 @@ describe('AzureSqlAction tests', () => {
 
         expect(getSqlCmdPathSpy).toHaveBeenCalledTimes(1);
         expect(execSpy).toHaveBeenCalledTimes(1);
-        expect(execSpy).toHaveBeenCalledWith(`"SqlCmd.exe" -S testServer.database.windows.net -d testDB -U "testUser" -P "testPassword" -i "./TestFile.sql" -t 20`);
+        expect(execSpy).toHaveBeenCalledWith(`"SqlCmd.exe" -S testServer.database.windows.net -d testDB -U "testUser" -P "placeholder" -i "./TestFile.sql" -t 20`);
     });
 
     it('throws if SqlCmd.exe fails to execute sql', async () => {
@@ -129,7 +129,7 @@ function getInputs(actionType: ActionType) {
 
     switch(actionType) {
         case ActionType.DacpacAction: {
-            const connectionString = new SqlConnectionStringBuilder('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=testPassword');
+            const connectionString = new SqlConnectionStringBuilder('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder');
             return {
                 serverName: connectionString.server,
                 actionType: ActionType.DacpacAction,
@@ -140,7 +140,7 @@ function getInputs(actionType: ActionType) {
             } as IDacpacActionInputs;
         }
         case ActionType.SqlAction: {
-            const connectionString = new SqlConnectionStringBuilder('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=testPassword');
+            const connectionString = new SqlConnectionStringBuilder('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder');
             return {
                 serverName: connectionString.server,
                 actionType: ActionType.SqlAction,
@@ -153,7 +153,7 @@ function getInputs(actionType: ActionType) {
             return {
                 serverName: 'testServer.database.windows.net',
                 actionType: ActionType.BuildAndPublish,
-                connectionString: new SqlConnectionStringBuilder('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=testPassword'),
+                connectionString: new SqlConnectionStringBuilder('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder'),
                 projectFile: './TestProject.sqlproj',
                 buildArguments: '--verbose --test "test value"'
             } as IBuildAndPublishInputs
