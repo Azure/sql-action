@@ -101,9 +101,9 @@ export default class AzureSqlAction {
         let outputDir = '';
 
         // Set output dir if it is set in the build arguments
-        const outputArg = DotnetUtils.findArgument(parsedArgs, "--output", "-o");
-        if (!outputArg) {
-            outputDir = outputArg;
+        const outputArgument = DotnetUtils.findArgument(parsedArgs, "--output", "-o");
+        if (!outputArgument) {
+            outputDir = outputArgument;
         } else {
             // Set output dir to ./bin/<configuration> if configuration is set via arguments
             // Default to Debug if configuration is not set
