@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    if: (github.event == "pull_request" && github.event.pull_request.head.repo == github.repository.full_name) || (github.event == "pull_request_target" && github.event.pull_request.head.repo != github.repository.full_name)
+    if: (github.event == 'pull_request' && github.event.pull_request.head.repo == github.repository.full_name) || (github.event == 'pull_request_target' && github.event.pull_request.head.repo != github.repository.full_name)
     environment: Automation test
     runs-on: ${{ matrix.os }}
     strategy:
