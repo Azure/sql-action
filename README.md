@@ -71,7 +71,7 @@ az ad sp create-for-rbac --name "mySQLServer" --role contributor \
 } 
 ```
 
-### Sample workflow to deploy to an Azure SQL database
+### Sample workflow to deploy a database project to an Azure SQL database
 
 ```yaml
 # .github/workflows/sql-deploy.yml
@@ -88,7 +88,33 @@ jobs:
     - uses: azure/sql-action@v1
       with:        
         server-name: REPLACE_THIS_WITH_YOUR_SQL_SERVER_NAME
-        connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+        connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+        project-file: './Database.sqlproj'
+        build-arguments: '-c Release'                 # Optional arguments passed to dotnet build
+        arguments: '/p:DropObjectsNotInSource=true'   # Optional parameters for SqlPackage Publish
+```
+
+**Note:**
+The database project must use the [Microsoft.Build.Sql](https://www.nuget.org/packages/microsoft.build.sql/) SDK.
+
+### Sample workflow to deploy a DACPAC to an Azure SQL database
+
+```yaml
+# .github/workflows/sql-deploy.yml
+on: [push]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    - uses: azure/sql-action@v1
+      with:
+        server-name: REPLACE_THIS_WITH_YOUR_SQL_SERVER_NAME
+        connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         dacpac-package: './Database.dacpac'
 ```
 
