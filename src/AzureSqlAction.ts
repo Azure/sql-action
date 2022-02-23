@@ -97,12 +97,12 @@ export default class AzureSqlAction {
     private async _executeBuildProject(inputs: IBuildAndPublishInputs): Promise<string> {
         const projectName = path.basename(inputs.projectFile, Constants.sqlprojExtension);
         const additionalBuildArguments = inputs.buildArguments ?? '';
-        const parsedArgs = DotnetUtils.parseCommandArguments(additionalBuildArguments);
+        const parsedArgs = await DotnetUtils.parseCommandArguments(additionalBuildArguments);
         let outputDir = '';
 
         // Set output dir if it is set in the build arguments
-        const outputArgument = DotnetUtils.findArgument(parsedArgs, "--output", "-o");
-        if (!outputArgument) {
+        const outputArgument = await DotnetUtils.findArgument(parsedArgs, "--output", "-o");
+        if (outputArgument) {
             outputDir = outputArgument;
         } else {
             // Set output dir to ./bin/<configuration> if configuration is set via arguments
