@@ -13,6 +13,11 @@ export default class DotnetUtils {
      * Returns: { "-o":"output file", "-c":"configuration", "-v":"m", "--force":undefined }
      */
     public static async parseCommandArguments(args: string): Promise<object> {
+
+        // debug testing
+        console.log('args to parse:');
+        console.log(args);
+
         let dictionary = {};
 
         // Regex matches dotnet build parameters: https://docs.microsoft.com/dotnet/core/tools/dotnet-build
@@ -35,6 +40,7 @@ export default class DotnetUtils {
         });
 
         // debug testing
+        console.log('parsed command args:');
         console.log(dictionary);
 
         return dictionary;
