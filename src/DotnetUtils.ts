@@ -34,6 +34,9 @@ export default class DotnetUtils {
             }
         });
 
+        // debug testing
+        console.log(dictionary);
+
         return dictionary;
     }
 
