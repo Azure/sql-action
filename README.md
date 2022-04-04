@@ -14,7 +14,6 @@ The definition of this GitHub Action is in [action.yml](https://github.com/Azure
 - uses: azure/sql-action@v1.2
   with:
     connection-string: # required, connection string incl the database and user authentication information
-    server-name: # optional, name of the Azure SQL Server
 
     # optional for SQL project deployment - project-file, build-arguments
     project-file: # path to a .sqlproj file
@@ -113,7 +112,7 @@ sql-action is supported on both Windows and Linux environments.  The [default im
 
 If you *can* use the option [Allow Azure Services and resources to access this server](https://docs.microsoft.com/en-us/azure/azure-sql/database/firewall-configure#connections-from-inside-azure), you are all set and you don't need to to anything else to allow GitHub Action to connect to your Azure SQL database.
 
-If you *cannot* use the aforementioned option, the action can automatically add and remove a [SQL server firewall rule](https://docs.microsoft.com/azure/sql-database/sql-database-server-level-firewall-rule) specific to the GitHub Action runner's IP address. Without the firewall rule, the runner cannot communicate with Azure SQL Database. **To enable the action to automatically add/remove a firewall rule, add an [Azure/login](ttps://github.com/Azure/login) step before the sql-action step.** Also, the service principal used in the Azure login action needs to have elevated permissions, i.e. membership in SQL Security Manager RBAC role, or a similarly high permission in the database to create the firewall rule.
+If you *cannot* use the aforementioned option, the action can automatically add and remove a [SQL server firewall rule](https://docs.microsoft.com/azure/sql-database/sql-database-server-level-firewall-rule) specific to the GitHub Action runner's IP address. Without the firewall rule, the runner cannot communicate with Azure SQL Database. **To enable the action to automatically add/remove a firewall rule, add an [`Azure/login`](https://github.com/Azure/login) step before the `sql-action` step.** Also, the service principal used in the Azure login action needs to have elevated permissions, i.e. membership in SQL Security Manager RBAC role, or a similarly high permission in the database to create the firewall rule.
 
 Potential errors:
 - If the Azure/login action is not included, then the sql action would fail with a firewall exception and appropriate messaging.
@@ -157,7 +156,7 @@ All the above examples use `{{secrets.AZURE_SQL}}` syntax for sensitive informat
 ### Create Azure SQL Database + SQL Projects
 
 1. Follow the tutorial [Azure SQL Quickstart to create a single database](https://docs.microsoft.com/azure/azure-sql/database/single-database-create-quickstart?tabs=azure-portal#create-a-single-database)
-1. Copy the below template and paste the contents in `.github/workflows/` in your project repository as `sql-workflow.yml`.
+2. Copy the below template and paste the contents in `.github/workflows/` in your project repository as `sql-workflow.yml`.
 ```yaml
 # .github/workflows/sql-workflow.yml
 on: [push]
@@ -173,7 +172,7 @@ jobs:
         project-file: './Database.sqlproj'
 ```
 3. Place the connection string from the Azure Portal in GitHub secrets as `AZURE_SQL_CONNECTION_STRING`. Connection string format is: `Server=<server.database.windows.net>;User ID=<user>;Password=<password>;Initial Catalog=<database>`.
-1. Copy the below SQL project template and paste the content in your project repository as `Database.sqlproj`.
+4. Copy the below SQL project template and paste the content in your project repository as `Database.sqlproj`.
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build">
@@ -205,11 +204,11 @@ CREATE TABLE [dbo].[Product](
 7. For further use of SQL projects in VS Code and Azure Data Studio, check out [http://aka.ms/azuredatastudio-sqlprojects](http://aka.ms/azuredatastudio-sqlprojects) for more information.
 
 
-### Create Azure SQL Database + 
+### Create Azure SQL Database + Deploy Existing Schema (dacpac)
 
 1. Create a dacpac from an existing SQL database with either [SSMS](https://docs.microsoft.com/sql/relational-databases/data-tier-applications/extract-a-dac-from-a-database), [Azure Data Studio](https://docs.microsoft.com/sql/azure-data-studio/extensions/sql-server-dacpac-extension) or [SqlPackage CLI](https://docs.microsoft.com/sql/tools/sqlpackage/sqlpackage-extract).  Place the dacpac file at the root of your repository.
-1. Follow the tutorial [Azure SQL Quickstart to create a single database](https://docs.microsoft.com/azure/azure-sql/database/single-database-create-quickstart?tabs=azure-portal#create-a-single-database)
-1. Copy the below template and paste the contents in `.github/workflows/` in your project repository as `sql-workflow.yml`, changing the dacpac file name as appropriate.
+2. Follow the tutorial [Azure SQL Quickstart to create a single database](https://docs.microsoft.com/azure/azure-sql/database/single-database-create-quickstart?tabs=azure-portal#create-a-single-database)
+3. Copy the below template and paste the contents in `.github/workflows/` in your project repository as `sql-workflow.yml`, changing the dacpac file name as appropriate.
 ```yaml
 # .github/workflows/sql-workflow.yml
 on: [push]
@@ -225,7 +224,7 @@ jobs:
         dacpac-package: './PreviousDatabase.dacpac'
 ```
 4. Place the connection string from the Azure Portal in GitHub secrets as `AZURE_SQL_CONNECTION_STRING`. Connection string format is: `Server=<server.database.windows.net>;User ID=<user>;Password=<password>;Initial Catalog=<database>`.
-1. Commit and push your project to GitHub repository, you should see a new GitHub Action initiated in **Actions** tab.
+5. Commit and push your project to GitHub repository, you should see a new GitHub Action initiated in **Actions** tab.
 
 
 ## ✏️ Contributing
