@@ -12,7 +12,7 @@ on:
 
 jobs:
   deploy:
-    environment: Automation test
+    environment: Automation test # this environment requires approval before running the action
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
