@@ -11,7 +11,7 @@ Get started today with a [free Azure account](https://azure.com/free/open-source
 The definition of this GitHub Action is in [action.yml](https://github.com/Azure/sql-action/blob/master/action.yml).  Learn more in the [user guide](#📓-user-guide).
 
 ```yaml
-- uses: azure/sql-action@v1.2
+- uses: azure/sql-action@v1.3
   with:
     connection-string: # required, connection string incl the database and user authentication information
 
@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - uses: azure/sql-action@v1.2
+    - uses: azure/sql-action@v1.3
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         project-file: './Database.sqlproj'
@@ -67,7 +67,7 @@ jobs:
     - uses: azure/login@v1                            # Azure login required to add a temporary firewall rule
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
-    - uses: azure/sql-action@v1.2
+    - uses: azure/sql-action@v1.3
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         sql-file: './sqlscripts/*.sql'
@@ -84,7 +84,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
-    - uses: azure/sql-action@v1.2
+    - uses: azure/sql-action@v1.3
       with:
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         dacpac-package: './Database.dacpac'
@@ -166,7 +166,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - uses: azure/sql-action@v1.2
+    - uses: azure/sql-action@v1.3
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         project-file: './Database.sqlproj'
@@ -218,7 +218,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - uses: azure/sql-action@v1.2
+    - uses: azure/sql-action@v1.3
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         dacpac-package: './PreviousDatabase.dacpac'
