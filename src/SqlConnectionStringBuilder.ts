@@ -36,11 +36,12 @@ export interface SqlConnectionString {
 
 export default class SqlConnectionStringBuilder {
     constructor(connectionString: string) {
-        this._connectionString = connectionString;
+        this._connectionString = connectionString.trim();
         this._validateConnectionString();
         this._parsedConnectionString = this._parseConnectionString();
+        this._encryptConnectionString();
     }
-    
+
     public get connectionString(): string {
         return this._connectionString;
     }
@@ -67,6 +68,13 @@ export default class SqlConnectionStringBuilder {
         }
     }
 
+    // node-mssql requires Azure connection strings to contain Encrypt=true
+    private _encryptConnectionString() {
+        if (this._connectionString.toLowerCase().indexOf("encrypt=") == -1) {
+            this._connectionString += ';Encrypt=true';
+        }
+    }
+
     private _parseConnectionString(): SqlConnectionString {
         let result = this._connectionString.matchAll(connectionStringParserRegex);
         let parsedConnectionString: SqlConnectionString = {} as any;
@@ -80,7 +88,7 @@ export default class SqlConnectionStringBuilder {
                  * If the first character of val is a single/double quote and there are two consecutive single/double quotes in between, 
                  * convert the consecutive single/double quote characters into one single/double quote character respectively (Point no. 4 above)
                 */
-                
+
                 if (val[0] === "'") {
                     val = val.slice(1, -1);
                     val = val.replace(/''/g, "'");
@@ -90,7 +98,7 @@ export default class SqlConnectionStringBuilder {
                     val = val.slice(1, -1);
                     val = val.replace(/""/g, '"');
                 }
-                
+
                 switch(key.toLowerCase()) {
                     case 'user id':
                     case 'uid': {
@@ -126,7 +134,7 @@ export default class SqlConnectionStringBuilder {
 
         return parsedConnectionString;
     }
-    
+
     private _connectionString: string = '';
     private _parsedConnectionString: SqlConnectionString;
 }

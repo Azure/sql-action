@@ -4,28 +4,24 @@ import * as path from 'path';
 import { AuthorizerFactory } from "azure-actions-webclient/AuthorizerFactory";
 
 import AzureSqlAction, { IActionInputs, ISqlActionInputs, IDacpacActionInputs, IBuildAndPublishInputs, ActionType, SqlPackageAction } from "./AzureSqlAction";
-import AzureSqlResourceManager from './AzureSqlResourceManager'
+import AzureSqlResourceManager from './AzureSqlResourceManager';
 import FirewallManager from "./FirewallManager";
 import AzureSqlActionHelper from "./AzureSqlActionHelper";
 import SqlConnectionStringBuilder from "./SqlConnectionStringBuilder";
 import SqlUtils from "./SqlUtils";
 import Constants from "./Constants";
 
-let userAgentPrefix = !!process.env.AZURE_HTTP_USER_AGENT ? `${process.env.AZURE_HTTP_USER_AGENT}` : "";
+const userAgentPrefix = !!process.env.AZURE_HTTP_USER_AGENT ? `${process.env.AZURE_HTTP_USER_AGENT}` : "";
 
 export default async function run() {
     let firewallManager;
     try {
-        // Set user agent variable
-        let usrAgentRepo = crypto.createHash('sha256').update(`${process.env.GITHUB_REPOSITORY}`).digest('hex');
-        let actionName = 'AzureSqlAction';
-        let userAgentString = (!!userAgentPrefix ? `${userAgentPrefix}+` : '') + `GITHUBACTIONS_${actionName}_${usrAgentRepo}`;
-        core.exportVariable('AZURE_HTTP_USER_AGENT', userAgentString);
+        setUserAgentVariable();
         
-        let inputs = getInputs();
-        let azureSqlAction = new AzureSqlAction(inputs);
+        const inputs = getInputs();
+        const azureSqlAction = new AzureSqlAction(inputs);
         
-        const runnerIPAddress = await SqlUtils.detectIPAddress(inputs.serverName, inputs.connectionString);
+        const runnerIPAddress = await SqlUtils.detectIPAddress(inputs.connectionString);
         if (runnerIPAddress) {
             let azureResourceAuthorizer = await AuthorizerFactory.getAuthorizer();
             let azureSqlResourceManager = await AzureSqlResourceManager.getResourceManager(inputs.serverName, azureResourceAuthorizer);
@@ -47,20 +43,28 @@ export default async function run() {
     }
 }
 
+function setUserAgentVariable(): void {
+    const usrAgentRepo = crypto.createHash('sha256').update(`${process.env.GITHUB_REPOSITORY}`).digest('hex');
+    const actionName = 'AzureSqlAction';
+    const userAgentString = (!!userAgentPrefix ? `${userAgentPrefix}+` : '') + `GITHUBACTIONS_${actionName}_${usrAgentRepo}`;
+    core.exportVariable('AZURE_HTTP_USER_AGENT', userAgentString);
+}
+
 function getInputs(): IActionInputs {
     core.debug('Get action inputs.');
 
-    let connectionString = core.getInput('connection-string', { required: true });
-    let connectionStringBuilder = new SqlConnectionStringBuilder(connectionString);
-    
+    const connectionString = core.getInput('connection-string', { required: true });
+    const connectionStringBuilder = new SqlConnectionStringBuilder(connectionString);
+
+    // TODO: Deprecate server-name as input
     let serverName = core.getInput('server-name', { required: false });
     if ((!!serverName && !!connectionStringBuilder.server) && (serverName != connectionStringBuilder.server)) 
         core.debug("'server-name' is conflicting with 'server' property specified in the connection string. 'server-name' will take precedence.");
-    
-    // if serverName has not been specified, use the server name from the connection string
-    if (!serverName) serverName = connectionStringBuilder.server;    
 
-    let additionalArguments = core.getInput('arguments');
+    // if serverName has not been specified, use the server name from the connection string
+    if (!serverName) serverName = connectionStringBuilder.server;
+
+    const additionalArguments = core.getInput('arguments');
 
     let dacpacPackage = core.getInput('dacpac-package');
     if (!!dacpacPackage) {
@@ -72,7 +76,7 @@ function getInputs(): IActionInputs {
         if (!serverName) {
             throw new Error(`Missing server name or address in the configuration.`);
         }
-    
+
         return {
             serverName: serverName,
             connectionString: connectionStringBuilder,
@@ -120,7 +124,7 @@ function getInputs(): IActionInputs {
             buildArguments: buildArguments
         } as IBuildAndPublishInputs;
     }
-  
+
     throw new Error('Required SQL file, DACPAC package, or database project file to execute action.');
 }
 
