@@ -31,6 +31,7 @@
   "devDependencies": {
     "@types/glob": "^7.1.1",
     "@types/jest": "^24.0.13",
+    "@types/mssql": "^8.0.0",
     "@types/node": "^12.0.4",
     "@types/winreg": "^1.2.30",
     "jest": "^24.8.0",
