@@ -8,6 +8,7 @@ export default class SqlUtils {
     static async detectIPAddress(connectionConfig: SqlConnectionConfig): Promise<string> {
         core.debug(`Validating if client '${process.env.computername}' has access to Sql Server '${connectionConfig.Config.server}'.`);
         let ipAddress = '';
+        connectionConfig.Config.database = "master";
         await mssql.connect(connectionConfig.Config, error => {
             if (!!error) {
                 if (error instanceof AggregateError) {
