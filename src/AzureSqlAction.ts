@@ -1,10 +1,9 @@
-import * as fs from 'fs';
 import * as path from 'path';
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 
 import AzureSqlActionHelper from './AzureSqlActionHelper';
-import SqlConnectionStringBuilder from './SqlConnectionStringBuilder';
+import SqlConnectionConfig from './SqlConnectionConfig';
 import DotnetUtils from './DotnetUtils';
 import Constants from './Constants';
 
@@ -17,7 +16,7 @@ export enum ActionType {
 export interface IActionInputs {
     serverName: string;
     actionType: ActionType;
-    connectionString: SqlConnectionStringBuilder;
+    connectionConfig: SqlConnectionConfig;
     additionalArguments?: string;
 }
 
@@ -65,7 +64,7 @@ export default class AzureSqlAction {
             const publishInputs = {
                 serverName: this._inputs.serverName,
                 actionType: ActionType.DacpacAction,
-                connectionString: this._inputs.connectionString,
+                connectionConfig: this._inputs.connectionConfig,
                 additionalArguments: this._inputs.additionalArguments,
                 dacpacPackage: dacpacPath,
                 sqlpackageAction: SqlPackageAction.Publish
@@ -89,7 +88,7 @@ export default class AzureSqlAction {
 
     private async _executeSqlFile(inputs: ISqlActionInputs) {
         let sqlCmdPath = await AzureSqlActionHelper.getSqlCmdPath();
-        await exec.exec(`"${sqlCmdPath}" -S ${inputs.serverName} -d ${inputs.connectionString.database} -U "${inputs.connectionString.userId}" -P "${inputs.connectionString.password}" -i "${inputs.sqlFile}" ${inputs.additionalArguments}`);
+        await exec.exec(`"${sqlCmdPath}" -S ${inputs.serverName} -d ${inputs.connectionConfig.Config.database} -U "${inputs.connectionConfig.Config.user}" -P "${inputs.connectionConfig.Config.password}" -i "${inputs.sqlFile}" ${inputs.additionalArguments}`);
 
         console.log(`Successfully executed Sql file on target database.`);
     }
@@ -123,7 +122,7 @@ export default class AzureSqlAction {
 
         switch (inputs.sqlpackageAction) {
             case SqlPackageAction.Publish: {
-                args += `/Action:Publish /TargetConnectionString:"${inputs.connectionString.connectionString}" /SourceFile:"${inputs.dacpacPackage}"`;
+                args += `/Action:Publish /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${inputs.dacpacPackage}"`;
                 break;
             }
             default: {

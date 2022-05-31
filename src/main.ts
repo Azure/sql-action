@@ -21,7 +21,7 @@ export default async function run() {
         const inputs = getInputs();
         const azureSqlAction = new AzureSqlAction(inputs);
         
-        const runnerIPAddress = await SqlUtils.detectIPAddress(inputs.connectionString);
+        const runnerIPAddress = await SqlUtils.detectIPAddress(inputs.connectionConfig);
         if (runnerIPAddress) {
             let azureResourceAuthorizer = await AuthorizerFactory.getAuthorizer();
             let azureSqlResourceManager = await AzureSqlResourceManager.getResourceManager(inputs.serverName, azureResourceAuthorizer);
@@ -79,7 +79,7 @@ function getInputs(): IActionInputs {
 
         return {
             serverName: serverName,
-            connectionString: connectionStringBuilder,
+            connectionConfig: connectionStringBuilder,
             dacpacPackage: dacpacPackage,
             sqlpackageAction: SqlPackageAction.Publish,
             actionType: ActionType.DacpacAction,
@@ -100,7 +100,7 @@ function getInputs(): IActionInputs {
 
         return {
             serverName: serverName,
-            connectionString: connectionStringBuilder,
+            connectionConfig: connectionStringBuilder,
             sqlFile: sqlFilePath,
             actionType: ActionType.SqlAction,
             additionalArguments: additionalArguments
@@ -117,7 +117,7 @@ function getInputs(): IActionInputs {
         const buildArguments = core.getInput('build-arguments');
         return {
             serverName: serverName,
-            connectionString: connectionStringBuilder,
+            connectionConfig: connectionStringBuilder,
             actionType: ActionType.BuildAndPublish,
             additionalArguments: additionalArguments,
             projectFile: sqlProjPath,
