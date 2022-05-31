@@ -3,18 +3,7 @@ import * as exec from '@actions/exec';
 import AzureSqlAction, { IBuildAndPublishInputs, IDacpacActionInputs, ISqlActionInputs, ActionType, SqlPackageAction } from "../src/AzureSqlAction";
 import AzureSqlActionHelper from "../src/AzureSqlActionHelper";
 import DotnetUtils from '../src/DotnetUtils';
-import SqlConnectionStringBuilder from '../src/SqlConnectionStringBuilder';
-
-let sqlConnectionStringBuilderMock = jest.mock('../src/SqlConnectionStringBuilder', () => {
-    return ((connectionString) => {
-        return {
-            connectionString: connectionString,
-            userId: 'testUser',
-            password: 'placeholder',
-            database: 'testDB'
-        }
-    })
-})
+import SqlConnectionConfig from '../src/SqlConnectionConfig';
 
 describe('AzureSqlAction tests', () => {
     afterEach(() => {
@@ -32,7 +21,7 @@ describe('AzureSqlAction tests', () => {
 
         expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
         expect(execSpy).toHaveBeenCalledTimes(1);
-        expect(execSpy).toHaveBeenCalledWith(`"SqlPackage.exe" /Action:Publish /TargetConnectionString:"${inputs.connectionString.connectionString}" /SourceFile:"${inputs.dacpacPackage}" /TargetTimeout:20`);
+        expect(execSpy).toHaveBeenCalledWith(`"SqlPackage.exe" /Action:Publish /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${inputs.dacpacPackage}" /TargetTimeout:20`);
     });
   
     it('throws if SqlPackage.exe fails to publish dacpac', async () => {
@@ -89,7 +78,7 @@ describe('AzureSqlAction tests', () => {
         expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
         expect(execSpy).toHaveBeenCalledTimes(2);
         expect(execSpy).toHaveBeenNthCalledWith(1, `dotnet build "./TestProject.sqlproj" -p:NetCoreBuild=true --verbose --test "test value"`);
-        expect(execSpy).toHaveBeenNthCalledWith(2, `"SqlPackage.exe" /Action:Publish /TargetConnectionString:"${inputs.connectionString.connectionString}" /SourceFile:"${expectedDacpac}"`);
+        expect(execSpy).toHaveBeenNthCalledWith(2, `"SqlPackage.exe" /Action:Publish /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${expectedDacpac}"`);
     });
 
     it('throws if dotnet fails to build sqlproj', async () => {
@@ -129,22 +118,22 @@ function getInputs(actionType: ActionType) {
 
     switch(actionType) {
         case ActionType.DacpacAction: {
-            const connectionString = new SqlConnectionStringBuilder('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder');
+            const config = new SqlConnectionConfig('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder');
             return {
-                serverName: connectionString.server,
+                serverName: config.Config.server,
                 actionType: ActionType.DacpacAction,
-                connectionString: connectionString,
+                connectionConfig: config,
                 dacpacPackage: './TestPackage.dacpac',
                 sqlpackageAction: SqlPackageAction.Publish,
                 additionalArguments: '/TargetTimeout:20'
             } as IDacpacActionInputs;
         }
         case ActionType.SqlAction: {
-            const connectionString = new SqlConnectionStringBuilder('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder');
+            const config = new SqlConnectionConfig('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder');
             return {
-                serverName: connectionString.server,
+                serverName: config.Config.server,
                 actionType: ActionType.SqlAction,
-                connectionString: connectionString,
+                connectionConfig: config,
                 sqlFile: './TestFile.sql',
                 additionalArguments: '-t 20'
             } as ISqlActionInputs;
@@ -153,7 +142,7 @@ function getInputs(actionType: ActionType) {
             return {
                 serverName: 'testServer.database.windows.net',
                 actionType: ActionType.BuildAndPublish,
-                connectionString: new SqlConnectionStringBuilder('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder'),
+                connectionConfig: new SqlConnectionConfig('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder'),
                 projectFile: './TestProject.sqlproj',
                 buildArguments: '--verbose --test "test value"'
             } as IBuildAndPublishInputs

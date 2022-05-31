@@ -3,9 +3,9 @@ import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 
 import AzureSqlActionHelper from './AzureSqlActionHelper';
-import SqlConnectionConfig from './SqlConnectionConfig';
 import DotnetUtils from './DotnetUtils';
 import Constants from './Constants';
+import SqlConnectionConfig from './SqlConnectionConfig';
 
 export enum ActionType {
     DacpacAction,

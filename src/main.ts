@@ -7,7 +7,7 @@ import AzureSqlAction, { IActionInputs, ISqlActionInputs, IDacpacActionInputs, I
 import AzureSqlResourceManager from './AzureSqlResourceManager';
 import FirewallManager from "./FirewallManager";
 import AzureSqlActionHelper from "./AzureSqlActionHelper";
-import SqlConnectionStringBuilder from "./SqlConnectionStringBuilder";
+import SqlConnectionConfig from "./SqlConnectionConfig";
 import SqlUtils from "./SqlUtils";
 import Constants from "./Constants";
 
@@ -54,15 +54,15 @@ function getInputs(): IActionInputs {
     core.debug('Get action inputs.');
 
     const connectionString = core.getInput('connection-string', { required: true });
-    const connectionStringBuilder = new SqlConnectionStringBuilder(connectionString);
+    const connectionConfig = new SqlConnectionConfig(connectionString);
 
     // TODO: Deprecate server-name as input
     let serverName = core.getInput('server-name', { required: false });
-    if ((!!serverName && !!connectionStringBuilder.server) && (serverName != connectionStringBuilder.server)) 
+    if ((!!serverName && !!connectionConfig.Config.server) && (serverName != connectionConfig.Config.server)) 
         core.debug("'server-name' is conflicting with 'server' property specified in the connection string. 'server-name' will take precedence.");
 
     // if serverName has not been specified, use the server name from the connection string
-    if (!serverName) serverName = connectionStringBuilder.server;
+    if (!serverName) serverName = connectionConfig.Config.server;
 
     const additionalArguments = core.getInput('arguments');
 
@@ -79,7 +79,7 @@ function getInputs(): IActionInputs {
 
         return {
             serverName: serverName,
-            connectionConfig: connectionStringBuilder,
+            connectionConfig: connectionConfig,
             dacpacPackage: dacpacPackage,
             sqlpackageAction: SqlPackageAction.Publish,
             actionType: ActionType.DacpacAction,
@@ -100,7 +100,7 @@ function getInputs(): IActionInputs {
 
         return {
             serverName: serverName,
-            connectionConfig: connectionStringBuilder,
+            connectionConfig: connectionConfig,
             sqlFile: sqlFilePath,
             actionType: ActionType.SqlAction,
             additionalArguments: additionalArguments
@@ -117,7 +117,7 @@ function getInputs(): IActionInputs {
         const buildArguments = core.getInput('build-arguments');
         return {
             serverName: serverName,
-            connectionConfig: connectionStringBuilder,
+            connectionConfig: connectionConfig,
             actionType: ActionType.BuildAndPublish,
             additionalArguments: additionalArguments,
             projectFile: sqlProjPath,

@@ -1,5 +1,9 @@
+import * as core from '@actions/core';
 import { config, ConnectionPool } from "mssql";
 
+/**
+ * Wrapper class for the mssql.config object.
+ */
 export default class SqlConnectionConfig {
     private _connectionConfig: config;
     private _connectionString: string;
@@ -12,7 +16,12 @@ export default class SqlConnectionConfig {
         } catch (error) {
             throw new Error('Invalid connection string. A valid connection string is a series of keyword/value pairs separated by semi-colons. If there are any special characters like quotes, semi-colons in the keyword value, enclose the value within quotes. Refer this link for more info on conneciton string https://aka.ms/sqlconnectionstring');
         }
-        
+
+        // masking the connection string password to prevent logging to console
+        if (this._connectionConfig.password) {
+            core.setSecret(this._connectionConfig.password);
+        }
+
         this._validateconfig();
     }
 
@@ -28,7 +37,7 @@ export default class SqlConnectionConfig {
         if (!this._connectionConfig.server) {
             throw new Error(`Invalid connection string. Please ensure 'Server' or 'Data Source' is provided in the connection string.`);
         }
-        
+
         if (!this._connectionConfig.database) {
             throw new Error(`Invalid connection string. Please ensure 'Database' or 'Initial Catalog' is provided in the connection string.`);
         }
