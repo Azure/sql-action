@@ -20,6 +20,7 @@ export default class SqlConnectionConfig {
             core.setSecret(this._connectionConfig.password);
         }
 
+        this._setAuthentication();
         this._validateconfig();
     }
 
@@ -67,12 +68,61 @@ export default class SqlConnectionConfig {
             throw new Error(`Invalid connection string. Please ensure 'Database' or 'Initial Catalog' is provided in the connection string.`);
         }
 
-        if (!this._connectionConfig.user) {
-            throw new Error(`Invalid connection string. Please ensure 'User' or 'User ID' is provided in the connection string.`);
+        if (!this._connectionConfig['authentication'] || this._connectionConfig['authentication'].type === 'azure-active-directory-password') {
+            if (!this._connectionConfig.user) {
+                throw new Error(`Invalid connection string. Please ensure 'User' or 'User ID' is provided in the connection string.`);
+            }
+    
+            if (!this._connectionConfig.password) {
+                throw new Error(`Invalid connection string. Please ensure 'Password' is provided in the connection string.`);
+            }
+        }
+    }
+
+    // node-mssql currently ignores authentication when parsing the connection string: https://github.com/tediousjs/node-mssql/issues/1400
+    // Assumes _connectionConfig has already been set, sets authentication to _connectionConfig directly
+    private _setAuthentication(): void {
+
+        // Parsing logic from SqlConnectionStringBuilder._parseConnectionString https://github.com/Azure/sql-action/blob/7e69fdc44aba3f05fd02a6a4190841020d9ca6f7/src/SqlConnectionStringBuilder.ts#L70-L128
+        const result = this._connectionString.matchAll(Constants.connectionStringParserRegex);
+
+        const authentication = Array.from(result).find(match => match.groups && match.groups.key.trim().toLowerCase() === 'authentication');
+        if (!authentication) {
+            // No authentication set in connection string
+            return;
         }
 
-        if (!this._connectionConfig.password) {
-            throw new Error(`Invalid connection string. Please ensure 'Password' is provided in the connection string.`);
+        // Strip out any quotes or spaces in the value
+        const val = authentication.groups!.val.trim().replace(/['"\s]/g, '');
+
+        // SqlClient AAD types: https://docs.microsoft.com/sql/connect/ado-net/sql/azure-active-directory-authentication
+        // Authentication definitions: http://tediousjs.github.io/tedious/api-connection.html
+        switch (val.toLowerCase()) {
+            case 'defaultazurecredential': {
+                this._connectionConfig['authentication'] = {
+                    "type":'azure-active-directory-default'
+                    // "options": {
+                    //   "clientId": value (Optional)
+                    // }
+                }
+                break;
+            }
+            case 'activedirectorypassword': {
+                this._connectionConfig['authentication'] = {
+                    "type":'azure-active-directory-password',
+                    "options": {
+                      "userName": this._connectionConfig.user,
+                      "password": this._connectionConfig.password
+                      // "clientId": value,
+                      // "tenantId": value (Optional)
+                    }
+                }
+                break;
+            }
+            case 'sqlpassword': {
+                // default: use user and password
+                return;
+            }
         }
     }
 }
