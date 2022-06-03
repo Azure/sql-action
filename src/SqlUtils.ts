@@ -9,8 +9,18 @@ export default class SqlUtils {
         core.debug(`Validating if client '${process.env.computername}' has access to Sql Server '${connectionConfig.Config.server}'.`);
         let ipAddress = '';
         connectionConfig.Config.database = "master";
+
+        // Debug
+        console.log('mssql config:');
+        console.dir(connectionConfig.Config);
+
         await mssql.connect(connectionConfig.Config, error => {
             if (!!error && error instanceof mssql.ConnectionError) {
+
+                // Debug
+                console.log('SqlUtils error: ');
+                console.dir(error);
+
                 if (error.originalError instanceof AggregateError) {
                     // The IP address error can be anywhere inside the AggregateError
                     for (const err of error.originalError.errors) {
