@@ -87,7 +87,7 @@ export default class SqlConnectionConfig {
     private _setAuthentication(): void {
 
         // Parsing logic from SqlConnectionStringBuilder._parseConnectionString https://github.com/Azure/sql-action/blob/7e69fdc44aba3f05fd02a6a4190841020d9ca6f7/src/SqlConnectionStringBuilder.ts#L70-L128
-        const result = this._connectionString.matchAll(Constants.connectionStringParserRegex);
+        const result = Array.from(this._connectionString.matchAll(Constants.connectionStringParserRegex));
 
         const authentication = this._findInConnectionString(result, 'authentication');
         if (!authentication) {
@@ -100,8 +100,8 @@ export default class SqlConnectionConfig {
         switch (authentication.replace(/\s/g, '').toLowerCase()) {
             case 'defaultazurecredential': {
                 this._connectionConfig['authentication'] = {
-                    "type": 'azure-active-directory-default',
-                    "options": {
+                    type: 'azure-active-directory-default',
+                    options: {
                       "clientId": this._findInConnectionString(result, 'clientId')
                     }
                 }
@@ -111,6 +111,7 @@ export default class SqlConnectionConfig {
                 this._connectionConfig['authentication'] = {
                     "type": 'azure-active-directory-password',
                     "options": {
+                      // User and password should have been parsed already  
                       "userName": this._connectionConfig.user,
                       "password": this._connectionConfig.password,
                       "clientId": this._findInConnectionString(result, 'clientId'),
@@ -132,7 +133,7 @@ export default class SqlConnectionConfig {
      * @param matches The connection string as a Regex Match array
      * @param findKey The key to look for in the connection string
      */
-    private _findInConnectionString(matches: IterableIterator<RegExpMatchArray>, findKey: string): string | undefined {
+    private _findInConnectionString(matches: RegExpMatchArray[], findKey: string): string | undefined {
         for (const match of matches) {
             if (match.groups) {
                 // Replace any white space in the key (Ex: User ID -> UserID)
