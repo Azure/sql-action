@@ -79,42 +79,42 @@ export default class SqlConnectionConfig {
         }
     }
 
-    // node-mssql currently ignores authentication when parsing the connection string: https://github.com/tediousjs/node-mssql/issues/1400
-    // Assumes _connectionConfig has already been set, sets authentication to _connectionConfig directly
+    /**
+     * Sets the authentication option in the mssql config object based on the connection string.
+     * node-mssql currently ignores authentication when parsing the connection string: https://github.com/tediousjs/node-mssql/issues/1400
+     * Assumes _connectionConfig has already been set, sets authentication to _connectionConfig directly
+     */
     private _setAuthentication(): void {
 
         // Parsing logic from SqlConnectionStringBuilder._parseConnectionString https://github.com/Azure/sql-action/blob/7e69fdc44aba3f05fd02a6a4190841020d9ca6f7/src/SqlConnectionStringBuilder.ts#L70-L128
         const result = this._connectionString.matchAll(Constants.connectionStringParserRegex);
 
-        const authentication = Array.from(result).find(match => match.groups && match.groups.key.trim().toLowerCase() === 'authentication');
+        const authentication = this._findInConnectionString(result, 'authentication');
         if (!authentication) {
             // No authentication set in connection string
             return;
         }
 
-        // Strip out any quotes or spaces in the value
-        const val = authentication.groups!.val.trim().replace(/['"\s]/g, '');
-
         // SqlClient AAD types: https://docs.microsoft.com/sql/connect/ado-net/sql/azure-active-directory-authentication
         // Authentication definitions: http://tediousjs.github.io/tedious/api-connection.html
-        switch (val.toLowerCase()) {
+        switch (authentication.replace(/\s/g, '').toLowerCase()) {
             case 'defaultazurecredential': {
                 this._connectionConfig['authentication'] = {
-                    "type":'azure-active-directory-default'
-                    // "options": {
-                    //   "clientId": value (Optional)
-                    // }
+                    "type": 'azure-active-directory-default',
+                    "options": {
+                      "clientId": this._findInConnectionString(result, 'clientId')
+                    }
                 }
                 break;
             }
             case 'activedirectorypassword': {
                 this._connectionConfig['authentication'] = {
-                    "type":'azure-active-directory-password',
+                    "type": 'azure-active-directory-password',
                     "options": {
                       "userName": this._connectionConfig.user,
-                      "password": this._connectionConfig.password
-                      // "clientId": value,
-                      // "tenantId": value (Optional)
+                      "password": this._connectionConfig.password,
+                      "clientId": this._findInConnectionString(result, 'clientId'),
+                      "tenantId": this._findInConnectionString(result, 'tenantId')
                     }
                 }
                 break;
@@ -124,5 +124,42 @@ export default class SqlConnectionConfig {
                 return;
             }
         }
+    }
+
+    /**
+     * Looks for the given key in the already parsed connection string, returns its value or undefined if not found.
+     * Also processes the value to remove enclosing quotation marks. (Ex: quotes on "Active Directory Password" will be removed)
+     * @param matches The connection string as a Regex Match array
+     * @param findKey The key to look for in the connection string
+     */
+    private _findInConnectionString(matches: IterableIterator<RegExpMatchArray>, findKey: string): string | undefined {
+        for (const match of matches) {
+            if (match.groups) {
+                // Replace any white space in the key (Ex: User ID -> UserID)
+                const key = match.groups.key.replace(/\s/g, '');
+                findKey = findKey.replace(/\s/g, '');
+
+                if (key.toLowerCase() === findKey.toLowerCase()) {
+                    let val = match.groups.val;
+
+                    /**
+                     * If the first character of val is a single/double quote and there are two consecutive single/double quotes in between, 
+                     * convert the consecutive single/double quote characters into one single/double quote character respectively (Point no. 4 above)
+                    */
+                    if (val[0] === "'") {
+                        val = val.slice(1, -1);
+                        val = val.replace(/''/g, "'");
+                    }
+                    else if (val[0] === '"') {
+                        val = val.slice(1, -1);
+                        val = val.replace(/""/g, '"');
+                    }
+
+                    return val;
+                }
+            }
+        }
+
+        return undefined;
     }
 }

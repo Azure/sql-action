@@ -5,7 +5,7 @@ import SqlConnectionConfig from '../src/SqlConnectionConfig';
 describe('SqlUtils tests', () => {
     it('detectIPAddress should return ipaddress', async () => {
         const mssqlSpy = jest.spyOn(mssql.ConnectionPool.prototype, 'connect').mockImplementation((callback) => {
-            callback(new Error(`Client with IP address '1.2.3.4' is not allowed to access the server.`));
+            callback(new mssql.ConnectionError(new Error(`Client with IP address '1.2.3.4' is not allowed to access the server.`)));
         });
         const ipAddress = await SqlUtils.detectIPAddress(new SqlConnectionConfig('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder'));
 
