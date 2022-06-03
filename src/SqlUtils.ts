@@ -10,10 +10,10 @@ export default class SqlUtils {
         let ipAddress = '';
         connectionConfig.Config.database = "master";
         await mssql.connect(connectionConfig.Config, error => {
-            if (!!error) {
-                if (error instanceof AggregateError) {
+            if (!!error && error instanceof mssql.ConnectionError) {
+                if (error.originalError instanceof AggregateError) {
                     // The IP address error can be anywhere inside the AggregateError
-                    for (const err of error.errors) {
+                    for (const err of error.originalError.errors) {
                         core.debug(err.message);
                         const ipAddresses = error.message.match(Constants.ipv4MatchPattern);
                         if (!!ipAddresses) {
@@ -28,8 +28,8 @@ export default class SqlUtils {
                     }
 
                 } else {
-                    core.debug(error.message);
-                    const ipAddresses = error.message.match(Constants.ipv4MatchPattern);
+                    core.debug(error.originalError!.message);
+                    const ipAddresses = error.originalError!.message.match(Constants.ipv4MatchPattern);
                     if (!!ipAddresses) {
                         ipAddress = ipAddresses[0];
                     }
