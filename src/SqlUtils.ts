@@ -14,8 +14,14 @@ export default class SqlUtils {
         console.log('mssql config:');
         console.dir(connectionConfig.Config);
 
-        await mssql.connect(connectionConfig.Config, connectionError => {
-            if (!!connectionError && connectionError instanceof mssql.ConnectionError) {
+        mssql.connect(connectionConfig.Config, (connectionError) => {
+            if (!connectionError) {
+                // No error means successful callback
+                core.debug('initial handshake succeeded');
+                return;
+            }
+
+            if (connectionError instanceof mssql.ConnectionError) {
 
                 // Debug
                 console.log('SqlUtils error: ');
@@ -34,7 +40,7 @@ export default class SqlUtils {
 
                     // There are errors that are not because of missing IP firewall rule
                     if (!ipAddress) {
-                        connectionError.originalError.errors.map(e => core.error(e));
+                        connectionError.originalError.errors.map(e => core.error(e.message));
                         throw new Error(`Failed to add firewall rule. Unable to detect client IP Address.`);
                     }
 
@@ -45,10 +51,13 @@ export default class SqlUtils {
                         ipAddress = ipAddresses[0];
                     }
                     else {
-                        core.error(connectionError);
+                        core.error(connectionError.message);
                         throw new Error(`Failed to add firewall rule. Unable to detect client IP Address.`);
                     }
                 }
+            }
+            else {
+                throw connectionError;
             }
         });
 
