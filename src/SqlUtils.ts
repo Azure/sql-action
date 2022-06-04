@@ -6,16 +6,21 @@ import SqlConnectionConfig from "./SqlConnectionConfig";
 
 export default class SqlUtils {
     static async detectIPAddress(connectionConfig: SqlConnectionConfig): Promise<string> {
-        core.debug(`Validating if client '${process.env.computername}' has access to Sql Server '${connectionConfig.Config.server}'.`);
         let ipAddress = '';
         connectionConfig.Config.database = "master";
-        await mssql.connect(connectionConfig.Config, error => {
-            if (!!error && error instanceof mssql.ConnectionError) {
-                if (error.originalError instanceof AggregateError) {
+
+        try {
+            core.debug(`Validating if client ' has access to SQL Server '${connectionConfig.Config.server}'.`);
+            const pool = await mssql.connect(connectionConfig.Config);
+            pool.close();
+        }
+        catch (connectionError) {
+            if (connectionError instanceof mssql.ConnectionError) {
+                if (connectionError.originalError instanceof AggregateError) {
                     // The IP address error can be anywhere inside the AggregateError
-                    for (const err of error.originalError.errors) {
+                    for (const err of connectionError.originalError.errors) {
                         core.debug(err.message);
-                        const ipAddresses = error.message.match(Constants.ipv4MatchPattern);
+                        const ipAddresses = err.message.match(Constants.ipv4MatchPattern);
                         if (!!ipAddresses) {
                             ipAddress = ipAddresses[0];
                             break;
@@ -24,21 +29,27 @@ export default class SqlUtils {
 
                     // There are errors that are not because of missing IP firewall rule
                     if (!ipAddress) {
-                        throw new Error(`Failed to add firewall rule. Unable to detect client IP Address. ${error}`);
+                        connectionError.originalError.errors.map(e => core.error(e.message));
+                        throw new Error(`Failed to add firewall rule. Unable to detect client IP Address.`);
                     }
-
-                } else {
-                    core.debug(error.originalError!.message);
-                    const ipAddresses = error.originalError!.message.match(Constants.ipv4MatchPattern);
+                }
+                else {
+                    core.debug(connectionError.originalError!.message);
+                    const ipAddresses = connectionError.originalError!.message.match(Constants.ipv4MatchPattern);
                     if (!!ipAddresses) {
                         ipAddress = ipAddresses[0];
                     }
                     else {
-                        throw new Error(`Failed to add firewall rule. Unable to detect client IP Address. ${error}`);
+                        core.error(connectionError.message);
+                        throw new Error(`Failed to add firewall rule. Unable to detect client IP Address.`);
                     }
                 }
             }
-        });
+            else {
+                // Unknown error
+                throw connectionError;
+            }
+        }
 
         //ipAddress will be an empty string if client has access to SQL server
         return ipAddress;
