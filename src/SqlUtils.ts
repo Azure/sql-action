@@ -14,19 +14,16 @@ export default class SqlUtils {
         console.log('mssql config:');
         console.dir(connectionConfig.Config);
 
-        mssql.connect(connectionConfig.Config, (connectionError) => {
-            if (!connectionError) {
-                // No error means successful callback
-                core.debug('initial handshake succeeded');
-                return;
-            }
+        try {
+            const pool = await mssql.connect(connectionConfig.Config);
+            pool.close();
+        }
+        catch (connectionError) {
+            // Debug
+            console.log(`Caught error: `);
+            console.dir(connectionError);
 
             if (connectionError instanceof mssql.ConnectionError) {
-
-                // Debug
-                console.log('SqlUtils error: ');
-                console.dir(connectionError);
-
                 if (connectionError.originalError instanceof AggregateError) {
                     // The IP address error can be anywhere inside the AggregateError
                     for (const err of connectionError.originalError.errors) {
@@ -57,9 +54,10 @@ export default class SqlUtils {
                 }
             }
             else {
+                // Unknown error
                 throw connectionError;
             }
-        });
+        }
 
         //ipAddress will be an empty string if client has access to SQL server
         return ipAddress;

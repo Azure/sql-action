@@ -103,7 +103,7 @@ export default class SqlConnectionConfig {
                 this._connectionConfig['authentication'] = {
                     type: 'azure-active-directory-default',
                     options: {
-                      "clientId": core.getInput('client-id')
+                      "clientId": core.getInput('client-id') || undefined
                     }
                 }
                 break;
@@ -115,8 +115,8 @@ export default class SqlConnectionConfig {
                       // User and password should have been parsed already  
                       "userName": this._connectionConfig.user,
                       "password": this._connectionConfig.password,
-                      "clientId": core.getInput('client-id'),
-                      "tenantId": core.getInput('tenant-id')
+                      "clientId": core.getInput('client-id') || undefined,
+                      "tenantId": core.getInput('tenant-id') || undefined
                     }
                 }
                 break;
