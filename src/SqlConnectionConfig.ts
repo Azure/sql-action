@@ -89,6 +89,7 @@ export default class SqlConnectionConfig {
         // Parsing logic from SqlConnectionStringBuilder._parseConnectionString https://github.com/Azure/sql-action/blob/7e69fdc44aba3f05fd02a6a4190841020d9ca6f7/src/SqlConnectionStringBuilder.ts#L70-L128
         const result = Array.from(this._connectionString.matchAll(Constants.connectionStringParserRegex));
 
+        // TODO: Change this to Array.from().find() now that we're only looking for authentication
         const authentication = this._findInConnectionString(result, 'authentication');
         if (!authentication) {
             // No authentication set in connection string
@@ -102,7 +103,7 @@ export default class SqlConnectionConfig {
                 this._connectionConfig['authentication'] = {
                     type: 'azure-active-directory-default',
                     options: {
-                      "clientId": this._findInConnectionString(result, 'clientId')
+                      "clientId": core.getInput('client-id')
                     }
                 }
                 break;
@@ -114,8 +115,8 @@ export default class SqlConnectionConfig {
                       // User and password should have been parsed already  
                       "userName": this._connectionConfig.user,
                       "password": this._connectionConfig.password,
-                      "clientId": this._findInConnectionString(result, 'clientId'),
-                      "tenantId": this._findInConnectionString(result, 'tenantId')
+                      "clientId": core.getInput('client-id'),
+                      "tenantId": core.getInput('tenant-id')
                     }
                 }
                 break;

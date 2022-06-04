@@ -62,29 +62,47 @@ describe('SqlConnectionConfig tests', () => {
 
     describe('parse AAD password auth in connection strings', () => {
         const connectionStrings = [
-            [`Server=test1.database.windows.net;Database=testdb;Authentication="Active Directory Password";User Id=user;Password="abcd";`, '', '', 'Validates AAD password with double quotes'],
-            [`Server=test1.database.windows.net;Database=testdb;Authentication='Active Directory Password';User Id=user;Password="abcd";`, '', '', 'Validates AAD password with single quotes'],
-            [`Server=test1.database.windows.net;Database=testdb;Authentication=ActiveDirectoryPassword;User Id=user;Password="abcd";`, '', '', 'Validates AAD password with one word'],
-            [`Server=test1.database.windows.net;Database=testdb;Authentication=Active Directory Password;User Id=user;Password=abcd;Client ID=0143b3cc-61d5-43c3-9172-0a8d003ee2bb`, '0143b3cc-61d5-43c3-9172-0a8d003ee2bb', '', 'Validates client ID'],
-            [`Server=test1.database.windows.net;Database=testdb;Authentication=Active Directory Password;User Id=user;Password=abcd;ClientID="0143b3cc-61d5-43c3-9172-0a8d003ee2bb"`, '0143b3cc-61d5-43c3-9172-0a8d003ee2bb', '', 'Validates client ID with quotes'],
-            [`Server=test1.database.windows.net;Database=testdb;Authentication=Active Directory Password;User Id=user;Password=abcd;Tenant ID=cd8b7d43-6a5b-4a82-a828-9dd44efcd0d0`, '', 'cd8b7d43-6a5b-4a82-a828-9dd44efcd0d0', 'Validates tenant ID'],
-            [`Server=test1.database.windows.net;Database=testdb;Authentication=Active Directory Password;User Id=user;Password=abcd;TenantID="cd8b7d43-6a5b-4a82-a828-9dd44efcd0d0"`, '', 'cd8b7d43-6a5b-4a82-a828-9dd44efcd0d0', 'Validates tenant ID with quotes'],
-            [`Server=test1.database.windows.net;Database=testdb;Authentication=Active Directory Password;User Id=user;Password=abcd;Client ID=0143b3cc-61d5-43c3-9172-0a8d003ee2bb;Tenant ID=cd8b7d43-6a5b-4a82-a828-9dd44efcd0d0`, '0143b3cc-61d5-43c3-9172-0a8d003ee2bb', 'cd8b7d43-6a5b-4a82-a828-9dd44efcd0d0', 'Validates client ID and tenant ID']
+            [`Server=test1.database.windows.net;Database=testdb;Authentication="Active Directory Password";User Id=user;Password="abcd";`, 'Validates AAD password with double quotes'],
+            [`Server=test1.database.windows.net;Database=testdb;Authentication='Active Directory Password';User Id=user;Password="abcd";`, 'Validates AAD password with single quotes'],
+            [`Server=test1.database.windows.net;Database=testdb;Authentication=ActiveDirectoryPassword;User Id=user;Password="abcd";`, 'Validates AAD password with one word']
         ];
 
-        it.each(connectionStrings)('should parse AAD password auth successfully', (connectionStringInput, clientId, tenantId) => {
+        it.each(connectionStrings)('should parse AAD password auth successfully', (connectionStringInput) => {
             const config = new SqlConnectionConfig(connectionStringInput);
     
             expect(config.Config.server).toMatch('test1.database.windows.net');
             expect(config.Config.database).toMatch('testdb');
             expect(config.ConnectionString).toMatch(connectionStringInput);
-            expect(config.Config['authentication'].type).toMatch('azure-active-directory-password');
-            expect(config.Config['authentication'].options.userName).toMatch('user');
-            expect(config.Config['authentication'].options.password).toMatch('abcd');
-
-            if (clientId) expect(config.Config['authentication'].options.clientId).toMatch(clientId);
-            if (tenantId) expect(config.Config['authentication'].options.tenantId).toMatch(tenantId);
+            expect(config.Config['authentication']).toBeDefined();
+            expect(config.Config['authentication']!.type).toMatch('azure-active-directory-password');
+            expect(config.Config['authentication']!.options).toBeDefined();
+            expect(config.Config['authentication']!.options!.userName).toMatch('user');
+            expect(config.Config['authentication']!.options!.password).toMatch('abcd');
         });
     })
+
+    it('should include client and tenant IDs in AAD connection', () => {
+        const clientId = '00000000-0000-0000-0000-000000000000';
+        const tenantId = '11111111-1111-1111-1111-111111111111';
+        const getInputSpy = jest.spyOn(core, 'getInput').mockImplementation((name, options) => {
+            switch (name) {
+                case 'client-id': return clientId;
+                case 'tenant-id': return tenantId;
+                default: return '';
+            }
+        });
+
+        const config = new SqlConnectionConfig(`Server=test1.database.windows.net;Database=testdb;Authentication="Active Directory Password";User Id=user;Password="abcd"`);
+        expect(getInputSpy).toHaveBeenCalledTimes(2);
+        expect(config.Config.server).toMatch('test1.database.windows.net');
+        expect(config.Config.database).toMatch('testdb');
+        expect(config.Config['authentication']).toBeDefined();
+        expect(config.Config['authentication']!.type).toMatch('azure-active-directory-password');
+        expect(config.Config['authentication']!.options).toBeDefined();
+        expect(config.Config['authentication']!.options!.userName).toMatch('user');
+        expect(config.Config['authentication']!.options!.password).toMatch('abcd');
+        expect(config.Config['authentication']!.options!.clientId).toMatch(clientId);
+        expect(config.Config['authentication']!.options!.tenantId).toMatch(tenantId);
+    });
 
 })
