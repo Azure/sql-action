@@ -14,18 +14,18 @@ export default class SqlUtils {
         console.log('mssql config:');
         console.dir(connectionConfig.Config);
 
-        await mssql.connect(connectionConfig.Config, error => {
-            if (!!error && error instanceof mssql.ConnectionError) {
+        await mssql.connect(connectionConfig.Config, connectionError => {
+            if (!!connectionError && connectionError instanceof mssql.ConnectionError) {
 
                 // Debug
                 console.log('SqlUtils error: ');
-                console.dir(error);
+                console.dir(connectionError);
 
-                if (error.originalError instanceof AggregateError) {
+                if (connectionError.originalError instanceof AggregateError) {
                     // The IP address error can be anywhere inside the AggregateError
-                    for (const err of error.originalError.errors) {
+                    for (const err of connectionError.originalError.errors) {
                         core.debug(err.message);
-                        const ipAddresses = error.message.match(Constants.ipv4MatchPattern);
+                        const ipAddresses = err.message.match(Constants.ipv4MatchPattern);
                         if (!!ipAddresses) {
                             ipAddress = ipAddresses[0];
                             break;
@@ -34,17 +34,19 @@ export default class SqlUtils {
 
                     // There are errors that are not because of missing IP firewall rule
                     if (!ipAddress) {
-                        throw new Error(`Failed to add firewall rule. Unable to detect client IP Address. ${error}`);
+                        connectionError.originalError.errors.map(e => core.error(e));
+                        throw new Error(`Failed to add firewall rule. Unable to detect client IP Address.`);
                     }
 
                 } else {
-                    core.debug(error.originalError!.message);
-                    const ipAddresses = error.originalError!.message.match(Constants.ipv4MatchPattern);
+                    core.debug(connectionError.originalError!.message);
+                    const ipAddresses = connectionError.originalError!.message.match(Constants.ipv4MatchPattern);
                     if (!!ipAddresses) {
                         ipAddress = ipAddresses[0];
                     }
                     else {
-                        throw new Error(`Failed to add firewall rule. Unable to detect client IP Address. ${error}`);
+                        core.error(connectionError);
+                        throw new Error(`Failed to add firewall rule. Unable to detect client IP Address.`);
                     }
                 }
             }
