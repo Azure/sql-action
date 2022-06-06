@@ -10,7 +10,7 @@ export default class SqlUtils {
         connectionConfig.Config.database = "master";
 
         try {
-            core.debug(`Validating if client ' has access to SQL Server '${connectionConfig.Config.server}'.`);
+            core.debug(`Validating if client has access to SQL Server '${connectionConfig.Config.server}'.`);
             const pool = await mssql.connect(connectionConfig.Config);
             pool.close();
         }
