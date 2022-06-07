@@ -6,23 +6,15 @@ import SqlConnectionConfig from "./SqlConnectionConfig";
 
 export default class SqlUtils {
     static async detectIPAddress(connectionConfig: SqlConnectionConfig): Promise<string> {
-        core.debug(`Validating if client '${process.env.computername}' has access to Sql Server '${connectionConfig.Config.server}'.`);
         let ipAddress = '';
         connectionConfig.Config.database = "master";
 
-        // Debug
-        console.log('mssql config:');
-        console.dir(connectionConfig.Config);
-
         try {
+            core.debug(`Validating if client has access to SQL Server '${connectionConfig.Config.server}'.`);
             const pool = await mssql.connect(connectionConfig.Config);
             pool.close();
         }
         catch (connectionError) {
-            // Debug
-            console.log(`Caught error: `);
-            console.dir(connectionError);
-
             if (connectionError instanceof mssql.ConnectionError) {
                 if (connectionError.originalError instanceof AggregateError) {
                     // The IP address error can be anywhere inside the AggregateError
@@ -40,8 +32,8 @@ export default class SqlUtils {
                         connectionError.originalError.errors.map(e => core.error(e.message));
                         throw new Error(`Failed to add firewall rule. Unable to detect client IP Address.`);
                     }
-
-                } else {
+                }
+                else {
                     core.debug(connectionError.originalError!.message);
                     const ipAddresses = connectionError.originalError!.message.match(Constants.ipv4MatchPattern);
                     if (!!ipAddresses) {
