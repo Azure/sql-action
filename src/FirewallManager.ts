@@ -11,7 +11,7 @@ export default class FirewallManager {
             core.debug(`Client has access to Sql server. Skip adding firewall exception.`);
             return;
         }
-        console.log(`Client does not have access to Sql server. Adding firewall exception for client's IP address.`)
+        console.log(`Client does not have access to server. Adding firewall exception for client's IP address.`);
         this._firewallRule = await this._resourceManager.addFirewallRule(ipAddress, ipAddress);
         core.debug(JSON.stringify(this._firewallRule));
         console.log(`Successfully added firewall rule ${this._firewallRule.name}.`);
@@ -26,5 +26,5 @@ export default class FirewallManager {
     }
 
     private _resourceManager: AzureSqlResourceManager;
-    private _firewallRule?: FirewallRule; 
+    private _firewallRule?: FirewallRule;
 }

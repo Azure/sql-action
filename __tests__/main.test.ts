@@ -5,7 +5,6 @@ import run from "../src/main";
 import AzureSqlAction from "../src/AzureSqlAction";
 import FirewallManager from "../src/FirewallManager";
 import AzureSqlActionHelper from '../src/AzureSqlActionHelper';
-import SqlConnectionStringBuilder from '../src/SqlConnectionStringBuilder';
 import SqlUtils from '../src/SqlUtils';
 
 jest.mock('@actions/core');
@@ -13,7 +12,6 @@ jest.mock('azure-actions-webclient/AuthorizerFactory');
 jest.mock('../src/AzureSqlAction');
 jest.mock('../src/FirewallManager');
 jest.mock('../src/AzureSqlResourceManager');
-jest.mock('../src/SqlConnectionStringBuilder');
 
 describe('main.ts tests', () => {
     afterEach(() => {
@@ -46,7 +44,6 @@ describe('main.ts tests', () => {
         expect(detectIPAddressSpy).toHaveBeenCalled();
         expect(getAuthorizerSpy).not.toHaveBeenCalled();
         expect(getInputSpy).toHaveBeenCalledTimes(7);
-        expect(SqlConnectionStringBuilder).toHaveBeenCalled();
         expect(resolveFilePathSpy).toHaveBeenCalled();
         expect(addFirewallRuleSpy).not.toHaveBeenCalled();
         expect(actionExecuteSpy).toHaveBeenCalled();
@@ -81,12 +78,11 @@ describe('main.ts tests', () => {
         expect(detectIPAddressSpy).toHaveBeenCalled();
         expect(getAuthorizerSpy).not.toHaveBeenCalled();
         expect(getInputSpy).toHaveBeenCalledTimes(4);
-        expect(SqlConnectionStringBuilder).toHaveBeenCalled();
         expect(resolveFilePathSpy).toHaveBeenCalled();
         expect(addFirewallRuleSpy).not.toHaveBeenCalled();
-        expect(actionExecuteSpy).toHaveBeenCalled();    
-        expect(removeFirewallRuleSpy).not.toHaveBeenCalled();     
-        expect(setFailedSpy).not.toHaveBeenCalled(); 
+        expect(actionExecuteSpy).toHaveBeenCalled();
+        expect(removeFirewallRuleSpy).not.toHaveBeenCalled();
+        expect(setFailedSpy).not.toHaveBeenCalled();
     })
  
     it('gets inputs and executes sql action', async () => {
@@ -115,12 +111,11 @@ describe('main.ts tests', () => {
         expect(detectIPAddressSpy).toHaveBeenCalled();
         expect(getAuthorizerSpy).not.toHaveBeenCalled();
         expect(getInputSpy).toHaveBeenCalledTimes(5);
-        expect(SqlConnectionStringBuilder).toHaveBeenCalled();
         expect(resolveFilePathSpy).toHaveBeenCalled();
         expect(addFirewallRuleSpy).not.toHaveBeenCalled();
-        expect(actionExecuteSpy).toHaveBeenCalled();    
-        expect(removeFirewallRuleSpy).not.toHaveBeenCalled();      
-        expect(setFailedSpy).not.toHaveBeenCalled(); 
+        expect(actionExecuteSpy).toHaveBeenCalled();
+        expect(removeFirewallRuleSpy).not.toHaveBeenCalled();
+        expect(setFailedSpy).not.toHaveBeenCalled();
     })
 
     it('throws if input file is not found', async() => {
