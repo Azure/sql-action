@@ -99,13 +99,8 @@ export default class SqlConnectionConfig {
         // SqlClient AAD types: https://docs.microsoft.com/sql/connect/ado-net/sql/azure-active-directory-authentication
         // Authentication definitions: http://tediousjs.github.io/tedious/api-connection.html
         switch (authentication.replace(/\s/g, '').toLowerCase()) {
-            case 'defaultazurecredential': {
-                this._connectionConfig['authentication'] = {
-                    type: 'azure-active-directory-default',
-                    options: {
-                      "clientId": core.getInput('client-id') || undefined
-                    }
-                }
+            case 'sqlpassword': {
+                // default: use user and password
                 break;
             }
             case 'activedirectorypassword': {
@@ -121,9 +116,8 @@ export default class SqlConnectionConfig {
                 }
                 break;
             }
-            case 'sqlpassword': {
-                // default: use user and password
-                return;
+            default: {
+                throw new Error(`Authentication type '${authentication} is not supported.`);
             }
         }
     }
