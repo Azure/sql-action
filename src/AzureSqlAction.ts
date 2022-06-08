@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
@@ -6,6 +7,7 @@ import AzureSqlActionHelper from './AzureSqlActionHelper';
 import DotnetUtils from './DotnetUtils';
 import Constants from './Constants';
 import SqlConnectionConfig from './SqlConnectionConfig';
+import SqlUtils from './SqlUtils';
 
 export enum ActionType {
     DacpacAction,
@@ -87,10 +89,16 @@ export default class AzureSqlAction {
     }
 
     private async _executeSqlFile(inputs: ISqlActionInputs) {
-        let sqlCmdPath = await AzureSqlActionHelper.getSqlCmdPath();
-        await exec.exec(`"${sqlCmdPath}" -S ${inputs.serverName} -d ${inputs.connectionConfig.Config.database} -U "${inputs.connectionConfig.Config.user}" -P "${inputs.connectionConfig.Config.password}" -i "${inputs.sqlFile}" ${inputs.additionalArguments}`);
-
-        console.log(`Successfully executed Sql file on target database.`);
+        let scriptContents: string;
+        try {
+            scriptContents = fs.readFileSync(inputs.sqlFile, "utf8");
+        }
+        catch (e) {
+            throw new Error(`Cannot read contents of file ${inputs.sqlFile} due to error '${e.message}'.`);
+        }
+        
+        await SqlUtils.executeSql(inputs.connectionConfig, scriptContents);
+        console.log(`Successfully executed SQL file on target database.`);
     }
 
     private async _executeBuildProject(inputs: IBuildAndPublishInputs): Promise<string> {
