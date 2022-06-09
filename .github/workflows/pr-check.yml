@@ -59,9 +59,11 @@ jobs:
         connection-string: '${{ secrets.AZURE_SQL_CONNECTION_STRING_NO_DATABASE }}Initial Catalog=${{ env.TEST_DB }};'
         sql-file: ./__testdata__/testsql.sql
 
+    - name: Set database name for cleanup
+      run: sed 's/$(DbName)/${{ env.TEST_DB }}/' > ${{ env.RUNNER_TEMP }}/cleanup.sql
+
     - name: Cleanup Test Database
       uses: ./
       with: 
         connection-string: '${{ secrets.AZURE_SQL_CONNECTION_STRING_NO_DATABASE }}Initial Catalog=master;'
-        sql-file: ./__testdata__/cleanup.sql
-        arguments: '-v DbName="${{ env.TEST_DB }}"'
+        sql-file: ${{ env.RUNNER_TEMP }}/cleanup.sql
