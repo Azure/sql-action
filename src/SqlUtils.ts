@@ -7,11 +7,14 @@ import SqlConnectionConfig from "./SqlConnectionConfig";
 export default class SqlUtils {
     static async detectIPAddress(connectionConfig: SqlConnectionConfig): Promise<string> {
         let ipAddress = '';
-        connectionConfig.Config.database = "master";
+
+        // Clone the connection config so we can change the database without modifying the original
+        const configClone = JSON.parse(JSON.stringify(connectionConfig.Config)) as mssql.config;
+        configClone.database = "master";
 
         try {
-            core.debug(`Validating if client has access to SQL Server '${connectionConfig.Config.server}'.`);
-            const pool = await mssql.connect(connectionConfig.Config);
+            core.debug(`Validating if client has access to SQL Server '${configClone.server}'.`);
+            const pool = await mssql.connect(configClone);
             pool.close();
         }
         catch (connectionError) {
