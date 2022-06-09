@@ -62,16 +62,7 @@ export default class SqlUtils {
     static async executeSql(connectionConfig: SqlConnectionConfig, command: string): Promise<void> {
         let pool: mssql.ConnectionPool | undefined;
         try {
-            // Debug only:
-            console.log('executeSql connection config:');
-            console.dir(connectionConfig.Config);
-
             pool = await mssql.connect(connectionConfig.Config);
-
-            // Debug only:
-            console.log('Successfully connected');
-            console.log('Executing command: ' + command);
-
             const result = await pool.query(command);
             
             // Display result
