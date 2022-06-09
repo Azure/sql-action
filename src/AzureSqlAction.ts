@@ -79,7 +79,7 @@ export default class AzureSqlAction {
     }
 
     private async _executeDacpacAction(inputs: IDacpacActionInputs) {
-        core.debug('Begin executing action')
+        core.debug('Begin executing sqlpackage');
         let sqlPackagePath = await AzureSqlActionHelper.getSqlPackagePath();
         let sqlPackageArgs = this._getSqlPackageArguments(inputs);
 
@@ -89,6 +89,7 @@ export default class AzureSqlAction {
     }
 
     private async _executeSqlFile(inputs: ISqlActionInputs) {
+        core.debug('Begin executing sql script');
         let scriptContents: string;
         try {
             scriptContents = fs.readFileSync(inputs.sqlFile, "utf8");
@@ -98,10 +99,12 @@ export default class AzureSqlAction {
         }
         
         await SqlUtils.executeSql(inputs.connectionConfig, scriptContents);
+        
         console.log(`Successfully executed SQL file on target database.`);
     }
 
     private async _executeBuildProject(inputs: IBuildAndPublishInputs): Promise<string> {
+        core.debug('Begin building project');
         const projectName = path.basename(inputs.projectFile, Constants.sqlprojExtension);
         const additionalBuildArguments = inputs.buildArguments ?? '';
         const parsedArgs = await DotnetUtils.parseCommandArguments(additionalBuildArguments);
