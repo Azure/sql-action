@@ -84,7 +84,7 @@ export default class SqlUtils {
             }
         }
         finally {
-            if (!!pool) pool.close();
+            pool?.close();
         }
     }
 
