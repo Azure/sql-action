@@ -68,13 +68,35 @@ export default class SqlConnectionConfig {
             throw new Error(`Invalid connection string. Please ensure 'Database' or 'Initial Catalog' is provided in the connection string.`);
         }
 
-        if (!this._connectionConfig['authentication'] || this._connectionConfig['authentication'].type === 'azure-active-directory-password') {
-            if (!this._connectionConfig.user) {
-                throw new Error(`Invalid connection string. Please ensure 'User' or 'User ID' is provided in the connection string.`);
+        const auth = this._connectionConfig['authentication'];
+        switch (auth?.type) {
+            case undefined: {
+                // SQL password
+                if (!this._connectionConfig.user) {
+                    throw new Error(`Invalid connection string. Please ensure 'User' or 'User ID' is provided in the connection string.`);
+                }
+                if (!this._connectionConfig.password) {
+                    throw new Error(`Invalid connection string. Please ensure 'Password' is provided in the connection string.`);
+                }
+                break;
             }
-    
-            if (!this._connectionConfig.password) {
-                throw new Error(`Invalid connection string. Please ensure 'Password' is provided in the connection string.`);
+            case 'azure-active-directory-password': {
+                if (!auth.options?.userName) {
+                    throw new Error(`Invalid connection string. Please ensure 'User' or 'User ID' is provided in the connection string.`);
+                }
+                if (!auth.options?.password) {
+                    throw new Error(`Invalid connection string. Please ensure 'Password' is provided in the connection string.`);
+                }
+                break;
+            }
+            case 'azure-active-directory-service-principal-secret': {
+                if (!auth.options?.clientId) {
+                    throw new Error(`Invalid connection string. Please ensure client ID is provided in the 'User' or 'User ID' field of the connection string.`);
+                }
+                if (!auth.options?.clientSecret) {
+                    throw new Error(`Invalid connection string. Please ensure client secret is provided in the 'Password' field of the connection string.`);
+                }
+                break;
             }
         }
     }
@@ -96,8 +118,8 @@ export default class SqlConnectionConfig {
             return;
         }
 
-        // SqlClient AAD types: https://docs.microsoft.com/sql/connect/ado-net/sql/azure-active-directory-authentication
-        // Authentication definitions: http://tediousjs.github.io/tedious/api-connection.html
+        // Possible auth types from connection string: https://docs.microsoft.com/sql/connect/ado-net/sql/azure-active-directory-authentication
+        // Auth definitions from tedious driver: http://tediousjs.github.io/tedious/api-connection.html
         switch (authentication.replace(/\s/g, '').toLowerCase()) {
             case 'sqlpassword': {
                 // default: use user and password
@@ -116,8 +138,30 @@ export default class SqlConnectionConfig {
                 }
                 break;
             }
+            case 'activedirectorydefault': {
+                this._connectionConfig['authentication'] = {
+                    type: 'azure-active-directory-default',
+                    options: {
+                      "clientId": core.getInput('client-id') || undefined
+                    }
+                }
+                break;
+            }
+            case 'activedirectoryserviceprincipal': {
+                this._connectionConfig['authentication'] = {
+                    type: 'azure-active-directory-service-principal-secret',
+                    options: {
+                      // From connection string, client ID == user ID and secret == password
+                      // https://docs.microsoft.com/sql/connect/ado-net/sql/azure-active-directory-authentication#using-active-directory-service-principal-authentication
+                      "clientId": this._connectionConfig.user,
+                      "clientSecret": this._connectionConfig.password,
+                      "tenantId": core.getInput('tenant-id') || undefined
+                    }
+                }
+                break;
+            }
             default: {
-                throw new Error(`Authentication type '${authentication} is not supported.`);
+                throw new Error(`Authentication type '${authentication}' is not supported.`);
             }
         }
     }
