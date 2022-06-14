@@ -1,9 +1,13 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import * as exec from '@actions/exec';
 import AzureSqlAction, { IBuildAndPublishInputs, IDacpacActionInputs, ISqlActionInputs, ActionType, SqlPackageAction } from "../src/AzureSqlAction";
 import AzureSqlActionHelper from "../src/AzureSqlActionHelper";
 import DotnetUtils from '../src/DotnetUtils';
 import SqlConnectionConfig from '../src/SqlConnectionConfig';
+import SqlUtils from '../src/SqlUtils';
+
+jest.mock('fs');
 
 describe('AzureSqlAction tests', () => {
     afterEach(() => {
@@ -36,29 +40,37 @@ describe('AzureSqlAction tests', () => {
     });
 
     it('executes sql action for SqlAction type', async () => {
-        let inputs = getInputs(ActionType.SqlAction) as ISqlActionInputs;
-        inputs.additionalArguments = '-t 20'
-        let action = new AzureSqlAction(inputs);
-        
-        let getSqlCmdPathSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlCmdPath').mockResolvedValue('SqlCmd.exe');
-        let execSpy = jest.spyOn(exec, 'exec').mockResolvedValue(0);
-        
+        const inputs = getInputs(ActionType.SqlAction) as ISqlActionInputs;
+        const action = new AzureSqlAction(inputs);
+
+        const fsSpy = jest.spyOn(fs, 'readFileSync').mockReturnValue('select * from table1');
+        const sqlSpy = jest.spyOn(SqlUtils, 'executeSql').mockResolvedValue();
+
         await action.execute();
 
-        expect(getSqlCmdPathSpy).toHaveBeenCalledTimes(1);
-        expect(execSpy).toHaveBeenCalledTimes(1);
-        expect(execSpy).toHaveBeenCalledWith(`"SqlCmd.exe" -S testServer.database.windows.net -d testDB -U "testUser" -P "placeholder" -i "./TestFile.sql" -t 20`);
+        expect(fsSpy).toHaveBeenCalledTimes(1);
+        expect(sqlSpy).toHaveBeenCalledTimes(1);
+        expect(sqlSpy).toHaveBeenCalledWith(inputs.connectionConfig, 'select * from table1');
     });
 
-    it('throws if SqlCmd.exe fails to execute sql', async () => {
-        let inputs = getInputs(ActionType.SqlAction) as ISqlActionInputs;
-        let action = new AzureSqlAction(inputs);
+    it('throws if sql action cannot read file', async () => {
+        const inputs = getInputs(ActionType.SqlAction) as ISqlActionInputs;
+        const action = new AzureSqlAction(inputs);
+        const fsSpy = jest.spyOn(fs, 'readFileSync').mockImplementation(() => {
+            throw new Error('Cannot read file');
+        });
 
-        let getSqlCmdPathSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlCmdPath').mockResolvedValue('SqlCmd.exe');
-        jest.spyOn(exec, 'exec').mockRejectedValue(1);
+        let error: Error | undefined;
+        try {
+            await action.execute();
+        }
+        catch (e) {
+            error = e;
+        }
 
-        expect(await action.execute().catch(() => null)).rejects;
-        expect(getSqlCmdPathSpy).toHaveBeenCalledTimes(1);
+        expect(fsSpy).toHaveBeenCalledTimes(1);
+        expect(error).toBeDefined();
+        expect(error!.message).toMatch(`Cannot read contents of file ./TestFile.sql due to error 'Cannot read file'.`);
     });
 
     it('should build and publish database project', async () => {
@@ -134,8 +146,7 @@ function getInputs(actionType: ActionType) {
                 serverName: config.Config.server,
                 actionType: ActionType.SqlAction,
                 connectionConfig: config,
-                sqlFile: './TestFile.sql',
-                additionalArguments: '-t 20'
+                sqlFile: './TestFile.sql'
             } as ISqlActionInputs;
         }
         case ActionType.BuildAndPublish: {

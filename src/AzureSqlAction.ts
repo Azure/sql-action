@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
@@ -6,6 +7,7 @@ import AzureSqlActionHelper from './AzureSqlActionHelper';
 import DotnetUtils from './DotnetUtils';
 import Constants from './Constants';
 import SqlConnectionConfig from './SqlConnectionConfig';
+import SqlUtils from './SqlUtils';
 
 export enum ActionType {
     DacpacAction,
@@ -77,7 +79,7 @@ export default class AzureSqlAction {
     }
 
     private async _executeDacpacAction(inputs: IDacpacActionInputs) {
-        core.debug('Begin executing action')
+        core.debug('Begin executing sqlpackage');
         let sqlPackagePath = await AzureSqlActionHelper.getSqlPackagePath();
         let sqlPackageArgs = this._getSqlPackageArguments(inputs);
 
@@ -87,13 +89,22 @@ export default class AzureSqlAction {
     }
 
     private async _executeSqlFile(inputs: ISqlActionInputs) {
-        let sqlCmdPath = await AzureSqlActionHelper.getSqlCmdPath();
-        await exec.exec(`"${sqlCmdPath}" -S ${inputs.serverName} -d ${inputs.connectionConfig.Config.database} -U "${inputs.connectionConfig.Config.user}" -P "${inputs.connectionConfig.Config.password}" -i "${inputs.sqlFile}" ${inputs.additionalArguments}`);
-
-        console.log(`Successfully executed Sql file on target database.`);
+        core.debug('Begin executing sql script');
+        let scriptContents: string;
+        try {
+            scriptContents = fs.readFileSync(inputs.sqlFile, "utf8");
+        }
+        catch (e) {
+            throw new Error(`Cannot read contents of file ${inputs.sqlFile} due to error '${e.message}'.`);
+        }
+        
+        await SqlUtils.executeSql(inputs.connectionConfig, scriptContents);
+        
+        console.log(`Successfully executed SQL file on target database.`);
     }
 
     private async _executeBuildProject(inputs: IBuildAndPublishInputs): Promise<string> {
+        core.debug('Begin building project');
         const projectName = path.basename(inputs.projectFile, Constants.sqlprojExtension);
         const additionalBuildArguments = inputs.buildArguments ?? '';
         const parsedArgs = await DotnetUtils.parseCommandArguments(additionalBuildArguments);
