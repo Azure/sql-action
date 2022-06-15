@@ -17,16 +17,16 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest]
-        matrix_id: [1, 2] # Unique ID for each parallel job run, part of TEST_DB name to ensure no collisions from parallel jobs
+        auth_type: [sql_login, aad_password] # Unique for each parallel job run, part of TEST_DB name to ensure no collisions from parallel jobs
         include:
-          # Includes the connection string Github secret name, effectively a switch statement on matrix_id
-          - matrix_id: 1
-            connection_string_secret: AZURE_SQL_CONNECTION_STRING_NO_DATABASE # tests SQL login
-          - matrix_id: 2
-            connection_string_secret: AAD_PASSWORD_CONNECTION_STRING_NO_DATABASE # tests AAD password auth
+          # Includes the connection string Github secret name, effectively a switch statement on auth_type
+          - auth_type: sql_login
+            connection_string_secret: AZURE_SQL_CONNECTION_STRING_NO_DATABASE
+          - auth_type: aad_password
+            connection_string_secret: AAD_PASSWORD_CONNECTION_STRING_NO_DATABASE
 
     env:
-      TEST_DB: 'SqlActionTest-${{ matrix.os }}-${{ matrix.matrix_id }}'
+      TEST_DB: 'SqlActionTest-${{ matrix.os }}-${{ matrix.auth_type }}'
 
     steps:
     - name: Checkout from PR branch
