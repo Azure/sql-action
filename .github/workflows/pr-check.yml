@@ -15,6 +15,7 @@ jobs:
     environment: Automation test # this environment requires approval before running the action
     runs-on: ${{ matrix.os }}
     strategy:
+      max-parallel: 2
       matrix:
         os: [windows-latest, ubuntu-latest]
         auth_type: [sql_login, aad_password] # Unique for each parallel job run, part of TEST_DB name to ensure no collisions from parallel jobs
