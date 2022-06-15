@@ -97,6 +97,12 @@ export default class AzureSqlAction {
         catch (e) {
             throw new Error(`Cannot read contents of file ${inputs.sqlFile} due to error '${e.message}'.`);
         }
+
+        // Debug
+        core.debug('==================');
+        core.debug('Script contents:');
+        core.debug(scriptContents);
+        core.debug('==================');
         
         await SqlUtils.executeSql(inputs.connectionConfig, scriptContents);
         
