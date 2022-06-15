@@ -61,7 +61,7 @@ jobs:
 
     - name: Set database name for cleanup
       if: always()
-      run: sed 's/$(DbName)/${{ env.TEST_DB }}/' > ${{ runner.temp }}/cleanup.sql
+      run: sed 's/$(DbName)/${{ env.TEST_DB }}/' ./__testdata__/cleanup.sql > ${{ runner.temp }}/cleanup.sql
 
     - name: Cleanup Test Database
       if: always()
