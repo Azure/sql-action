@@ -57,16 +57,42 @@ describe('SqlConnectionConfig tests', () => {
         })
     })
 
-    it('should mask connection string password', () => {
-        const setSecretSpy = jest.spyOn(core, 'setSecret');
-        new SqlConnectionConfig('User Id=user;Password=1234;Server=test1.database.windows.net;Initial Catalog=testDB');
-        expect(setSecretSpy).toHaveBeenCalled();
-    });
-
     it('should call into mssql module to parse connection string', () => {
         const parseConnectionStringSpy = jest.spyOn(ConnectionPool, 'parseConnectionString');
         new SqlConnectionConfig('User Id=user;Password=1234;Server=test1.database.windows.net;Initial Catalog=testDB');
         expect(parseConnectionStringSpy).toHaveBeenCalled();
+    });
+
+    it('should mask connection string password', () => {
+        const setSecretSpy = jest.spyOn(core, 'setSecret');
+        new SqlConnectionConfig('User Id=user;Password=placeholder;Server=test1.database.windows.net;Initial Catalog=testDB');
+        expect(setSecretSpy).toHaveBeenCalledWith('placeholder');
+    });
+
+    it('should mask client id', () => {
+        const setSecretSpy = jest.spyOn(core, 'setSecret');
+        const getInputSpy = jest.spyOn(core, 'getInput').mockImplementation((name, options) => {
+            switch (name) {
+                case 'client-id': return 'testClientId';
+                default: return '';
+            }
+        });
+        new SqlConnectionConfig('User Id=user;Password=placeholder;Server=test1.database.windows.net;Initial Catalog=testDB');
+        expect(getInputSpy).toHaveBeenCalled();
+        expect(setSecretSpy).toHaveBeenCalledWith('testClientId');
+    });
+
+    it('should mask tenant id', () => {
+        const setSecretSpy = jest.spyOn(core, 'setSecret');
+        const getInputSpy = jest.spyOn(core, 'getInput').mockImplementation((name, options) => {
+            switch (name) {
+                case 'tenant-id': return 'testTenantId';
+                default: return '';
+            }
+        });
+        new SqlConnectionConfig('User Id=user;Password=placeholder;Server=test1.database.windows.net;Initial Catalog=testDB');
+        expect(getInputSpy).toHaveBeenCalled();
+        expect(setSecretSpy).toHaveBeenCalledWith('testTenantId');
     });
 
     describe('parse authentication in connection strings', () => {

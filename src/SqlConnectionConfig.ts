@@ -107,6 +107,16 @@ export default class SqlConnectionConfig {
      * Assumes _connectionConfig has already been set, sets authentication to _connectionConfig directly
      */
     private _setAuthentication(): void {
+        // Read client-id and tenant-id from input, and mask them
+        const clientId = core.getInput('client-id') || undefined;
+        if (clientId) {
+            core.setSecret(clientId);
+        }
+
+        const tenantId = core.getInput('tenant-id') || undefined;
+        if (tenantId) {
+            core.setSecret(tenantId);
+        }
 
         // Parsing logic from SqlConnectionStringBuilder._parseConnectionString https://github.com/Azure/sql-action/blob/7e69fdc44aba3f05fd02a6a4190841020d9ca6f7/src/SqlConnectionStringBuilder.ts#L70-L128
         const result = Array.from(this._connectionString.matchAll(Constants.connectionStringParserRegex));
@@ -132,8 +142,8 @@ export default class SqlConnectionConfig {
                       // User and password should have been parsed already  
                       "userName": this._connectionConfig.user,
                       "password": this._connectionConfig.password,
-                      "clientId": core.getInput('client-id') || undefined,
-                      "tenantId": core.getInput('tenant-id') || undefined
+                      "clientId": clientId,
+                      "tenantId": tenantId
                     }
                 }
                 break;
@@ -142,7 +152,7 @@ export default class SqlConnectionConfig {
                 this._connectionConfig['authentication'] = {
                     type: 'azure-active-directory-default',
                     options: {
-                      "clientId": core.getInput('client-id') || undefined
+                      "clientId": clientId
                     }
                 }
                 break;
@@ -155,7 +165,7 @@ export default class SqlConnectionConfig {
                       // https://docs.microsoft.com/sql/connect/ado-net/sql/azure-active-directory-authentication#using-active-directory-service-principal-authentication
                       "clientId": this._connectionConfig.user,
                       "clientSecret": this._connectionConfig.password,
-                      "tenantId": core.getInput('tenant-id') || undefined
+                      "tenantId": tenantId
                     }
                 }
                 break;
