@@ -15,16 +15,17 @@ jobs:
     environment: Automation test # this environment requires approval before running the action
     runs-on: ${{ matrix.os }}
     strategy:
-      max-parallel: 2
       matrix:
         os: [windows-latest, ubuntu-latest]
-        auth_type: [sql_login, aad_password] # Unique for each parallel job run, part of TEST_DB name to ensure no collisions from parallel jobs
+        auth_type: [sql_login, aad_password, service_principal] # Unique for each parallel job run, part of TEST_DB name to ensure no collisions from parallel jobs
         include:
           # Includes the connection string Github secret name, effectively a switch statement on auth_type
           - auth_type: sql_login
             connection_string_secret: AZURE_SQL_CONNECTION_STRING_NO_DATABASE
           - auth_type: aad_password
             connection_string_secret: AAD_PASSWORD_CONNECTION_STRING_NO_DATABASE
+          - auth_type: service_principal
+            connection_string_secret: SERVICE_PRINCIPAL_CONNECTION_STRING_NO_DATABASE
 
     env:
       TEST_DB: 'SqlActionTest-${{ matrix.os }}-${{ matrix.auth_type }}'
