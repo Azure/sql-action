@@ -8,7 +8,7 @@ inputs:
     description: 'The connection string, including authentication information, for the Azure SQL Server database.'
     required: true
   client-id:
-    description: 'For Active Directory connections, the application (client) ID from the registered Azure application'
+    description: 'For Azure Active Directory connections, the application (client) ID from the registered Azure application'
     required: false
   tenant-id:
     description: 'For Active Directory connections, the tenant ID from the Azure Active Directory instance'
