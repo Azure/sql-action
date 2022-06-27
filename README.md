@@ -25,9 +25,8 @@ The definition of this GitHub Action is in [action.yml](https://github.com/Azure
     # optional for SQL scripts deployment - sql-file
     sql-file: # path to SQL scripts
 
-
     # optional for all deployments - arguments
-    arguments: # sqlpackage arguments for .sqlproj or .dacpac deployment or sqlcmd arguments for SQL script deployment
+    arguments: # sqlpackage arguments for .sqlproj or .dacpac deployment
 ```
 
 ## 🎨 Samples
@@ -96,15 +95,12 @@ jobs:
 
 ### Authentication
 
-The v1.x version of sql-action supports SQL authentication only in the connection string.
-
-The `server-name` action YAML key is optional and is only available to provide backward compatibility. It is strongly recommended to put the server name in the connection string as displayed in the examples. The connection string uses this template: `Server=<servername>; User ID=<user_id>; Password=<password>; Initial Catalog=<database>`. In case the server name is put both in the `server-name` and in the `connection-string`, the server name used will be the one specified in the `server-name` YAML key.
+The v1.x version of sql-action supports SQL authentication only in the connection string. Starting in v2, AAD Password, AAD Service Principal, and AAD Default authentications are also supported.
 
 ### Environments
 
 sql-action is supported on both Windows and Linux environments.  The [default images](https://github.com/actions/virtual-environments) include the prerequisites:
 
-- sqlcmd
 - sqlpackage (for sqlproj or dacpac deployment)
 - dotnet (for sqlproj build)
 
