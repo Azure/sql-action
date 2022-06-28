@@ -18,19 +18,27 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-latest]
         auth_type: [sql_login, aad_password, service_principal] # Unique for each parallel job run, part of TEST_DB name to ensure no collisions from parallel jobs
-        include:
-          # Includes the connection string Github secret name, effectively a switch statement on auth_type
-          - auth_type: sql_login
-            connection_string_secret: AZURE_SQL_CONNECTION_STRING_NO_DATABASE
-          - auth_type: aad_password
-            connection_string_secret: AAD_PASSWORD_CONNECTION_STRING_NO_DATABASE
-          - auth_type: service_principal
-            connection_string_secret: SERVICE_PRINCIPAL_CONNECTION_STRING_NO_DATABASE
 
     env:
       TEST_DB: 'SqlActionTest-${{ matrix.os }}-${{ matrix.auth_type }}'
 
     steps:
+    - name: Build connection string environment variable based on matrix auth_type
+      run: |
+        if [[ ${{ matrix.auth_type }} == sql_login ]]; then
+          echo Setting connection strings with SQL login authentication
+          echo "DB_CONNECTION_STRING='Server=${{ secrets.AZURE_SERVER_NAME }};Database=${{ env.TEST_DB }};User Id=${{ secrets.SQL_LOGIN_USER }};Password=${{ secrets.SQL_LOGIN_PASSWORD }};'" >> $GITHUB_ENV
+          echo "MASTER_CONNECTION_STRING='Server=${{ secrets.AZURE_SERVER_NAME }};Database=master;User Id=${{ secrets.SQL_LOGIN_USER }};Password=${{ secrets.SQL_LOGIN_PASSWORD }};'" >> $GITHUB_ENV
+        elif [[ ${{ matrix.auth_type }} == aad_password ]]; then
+          echo Setting connection strings with AAD password authentication
+          echo "DB_CONNECTION_STRING='Server=${{ secrets.AZURE_SERVER_NAME }};Database=${{ env.TEST_DB }};Authentication=Active Directory Password;User Id=${{ secrets.AAD_PASSWORD_USER }};Password=${{ secrets.AAD_PASSWORD_PASSWORD }};'" >> $GITHUB_ENV
+          echo "MASTER_CONNECTION_STRING='Server=${{ secrets.AZURE_SERVER_NAME }};Database=master;Authentication=Active Directory Password;User Id=${{ secrets.AAD_PASSWORD_USER }};Password=${{ secrets.AAD_PASSWORD_PASSWORD }};'" >> $GITHUB_ENV
+        elif [[ ${{ matrix.auth_type }} == service_principal ]]; then
+          echo Setting connection strings with AAD service principal authentication
+          echo "DB_CONNECTION_STRING='Server=${{ secrets.AZURE_SERVER_NAME }};Database=${{ env.TEST_DB }};Authentication=Active Directory Service Principal;User Id=${{ secrets.SERVICE_PRINCIPAL_CLIENT_ID }};Password=${{ secrets.SERVICE_PRINCIPAL_CLIENT_SECRET }};'" >> $GITHUB_ENV
+          echo "MASTER_CONNECTION_STRING='Server=${{ secrets.AZURE_SERVER_NAME }};Database=master;Authentication=Active Directory Service Principal;User Id=${{ secrets.SERVICE_PRINCIPAL_CLIENT_ID }};Password=${{ secrets.SERVICE_PRINCIPAL_CLIENT_SECRET }};'" >> $GITHUB_ENV
+        fi
+
     - name: Checkout from PR branch
       uses: actions/checkout@v2
       with:
@@ -52,7 +60,7 @@ jobs:
     - name: Test DACPAC Action
       uses: ./
       with:
-        connection-string: '${{ secrets[matrix.connection_string_secret] }}Initial Catalog=${{ env.TEST_DB }};'
+        connection-string: '${{ env.DB_CONNECTION_STRING }}'
         tenant-id: '${{ secrets.AAD_TENANT_ID }}'
         dacpac-package: ./__testdata__/sql-action.dacpac
 
@@ -60,15 +68,15 @@ jobs:
     - name: Test Build and Publish
       uses: ./
       with:
-        connection-string: '${{ secrets[matrix.connection_string_secret] }}Initial Catalog=${{ env.TEST_DB }};'
+        connection-string: '${{ env.DB_CONNECTION_STRING }}'
         tenant-id: '${{ secrets.AAD_TENANT_ID }}'
         project-file: ./__testdata__/TestProject/sql-action.sqlproj
 
-    # Execute testsql.sql via SQLCMD on server
+    # Execute testsql.sql via script action on server
     - name: Test SQL Action
       uses: ./
       with:
-        connection-string: '${{ secrets[matrix.connection_string_secret] }}Initial Catalog=${{ env.TEST_DB }};'
+        connection-string: '${{ env.DB_CONNECTION_STRING }}'
         tenant-id: '${{ secrets.AAD_TENANT_ID }}'
         sql-file: ./__testdata__/testsql.sql
 
@@ -80,6 +88,6 @@ jobs:
       if: always()
       uses: ./
       with: 
-        connection-string: '${{ secrets[matrix.connection_string_secret] }}Initial Catalog=master;'
+        connection-string: '${{ env.MASTER_CONNECTION_STRING }}'
         tenant-id: '${{ secrets.AAD_TENANT_ID }}'
         sql-file: ${{ runner.temp }}/cleanup.sql
