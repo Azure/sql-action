@@ -24,8 +24,9 @@ jobs:
 
     steps:
     - name: Build connection string environment variable based on matrix auth_type
+      shell: bash
       run: |
-        if [ ${{ matrix.auth_type }} == sql_login ]; then
+        if ( ${{ matrix.auth_type }} == sql_login ); then
           echo Setting connection strings with SQL login authentication
           echo "DB_CONNECTION_STRING='Server=${{ secrets.AZURE_SERVER_NAME }};Database=${{ env.TEST_DB }};User Id=${{ secrets.SQL_LOGIN_USER }};Password=${{ secrets.SQL_LOGIN_PASSWORD }};'" >> $GITHUB_ENV
           echo "MASTER_CONNECTION_STRING='Server=${{ secrets.AZURE_SERVER_NAME }};Database=master;User Id=${{ secrets.SQL_LOGIN_USER }};Password=${{ secrets.SQL_LOGIN_PASSWORD }};'" >> $GITHUB_ENV
