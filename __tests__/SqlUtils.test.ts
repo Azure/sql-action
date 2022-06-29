@@ -62,7 +62,7 @@ describe('SqlUtils tests', () => {
         expect(mssqlSpy).toHaveBeenCalledTimes(2);
     });
 
-    it('detectIPAddress should retry connection with master if initial connection fails', async () => {
+    it('detectIPAddress should retry connection with DB if master connection fails', async () => {
         const mssqlSpy = jest.spyOn(mssql, 'connect').mockImplementationOnce((config) => {
             // First call, call the original to get login failure
             return mssql.connect(config);
@@ -75,6 +75,47 @@ describe('SqlUtils tests', () => {
 
         expect(mssqlSpy).toHaveBeenCalledTimes(2);
         expect(ipAddress).toBe('');
+    });
+
+    it('detectIPAddress should fail fast if initial connection fails with unknown error', async () => {
+        const mssqlSpy = jest.spyOn(mssql, 'connect').mockImplementationOnce((config) => {
+            if (config['database'] === 'master') {
+                throw new Error('This is an unknown error.');
+            }
+        });
+
+        let error: Error | undefined;
+        try {
+            await SqlUtils.detectIPAddress(getConnectionConfig());
+        }
+        catch (e) {
+            error = e;
+        }
+
+        expect(error).toBeDefined();
+        expect(error!.message).toMatch('This is an unknown error.');
+        expect(mssqlSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('detectIPAddress should fail if retry fails again', async () => {
+        const errorSpy = jest.spyOn(core, 'error');
+        const mssqlSpy = jest.spyOn(mssql, 'connect').mockImplementation((config) => {
+            throw new mssql.ConnectionError(new Error('Custom connection error message.'));
+        })
+
+        let error: Error | undefined;
+        try {
+            await SqlUtils.detectIPAddress(getConnectionConfig());
+        }
+        catch (e) {
+            error = e;
+        }
+
+        expect(error).toBeDefined();
+        expect(error!.message).toMatch('Failed to add firewall rule. Unable to detect client IP Address.');
+        expect(mssqlSpy).toHaveBeenCalledTimes(2);
+        expect(errorSpy).toHaveBeenCalledTimes(1);
+        expect(errorSpy).toHaveBeenCalledWith('Custom connection error message.');
     });
 
     it('should report single MSSQLError', async () => {
