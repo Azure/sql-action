@@ -59,7 +59,22 @@ describe('SqlUtils tests', () => {
 
         expect(error).toBeDefined();
         expect(error!.message).toMatch('Failed to add firewall rule. Unable to detect client IP Address.');
-        expect(mssqlSpy).toHaveBeenCalledTimes(1);
+        expect(mssqlSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('detectIPAddress should retry connection with master if initial connection fails', async () => {
+        const mssqlSpy = jest.spyOn(mssql, 'connect').mockImplementationOnce((config) => {
+            // First call, call the original to get login failure
+            return mssql.connect(config);
+        }).mockImplementationOnce((config) => {
+            // Second call, mock return successful connection
+            return new mssql.ConnectionPool('');
+        });
+
+        const ipAddress = await SqlUtils.detectIPAddress(getConnectionConfig());
+
+        expect(mssqlSpy).toHaveBeenCalledTimes(2);
+        expect(ipAddress).toBe('');
     });
 
     it('should report single MSSQLError', async () => {

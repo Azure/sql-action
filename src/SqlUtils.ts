@@ -5,52 +5,96 @@ import Constants from "./Constants";
 import SqlConnectionConfig from "./SqlConnectionConfig";
 
 export default class SqlUtils {
-    static async detectIPAddress(connectionConfig: SqlConnectionConfig): Promise<string> {
-        let ipAddress = '';
 
+    /**
+     * Tries connection to server to determine if client IP address is restricted by the firewall.
+     * First tries with master connection, and then with user DB if first one fails.
+     * Returns the client IP address if firewall restriction is present, or an empty string if connection succeeds. Throws otherwise.
+     */
+    static async detectIPAddress(connectionConfig: SqlConnectionConfig): Promise<string> {
+        // First try connection to master
+        let ipAddress = await this.tryConnection(connectionConfig, true, true);
+        if (ipAddress !== undefined) {
+            return ipAddress;
+        }
+
+        // Retry connection with user DB
+        ipAddress = await this.tryConnection(connectionConfig, false, false);
+        if (ipAddress !== undefined) {
+            return ipAddress;
+        }
+        else {
+            throw new Error(`Failed to detect IP address.`);
+        }
+    }
+
+    /**
+     * Tries connection with the specified configuration.
+     * @param config Configuration for the connection.
+     * @param useMaster If true, uses "master" instead of the database specified in @param config. Every other config remains the same.
+     * @param suppressError If true, will not throw connection errors. Non-connection errors will always be thrown.
+     * @returns If connection succeeds, returns empty string. If connection fails due to firewall rule, returns the client's IP address.
+     * Otherwise returns undefined if there were errors but were suppressed by @param suppressError.
+     */
+    private static async tryConnection(config: SqlConnectionConfig, useMaster: boolean, suppressError: boolean): Promise<string | undefined> {
         // Clone the connection config so we can change the database without modifying the original
-        const configClone = JSON.parse(JSON.stringify(connectionConfig.Config)) as mssql.config;
-        configClone.database = "master";
+        const connectionConfig = JSON.parse(JSON.stringify(config.Config)) as mssql.config;
+        if (useMaster) {
+            connectionConfig.database = "master";
+        }
 
         try {
-            core.debug(`Validating if client has access to SQL Server '${configClone.server}'.`);
-            const pool = await mssql.connect(configClone);
+            core.debug(`Validating if client has access to '${connectionConfig.database}' on '${connectionConfig.server}'.`);
+            const pool = await mssql.connect(connectionConfig);
             pool.close();
-        }
-        catch (connectionError) {
-            if (connectionError instanceof mssql.ConnectionError) {
-                if (connectionError.originalError instanceof AggregateError) {
-                    // The IP address error can be anywhere inside the AggregateError
-                    for (const err of connectionError.originalError.errors) {
-                        core.debug(err.message);
-                        const ipAddresses = err.message.match(Constants.ipv4MatchPattern);
-                        if (!!ipAddresses) {
-                            ipAddress = ipAddresses[0];
-                            break;
-                        }
-                    }
+            return '';                  // Connection successful
+        } 
+        catch (error) {
+            if (error instanceof mssql.ConnectionError) {
+                const parsedIp = this.parseErrorForIpAddress(error);
+                if (!!parsedIp) {
+                    return parsedIp;    // Connection failed due to firewall rule, return IP address
+                }
+                else if (suppressError) {
+                    return undefined;   // Connection failed, but suppress error and let caller handle retry
                 }
                 else {
-                    core.debug(connectionError.originalError!.message);
-                    const ipAddresses = connectionError.originalError!.message.match(Constants.ipv4MatchPattern);
-                    if (!!ipAddresses) {
-                        ipAddress = ipAddresses[0];
-                    }
-                }
-
-                // There are errors that are not because of missing IP firewall rule
-                if (!ipAddress) {
-                    this.reportMSSQLError(connectionError);
+                    this.reportMSSQLError(error);
                     throw new Error(`Failed to add firewall rule. Unable to detect client IP Address.`);
                 }
             }
             else {
-                // Unknown error
-                throw connectionError;
+                throw error;            // Unknown error
+            }
+        }
+    }
+
+    /**
+     * Parse a ConnectionError to see if its message contains an IP address.
+     * Returns the IP address if found, otherwise undefined.
+     */
+    private static parseErrorForIpAddress(connectionError: mssql.ConnectionError): string | undefined {
+        let ipAddress: string | undefined;
+
+        if (connectionError.originalError instanceof AggregateError) {
+            // The IP address error can be anywhere inside the AggregateError
+            for (const err of connectionError.originalError.errors) {
+                core.debug(err.message);
+                const ipAddresses = err.message.match(Constants.ipv4MatchPattern);
+                if (!!ipAddresses) {
+                    ipAddress = ipAddresses[0];
+                    break;
+                }
+            }
+        }
+        else {
+            core.debug(connectionError.originalError!.message);
+            const ipAddresses = connectionError.originalError!.message.match(Constants.ipv4MatchPattern);
+            if (!!ipAddresses) {
+                ipAddress = ipAddresses[0];
             }
         }
 
-        //ipAddress will be an empty string if client has access to SQL server
         return ipAddress;
     }
 
