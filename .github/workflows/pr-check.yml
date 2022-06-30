@@ -23,23 +23,6 @@ jobs:
       TEST_DB: 'SqlActionTest-${{ matrix.os }}-${{ matrix.auth_type }}'
 
     steps:
-    - name: Build connection string environment variable based on matrix auth_type
-      shell: bash
-      run: |
-        if ( ${{ matrix.auth_type }} == sql_login ); then
-          echo Setting connection strings with SQL login authentication
-          echo "DB_CONNECTION_STRING='Server=${{ secrets.AZURE_SERVER_NAME }};Database=${{ env.TEST_DB }};User Id=${{ secrets.SQL_LOGIN_USER }};Password=${{ secrets.SQL_LOGIN_PASSWORD }};'" >> $GITHUB_ENV
-          echo "MASTER_CONNECTION_STRING='Server=${{ secrets.AZURE_SERVER_NAME }};Database=master;User Id=${{ secrets.SQL_LOGIN_USER }};Password=${{ secrets.SQL_LOGIN_PASSWORD }};'" >> $GITHUB_ENV
-        elif [ ${{ matrix.auth_type }} == aad_password ]; then
-          echo Setting connection strings with AAD password authentication
-          echo "DB_CONNECTION_STRING='Server=${{ secrets.AZURE_SERVER_NAME }};Database=${{ env.TEST_DB }};Authentication=Active Directory Password;User Id=${{ secrets.AAD_PASSWORD_USER }};Password=${{ secrets.AAD_PASSWORD_PASSWORD }};'" >> $GITHUB_ENV
-          echo "MASTER_CONNECTION_STRING='Server=${{ secrets.AZURE_SERVER_NAME }};Database=master;Authentication=Active Directory Password;User Id=${{ secrets.AAD_PASSWORD_USER }};Password=${{ secrets.AAD_PASSWORD_PASSWORD }};'" >> $GITHUB_ENV
-        elif [ ${{ matrix.auth_type }} == service_principal ]; then
-          echo Setting connection strings with AAD service principal authentication
-          echo "DB_CONNECTION_STRING='Server=${{ secrets.AZURE_SERVER_NAME }};Database=${{ env.TEST_DB }};Authentication=Active Directory Service Principal;User Id=${{ secrets.SERVICE_PRINCIPAL_CLIENT_ID }};Password=${{ secrets.SERVICE_PRINCIPAL_CLIENT_SECRET }};'" >> $GITHUB_ENV
-          echo "MASTER_CONNECTION_STRING='Server=${{ secrets.AZURE_SERVER_NAME }};Database=master;Authentication=Active Directory Service Principal;User Id=${{ secrets.SERVICE_PRINCIPAL_CLIENT_ID }};Password=${{ secrets.SERVICE_PRINCIPAL_CLIENT_SECRET }};'" >> $GITHUB_ENV
-        fi
-
     - name: Checkout from PR branch
       uses: actions/checkout@v2
       with:
@@ -56,6 +39,24 @@ jobs:
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    # This step builds the connection string based on the authentication type currently being tested
+    - name: Build connection string environment variable
+      shell: bash
+      run: |
+        if [ "${{ matrix.auth_type }}" == "sql_login" ]; then
+          echo Setting connection strings with SQL login authentication
+          echo "DB_CONNECTION_STRING='Server=${{ secrets.AZURE_SERVER_NAME }};Database=${{ env.TEST_DB }};User Id=${{ secrets.SQL_LOGIN_USER }};Password=${{ secrets.SQL_LOGIN_PASSWORD }};'" >> $GITHUB_ENV
+          echo "MASTER_CONNECTION_STRING='Server=${{ secrets.AZURE_SERVER_NAME }};Database=master;User Id=${{ secrets.SQL_LOGIN_USER }};Password=${{ secrets.SQL_LOGIN_PASSWORD }};'" >> $GITHUB_ENV
+        elif [ "${{ matrix.auth_type }}" == "aad_password" ]; then
+          echo Setting connection strings with AAD password authentication
+          echo "DB_CONNECTION_STRING='Server=${{ secrets.AZURE_SERVER_NAME }};Database=${{ env.TEST_DB }};Authentication=Active Directory Password;User Id=${{ secrets.AAD_PASSWORD_USER }};Password=${{ secrets.AAD_PASSWORD_PASSWORD }};'" >> $GITHUB_ENV
+          echo "MASTER_CONNECTION_STRING='Server=${{ secrets.AZURE_SERVER_NAME }};Database=master;Authentication=Active Directory Password;User Id=${{ secrets.AAD_PASSWORD_USER }};Password=${{ secrets.AAD_PASSWORD_PASSWORD }};'" >> $GITHUB_ENV
+        elif [ "${{ matrix.auth_type }}" == "service_principal" ]; then
+          echo Setting connection strings with AAD service principal authentication
+          echo "DB_CONNECTION_STRING='Server=${{ secrets.AZURE_SERVER_NAME }};Database=${{ env.TEST_DB }};Authentication=Active Directory Service Principal;User Id=${{ secrets.SERVICE_PRINCIPAL_CLIENT_ID }};Password=${{ secrets.SERVICE_PRINCIPAL_CLIENT_SECRET }};'" >> $GITHUB_ENV
+          echo "MASTER_CONNECTION_STRING='Server=${{ secrets.AZURE_SERVER_NAME }};Database=master;Authentication=Active Directory Service Principal;User Id=${{ secrets.SERVICE_PRINCIPAL_CLIENT_ID }};Password=${{ secrets.SERVICE_PRINCIPAL_CLIENT_SECRET }};'" >> $GITHUB_ENV
+        fi
 
     # Deploy a DACPAC with only a table to server
     - name: Test DACPAC Action
