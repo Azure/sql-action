@@ -16,6 +16,7 @@ export default class SqlUtils {
     /**
      * Tries connection to server to determine if client IP address is restricted by the firewall.
      * First tries with master connection, and then with user DB if first one fails.
+     * @param SqlConnectionConfig The connection configuration to try.
      * @returns The client IP address if firewall restriction is present, or an empty string if connection succeeds. Throws otherwise.
      */
     static async detectIPAddress(connectionConfig: SqlConnectionConfig): Promise<string> {
