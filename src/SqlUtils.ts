@@ -4,27 +4,43 @@ import * as mssql from "mssql";
 import Constants from "./Constants";
 import SqlConnectionConfig from "./SqlConnectionConfig";
 
+export interface ConnectionResult {
+    success: boolean,                   // True if connection succeeds, false otherwise
+    connection?: mssql.ConnectionPool,  // The connection object on success
+    error?: mssql.ConnectionError,      // Connection error on failure
+    ipAddress?: string                  // Client IP address if connection fails due to firewall rule
+}
+
 export default class SqlUtils {
 
     /**
      * Tries connection to server to determine if client IP address is restricted by the firewall.
      * First tries with master connection, and then with user DB if first one fails.
-     * Returns the client IP address if firewall restriction is present, or an empty string if connection succeeds. Throws otherwise.
+     * @returns The client IP address if firewall restriction is present, or an empty string if connection succeeds. Throws otherwise.
      */
     static async detectIPAddress(connectionConfig: SqlConnectionConfig): Promise<string> {
         // First try connection to master
-        let ipAddress = await this.tryConnection(connectionConfig, true, true);
-        if (ipAddress !== undefined) {
-            return ipAddress;
+        let result = await this.tryConnection(connectionConfig, true);
+        if (result.success) {
+            result.connection?.close();
+            return '';
+        }
+        else if (result.ipAddress !== undefined) {
+            return result.ipAddress;
         }
 
         // Retry connection with user DB
-        ipAddress = await this.tryConnection(connectionConfig, false, false);
-        if (ipAddress !== undefined) {
-            return ipAddress;
+        result = await this.tryConnection(connectionConfig, false);
+        if (result.success) {
+            result.connection?.close();
+            return '';
+        }
+        else if (result.ipAddress !== undefined) {
+            return result.ipAddress;
         }
         else {
-            throw new Error(`Failed to detect IP address.`);
+            this.reportMSSQLError(result.error!);
+            throw new Error(`Failed to add firewall rule. Unable to detect client IP Address.`);
         }
     }
 
@@ -32,11 +48,9 @@ export default class SqlUtils {
      * Tries connection with the specified configuration.
      * @param config Configuration for the connection.
      * @param useMaster If true, uses "master" instead of the database specified in @param config. Every other config remains the same.
-     * @param suppressError If true, will not throw connection errors. Non-connection errors will always be thrown.
-     * @returns If connection succeeds, returns empty string. If connection fails due to firewall rule, returns the client's IP address.
-     * Otherwise returns undefined if there were errors but were suppressed by @param suppressError.
+     * @returns A ConnectionResult object indicating success/failure, the connection on success, or the error on failure.
      */
-    private static async tryConnection(config: SqlConnectionConfig, useMaster: boolean, suppressError: boolean): Promise<string | undefined> {
+    private static async tryConnection(config: SqlConnectionConfig, useMaster?: boolean): Promise<ConnectionResult> {
         // Clone the connection config so we can change the database without modifying the original
         const connectionConfig = JSON.parse(JSON.stringify(config.Config)) as mssql.config;
         if (useMaster) {
@@ -46,22 +60,18 @@ export default class SqlUtils {
         try {
             core.debug(`Validating if client has access to '${connectionConfig.database}' on '${connectionConfig.server}'.`);
             const pool = await mssql.connect(connectionConfig);
-            pool.close();
-            return '';                  // Connection successful
+            return {
+                success: true,
+                connection: pool
+            } as ConnectionResult;
         } 
         catch (error) {
             if (error instanceof mssql.ConnectionError) {
-                const parsedIp = this.parseErrorForIpAddress(error);
-                if (!!parsedIp) {
-                    return parsedIp;    // Connection failed due to firewall rule, return IP address
-                }
-                else if (suppressError) {
-                    return undefined;   // Connection failed, but suppress error and let caller handle retry
-                }
-                else {
-                    this.reportMSSQLError(error);
-                    throw new Error(`Failed to add firewall rule. Unable to detect client IP Address.`);
-                }
+                return {
+                    success: false,
+                    error: error,
+                    ipAddress: this.parseErrorForIpAddress(error)
+                } as ConnectionResult;
             }
             else {
                 throw error;            // Unknown error
