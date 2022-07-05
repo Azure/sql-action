@@ -67,7 +67,7 @@ describe('SqlUtils tests', () => {
         const error = new mssql.RequestError(new Error('Fake error'));
 
         await SqlUtils.reportMSSQLError(error);
-        
+
         expect(errorSpy).toHaveBeenCalledTimes(1);
         expect(errorSpy).toHaveBeenCalledWith('Fake error');
     });

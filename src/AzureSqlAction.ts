@@ -16,24 +16,20 @@ export enum ActionType {
 }
 
 export interface IActionInputs {
-    serverName: string;
     actionType: ActionType;
     connectionConfig: SqlConnectionConfig;
-    additionalArguments?: string;
+    filePath: string;
 }
 
 export interface IDacpacActionInputs extends IActionInputs {
-    dacpacPackage: string;
     sqlpackageAction: SqlPackageAction;
-}
-
-export interface ISqlActionInputs extends IActionInputs {
-    sqlFile: string;
+    sqlpackageArguments?: string;
 }
 
 export interface IBuildAndPublishInputs extends IActionInputs {
-    projectFile: string;
+    sqlpackageAction: SqlPackageAction;
     buildArguments?: string;
+    sqlpackageArguments?: string;
 }
 
 export enum SqlPackageAction {
@@ -57,18 +53,17 @@ export default class AzureSqlAction {
             await this._executeDacpacAction(this._inputs as IDacpacActionInputs);
         }
         else if (this._inputs.actionType === ActionType.SqlAction) {
-            await this._executeSqlFile(this._inputs as ISqlActionInputs);
+            await this._executeSqlFile(this._inputs);
         }
         else if (this._inputs.actionType === ActionType.BuildAndPublish) {
             const dacpacPath = await this._executeBuildProject(this._inputs as IBuildAndPublishInputs);
 
             // Reuse DacpacAction for publish
             const publishInputs = {
-                serverName: this._inputs.serverName,
                 actionType: ActionType.DacpacAction,
                 connectionConfig: this._inputs.connectionConfig,
-                additionalArguments: this._inputs.additionalArguments,
-                dacpacPackage: dacpacPath,
+                filePath: dacpacPath,
+                sqlpackageArguments: (this._inputs as IBuildAndPublishInputs).sqlpackageArguments,
                 sqlpackageAction: SqlPackageAction.Publish
             } as IDacpacActionInputs;
             await this._executeDacpacAction(publishInputs);
@@ -88,14 +83,14 @@ export default class AzureSqlAction {
         console.log(`Successfully executed action ${SqlPackageAction[inputs.sqlpackageAction]} on target database.`);
     }
 
-    private async _executeSqlFile(inputs: ISqlActionInputs) {
+    private async _executeSqlFile(inputs: IActionInputs) {
         core.debug('Begin executing sql script');
         let scriptContents: string;
         try {
-            scriptContents = fs.readFileSync(inputs.sqlFile, "utf8");
+            scriptContents = fs.readFileSync(inputs.filePath, "utf8");
         }
         catch (e) {
-            throw new Error(`Cannot read contents of file ${inputs.sqlFile} due to error '${e.message}'.`);
+            throw new Error(`Cannot read contents of file ${inputs.filePath} due to error '${e.message}'.`);
         }
         
         await SqlUtils.executeSql(inputs.connectionConfig, scriptContents);
@@ -105,7 +100,7 @@ export default class AzureSqlAction {
 
     private async _executeBuildProject(inputs: IBuildAndPublishInputs): Promise<string> {
         core.debug('Begin building project');
-        const projectName = path.basename(inputs.projectFile, Constants.sqlprojExtension);
+        const projectName = path.basename(inputs.filePath, Constants.sqlprojExtension);
         const additionalBuildArguments = inputs.buildArguments ?? '';
         const parsedArgs = await DotnetUtils.parseCommandArguments(additionalBuildArguments);
         let outputDir = '';
@@ -118,10 +113,10 @@ export default class AzureSqlAction {
             // Set output dir to ./bin/<configuration> if configuration is set via arguments
             // Default to Debug if configuration is not set
             const configuration = await DotnetUtils.findArgument(parsedArgs, "--configuration", "-c") ?? "Debug";
-            outputDir = path.join(path.dirname(inputs.projectFile), "bin", configuration);
+            outputDir = path.join(path.dirname(inputs.filePath), "bin", configuration);
         }
 
-        await exec.exec(`dotnet build "${inputs.projectFile}" -p:NetCoreBuild=true ${additionalBuildArguments}`);
+        await exec.exec(`dotnet build "${inputs.filePath}" -p:NetCoreBuild=true ${additionalBuildArguments}`);
 
         const dacpacPath = path.join(outputDir, projectName + Constants.dacpacExtension);
         console.log(`Successfully built database project to ${dacpacPath}`);
@@ -133,7 +128,7 @@ export default class AzureSqlAction {
 
         switch (inputs.sqlpackageAction) {
             case SqlPackageAction.Publish: {
-                args += `/Action:Publish /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${inputs.dacpacPackage}"`;
+                args += `/Action:Publish /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${inputs.filePath}"`;
                 break;
             }
             default: {
@@ -141,8 +136,8 @@ export default class AzureSqlAction {
             }
         }
 
-        if (!!inputs.additionalArguments) {
-            args += ' ' + inputs.additionalArguments
+        if (!!inputs.sqlpackageArguments) {
+            args += ' ' + inputs.sqlpackageArguments;
         }
 
         return args;

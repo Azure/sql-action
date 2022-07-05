@@ -22,13 +22,13 @@ describe('main.ts tests', () => {
         const resolveFilePathSpy = jest.spyOn(AzureSqlActionHelper, 'resolveFilePath').mockReturnValue('./TestProject.sqlproj');
         const getInputSpy = jest.spyOn(core, 'getInput').mockImplementation((name, options) => {
             switch(name) {
-                case 'server-name': return 'test2.database.windows.net';
                 case 'connection-string': return 'Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder;';
-                case 'project-file': return './TestProject.sqlproj';
+                case 'path': return './TestProject.sqlproj';
+                case 'action': return 'publish';
                 default : return '';
             }
         });
-        
+
         const getAuthorizerSpy = jest.spyOn(AuthorizerFactory, 'getAuthorizer');
         const addFirewallRuleSpy = jest.spyOn(FirewallManager.prototype, 'addFirewallRule');
         const actionExecuteSpy = jest.spyOn(AzureSqlAction.prototype, 'execute');
@@ -43,7 +43,7 @@ describe('main.ts tests', () => {
         expect(AzureSqlAction).toHaveBeenCalled();
         expect(detectIPAddressSpy).toHaveBeenCalled();
         expect(getAuthorizerSpy).not.toHaveBeenCalled();
-        expect(getInputSpy).toHaveBeenCalledTimes(9);
+        expect(getInputSpy).toHaveBeenCalledTimes(7);
         expect(resolveFilePathSpy).toHaveBeenCalled();
         expect(addFirewallRuleSpy).not.toHaveBeenCalled();
         expect(actionExecuteSpy).toHaveBeenCalled();
@@ -55,9 +55,9 @@ describe('main.ts tests', () => {
         let resolveFilePathSpy = jest.spyOn(AzureSqlActionHelper, 'resolveFilePath').mockReturnValue('./TestDacpacPackage.dacpac');
         let getInputSpy = jest.spyOn(core, 'getInput').mockImplementation((name, options) => {
             switch(name) {
-                case 'server-name': return 'test2.database.windows.net';
                 case 'connection-string': return 'Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder;';
-                case 'dacpac-package': return './TestDacpacPackage.dacpac';
+                case 'path': return './TestDacpacPackage.dacpac';
+                case 'action': return 'publish';
             }
 
             return '';
@@ -89,9 +89,9 @@ describe('main.ts tests', () => {
         let resolveFilePathSpy = jest.spyOn(AzureSqlActionHelper, 'resolveFilePath').mockReturnValue('./TestSqlFile.sql');
         let getInputSpy = jest.spyOn(core, 'getInput').mockImplementation((name, options) => {
             switch(name) {
-                case 'server-name': return 'test1.database.windows.net';
                 case 'connection-string': return 'Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder;';
-                case 'sql-file': return './TestSqlFile.sql';
+                case 'path': return './TestSqlFile.sql';
+                case 'action': return 'publish';
                 default: return '';
             }
         });
@@ -110,7 +110,7 @@ describe('main.ts tests', () => {
         expect(AzureSqlAction).toHaveBeenCalled();
         expect(detectIPAddressSpy).toHaveBeenCalled();
         expect(getAuthorizerSpy).not.toHaveBeenCalled();
-        expect(getInputSpy).toHaveBeenCalledTimes(7);
+        expect(getInputSpy).toHaveBeenCalledTimes(5);
         expect(resolveFilePathSpy).toHaveBeenCalled();
         expect(addFirewallRuleSpy).not.toHaveBeenCalled();
         expect(actionExecuteSpy).toHaveBeenCalled();
@@ -125,9 +125,9 @@ describe('main.ts tests', () => {
 
         jest.spyOn(core, 'getInput').mockImplementation((name, options) => {
             switch(name) {
-                case 'server-name': return 'test1.database.windows.net';
                 case 'connection-string': return 'Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder;';
-                case 'sql-file': return './TestSqlFile.sql';
+                case 'path': return './TestSqlFile.sql';
+                case 'action': return 'publish';
                 default: return '';
             }
         });

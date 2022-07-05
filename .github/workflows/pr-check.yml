@@ -54,7 +54,8 @@ jobs:
       with:
         connection-string: '${{ secrets[matrix.connection_string_secret] }}Initial Catalog=${{ env.TEST_DB }};'
         tenant-id: '${{ secrets.AAD_TENANT_ID }}'
-        dacpac-package: ./__testdata__/sql-action.dacpac
+        path: ./__testdata__/sql-action.dacpac
+        action: 'publish'
 
     # Build and publish sqlproj that should create a new view
     - name: Test Build and Publish
@@ -62,7 +63,8 @@ jobs:
       with:
         connection-string: '${{ secrets[matrix.connection_string_secret] }}Initial Catalog=${{ env.TEST_DB }};'
         tenant-id: '${{ secrets.AAD_TENANT_ID }}'
-        project-file: ./__testdata__/TestProject/sql-action.sqlproj
+        path: ./__testdata__/TestProject/sql-action.sqlproj
+        action: 'publish'
 
     # Execute testsql.sql via script action on server
     - name: Test SQL Action
@@ -70,7 +72,7 @@ jobs:
       with:
         connection-string: '${{ secrets[matrix.connection_string_secret] }}Initial Catalog=${{ env.TEST_DB }};'
         tenant-id: '${{ secrets.AAD_TENANT_ID }}'
-        sql-file: ./__testdata__/testsql.sql
+        path: ./__testdata__/testsql.sql
 
     - name: Set database name for cleanup
       if: always()
@@ -82,4 +84,4 @@ jobs:
       with: 
         connection-string: '${{ secrets[matrix.connection_string_secret] }}Initial Catalog=master;'
         tenant-id: '${{ secrets.AAD_TENANT_ID }}'
-        sql-file: ${{ runner.temp }}/cleanup.sql
+        path: ${{ runner.temp }}/cleanup.sql

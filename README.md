@@ -11,22 +11,29 @@ Get started today with a [free Azure account](https://azure.com/free/open-source
 The definition of this GitHub Action is in [action.yml](https://github.com/Azure/sql-action/blob/master/action.yml).  Learn more in the [user guide](#📓-user-guide).
 
 ```yaml
-- uses: azure/sql-action@v1.3
+- uses: azure/sql-action@v2
   with:
-    connection-string: # required, connection string incl the database and user authentication information
+    # required, connection string incl the database and user authentication information
+    connection-string:
 
-    # optional for SQL project deployment - project-file, build-arguments
-    project-file: # path to a .sqlproj file
-    build-arguments: # additional arguments applied to dotnet build when building the .sqlproj to .dacpac
+    # required, path to either a .sql, .dacpac, or .sqlproj file
+    path:
 
-    # optional for dacpac deployment - dacpac-package
-    dacpac-package: # path to a .dacpac file
+    # optional when using a .sql script, required otherwise
+    # sqlpackage action on the .dacpac or .sqlproj file, only Publish is supported now
+    action:
 
-    # optional for SQL scripts deployment - sql-file
-    sql-file: # path to SQL scripts
+    # optional app (client) ID when using Azure Active Directory authentication
+    client-id:
 
-    # optional for all deployments - arguments
-    arguments: # sqlpackage arguments for .sqlproj or .dacpac deployment
+    # optional tenant ID of the Active Directory when using AAD auth and the 'common' tenant isn't available
+    tenant-id:
+
+    # optional additional sqlpackage arguments
+    sqlpackage-arguments:
+
+    # optional additional dotnet build arguments when building a database project file
+    build-arguments:
 ```
 
 ## 🎨 Samples
@@ -44,12 +51,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - uses: azure/sql-action@v1.3
+    - uses: azure/sql-action@v2
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
-        project-file: './Database.sqlproj'
-        build-arguments: '-c Release'                 # Optional arguments passed to dotnet build
-        arguments: '/p:DropObjectsNotInSource=true'   # Optional parameters for SqlPackage Publish
+        path: './Database.sqlproj'
+        action: 'publish'
+        build-arguments: '-c Release'                            # Optional arguments passed to dotnet build
+        sqlpackage-arguments: '/p:DropObjectsNotInSource=true'   # Optional parameters for SqlPackage Publish
 ```
 
 ### Deploy SQL scripts to an Azure SQL Database with a temporary firewall rule
@@ -66,10 +74,10 @@ jobs:
     - uses: azure/login@v1                            # Azure login required to add a temporary firewall rule
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
-    - uses: azure/sql-action@v1.3
+    - uses: azure/sql-action@v2
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
-        sql-file: './sqlscripts/*.sql'
+        path: './sqlscripts/*.sql'
 ```
 
 ### Deploy a DACPAC to an Azure SQL database with Allow Azure Services access enabled
@@ -83,11 +91,12 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
-    - uses: azure/sql-action@v1.3
+    - uses: azure/sql-action@v2
       with:
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
-        dacpac-package: './Database.dacpac'
-        arguments: '/p:DropObjectsNotInSource=true'   # Optional parameters for SqlPackage Publish
+        path: './Database.dacpac'
+        action: 'publish'
+        sqlpackage-arguments: '/p:DropObjectsNotInSource=true'   # Optional parameters for SqlPackage Publish
 ```
 
 
@@ -162,10 +171,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - uses: azure/sql-action@v1.3
+    - uses: azure/sql-action@v2
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
-        project-file: './Database.sqlproj'
+        path: './Database.sqlproj'
+        action: 'publish'
 ```
 3. Place the connection string from the Azure Portal in GitHub secrets as `AZURE_SQL_CONNECTION_STRING`. Connection string format is: `Server=<server.database.windows.net>;User ID=<user>;Password=<password>;Initial Catalog=<database>`.
 4. Copy the below SQL project template and paste the content in your project repository as `Database.sqlproj`.
@@ -214,10 +224,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - uses: azure/sql-action@v1.3
+    - uses: azure/sql-action@v2
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
-        dacpac-package: './PreviousDatabase.dacpac'
+        path: './PreviousDatabase.dacpac'
+        action: 'publish'
 ```
 4. Place the connection string from the Azure Portal in GitHub secrets as `AZURE_SQL_CONNECTION_STRING`. Connection string format is: `Server=<server.database.windows.net>;User ID=<user>;Password=<password>;Initial Catalog=<database>`.
 5. Commit and push your project to GitHub repository, you should see a new GitHub Action initiated in **Actions** tab.
