@@ -63,7 +63,7 @@ export default class AzureSqlAction {
                 connectionConfig: this._inputs.connectionConfig,
                 filePath: dacpacPath,
                 sqlpackageArguments: (this._inputs as IBuildAndPublishInputs).sqlpackageArguments,
-                sqlpackageAction: SqlPackageAction.Publish
+                sqlpackageAction: (this._inputs as IBuildAndPublishInputs).sqlpackageAction
             } as IDacpacActionInputs;
             await this._executeDacpacAction(publishInputs);
         }

@@ -12,7 +12,7 @@ jest.mock('fs');
 describe('AzureSqlAction tests', () => {
     afterEach(() => {
        jest.restoreAllMocks();
-    })
+    });
 
     describe('validate sqlpackage calls for DacpacAction', () => {
         const inputs = [
@@ -20,7 +20,7 @@ describe('AzureSqlAction tests', () => {
             ['Script', '/DeployScriptPath:script.sql'],
             ['DriftReport', '/OutputPath:report.xml'],
             ['DeployReport', '/OutputPath:report.xml']
-        ]
+        ];
 
         it.each(inputs)('Validate %s action with args %s', async (actionName, sqlpackageArgs) => {
             let inputs = getInputs(ActionType.DacpacAction, actionName, sqlpackageArgs) as IDacpacActionInputs;
@@ -82,24 +82,33 @@ describe('AzureSqlAction tests', () => {
         expect(error!.message).toMatch(`Cannot read contents of file ./TestFile.sql due to error 'Cannot read file'.`);
     });
 
-    it('should build and publish database project', async () => {
-        const inputs = getInputs(ActionType.BuildAndPublish) as IBuildAndPublishInputs;
-        const action = new AzureSqlAction(inputs);
-        const expectedDacpac = path.join('./bin/Debug', 'TestProject.dacpac');
+    describe('validate build actions', () => {
+        const inputs = [
+            ['Publish', '/p:DropPermissionsNotInSource=true'],
+            ['Script', '/DeployScriptPath:script.sql'],
+            ['DriftReport', '/OutputPath:report.xml'],
+            ['DeployReport', '/OutputPath:report.xml']
+        ];
 
-        const parseCommandArgumentsSpy = jest.spyOn(DotnetUtils, 'parseCommandArguments').mockResolvedValue({});
-        const findArgumentSpy = jest.spyOn(DotnetUtils, 'findArgument').mockResolvedValue(undefined);
-        const getSqlPackagePathSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlPackagePath').mockResolvedValue('SqlPackage.exe');
-        const execSpy = jest.spyOn(exec, 'exec').mockResolvedValue(0);
+        it.each(inputs)('Validate build and %s action with args %s', async (actionName, sqlpackageArgs) => {
+            const inputs = getInputs(ActionType.BuildAndPublish, actionName, sqlpackageArgs) as IBuildAndPublishInputs;
+            const action = new AzureSqlAction(inputs);
+            const expectedDacpac = path.join('./bin/Debug', 'TestProject.dacpac');
 
-        await action.execute();
-
-        expect(parseCommandArgumentsSpy).toHaveBeenCalledTimes(1);
-        expect(findArgumentSpy).toHaveBeenCalledTimes(2);
-        expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
-        expect(execSpy).toHaveBeenCalledTimes(2);
-        expect(execSpy).toHaveBeenNthCalledWith(1, `dotnet build "./TestProject.sqlproj" -p:NetCoreBuild=true --verbose --test "test value"`);
-        expect(execSpy).toHaveBeenNthCalledWith(2, `"SqlPackage.exe" /Action:Publish /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${expectedDacpac}"`);
+            const parseCommandArgumentsSpy = jest.spyOn(DotnetUtils, 'parseCommandArguments').mockResolvedValue({});
+            const findArgumentSpy = jest.spyOn(DotnetUtils, 'findArgument').mockResolvedValue(undefined);
+            const getSqlPackagePathSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlPackagePath').mockResolvedValue('SqlPackage.exe');
+            const execSpy = jest.spyOn(exec, 'exec').mockResolvedValue(0);
+    
+            await action.execute();
+    
+            expect(parseCommandArgumentsSpy).toHaveBeenCalledTimes(1);
+            expect(findArgumentSpy).toHaveBeenCalledTimes(2);
+            expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
+            expect(execSpy).toHaveBeenCalledTimes(2);
+            expect(execSpy).toHaveBeenNthCalledWith(1, `dotnet build "./TestProject.sqlproj" -p:NetCoreBuild=true --verbose --test "test value"`);
+            expect(execSpy).toHaveBeenNthCalledWith(2, `"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${expectedDacpac}" ${sqlpackageArgs}`);
+        });
     });
 
     it('throws if dotnet fails to build sqlproj', async () => {
@@ -133,10 +142,32 @@ describe('AzureSqlAction tests', () => {
         expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);  // Verify build succeeds and calls into Publish
         expect(execSpy).toHaveBeenCalledTimes(2);
     });
+
+    describe('validate errors on unsupported sqlpackage action types', () => {
+        const inputs = [ ['Extract'], ['Export'], ['Import'] ];
+
+        it.each(inputs)('Throws for unsupported action %s', async (actionName) => {
+            const inputs = getInputs(ActionType.DacpacAction, actionName);
+            const action = new AzureSqlAction(inputs);
+    
+            const getSqlPackagePathSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlPackagePath').mockResolvedValue('SqlPackage.exe');
+    
+            let error: Error | undefined;
+            try {
+                await action.execute();
+            }
+            catch (e) {
+                error = e;
+            }
+    
+            expect(error).toBeDefined();
+            expect(error!.message).toMatch(`Not supported SqlPackage action: '${actionName}'`);
+            expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
+        });
+    });
 });
 
 function getInputs(actionType: ActionType, sqlpackageAction: string = 'Publish', sqlpackageArguments?: string) {
-
     switch(actionType) {
         case ActionType.DacpacAction: {
             const config = new SqlConnectionConfig('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder');
@@ -161,8 +192,9 @@ function getInputs(actionType: ActionType, sqlpackageAction: string = 'Publish',
                 actionType: ActionType.BuildAndPublish,
                 connectionConfig: new SqlConnectionConfig('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder'),
                 filePath: './TestProject.sqlproj',
+                buildArguments: '--verbose --test "test value"',
                 sqlpackageAction: SqlPackageAction[sqlpackageAction],
-                buildArguments: '--verbose --test "test value"'
+                sqlpackageArguments: sqlpackageArguments
             } as IBuildAndPublishInputs
         }
     }

@@ -20,7 +20,7 @@ The definition of this GitHub Action is in [action.yml](https://github.com/Azure
     path:
 
     # optional when using a .sql script, required otherwise
-    # sqlpackage action on the .dacpac or .sqlproj file, only Publish is supported now
+    # sqlpackage action on the .dacpac or .sqlproj file, supported options are: Publish, Script, DeployReport, DriftReport
     action:
 
     # optional app (client) ID when using Azure Active Directory authentication
