@@ -5,10 +5,17 @@ import Constants from "./Constants";
 import SqlConnectionConfig from "./SqlConnectionConfig";
 
 export interface ConnectionResult {
-    success: boolean,                   // True if connection succeeds, false otherwise
-    connection?: mssql.ConnectionPool,  // The connection object on success
-    error?: mssql.ConnectionError,      // Connection error on failure
-    ipAddress?: string                  // Client IP address if connection fails due to firewall rule
+    /** True if connection succeeds, false otherwise */
+    success: boolean,
+
+    /** The connection object on success */
+    connection?: mssql.ConnectionPool,
+
+    /** Connection error on failure */
+    error?: mssql.ConnectionError,
+
+    /** Client IP address if connection fails due to firewall rule */
+    ipAddress?: string
 }
 
 export default class SqlUtils {
@@ -26,7 +33,7 @@ export default class SqlUtils {
             result.connection?.close();
             return '';
         }
-        else if (result.ipAddress !== undefined) {
+        else if (result.ipAddress) {
             return result.ipAddress;
         }
 
@@ -36,7 +43,7 @@ export default class SqlUtils {
             result.connection?.close();
             return '';
         }
-        else if (result.ipAddress !== undefined) {
+        else if (result.ipAddress) {
             return result.ipAddress;
         }
         else {
@@ -64,7 +71,7 @@ export default class SqlUtils {
             return {
                 success: true,
                 connection: pool
-            } as ConnectionResult;
+            };
         } 
         catch (error) {
             if (error instanceof mssql.ConnectionError) {
@@ -72,7 +79,7 @@ export default class SqlUtils {
                     success: false,
                     error: error,
                     ipAddress: this.parseErrorForIpAddress(error)
-                } as ConnectionResult;
+                };
             }
             else {
                 throw error;            // Unknown error
