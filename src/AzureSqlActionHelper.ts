@@ -93,8 +93,20 @@ export default class AzureSqlActionHelper {
         switch (action.trim().toLowerCase()) {
             case 'publish':
                 return SqlPackageAction.Publish;
+            // case 'extract':
+            //     return SqlPackageAction.Extract;
+            // case 'import':
+            //     return SqlPackageAction.Import;
+            // case 'export':
+            //     return SqlPackageAction.Export;
+            case 'driftreport':
+                return SqlPackageAction.DriftReport;
+            case 'deployreport':
+                return SqlPackageAction.DeployReport;
+            case 'script':
+                return SqlPackageAction.Script;
             default:
-                throw new Error(`Action ${action} is invalid. Supported action types are: Publish.`);
+                throw new Error(`Action ${action} is invalid. Supported action types are: Publish, Script, DriftReport, or DeployReport.`);
         }
     }
 

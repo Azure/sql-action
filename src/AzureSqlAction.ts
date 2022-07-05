@@ -33,7 +33,6 @@ export interface IBuildAndPublishInputs extends IActionInputs {
 }
 
 export enum SqlPackageAction {
-    // Only the Publish action is supported currently
     Publish,
     Extract,
     Export,
@@ -127,13 +126,15 @@ export default class AzureSqlAction {
         let args = '';
 
         switch (inputs.sqlpackageAction) {
-            case SqlPackageAction.Publish: {
-                args += `/Action:Publish /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${inputs.filePath}"`;
+            case SqlPackageAction.Publish: 
+            case SqlPackageAction.Script:
+            case SqlPackageAction.DeployReport:
+            case SqlPackageAction.DriftReport:
+                args += `/Action:${SqlPackageAction[inputs.sqlpackageAction]} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${inputs.filePath}"`;
                 break;
-            }
-            default: {
+
+            default:
                 throw new Error(`Not supported SqlPackage action: '${SqlPackageAction[inputs.sqlpackageAction]}'`);
-            }
         }
 
         if (!!inputs.sqlpackageArguments) {
