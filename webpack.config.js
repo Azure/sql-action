@@ -1,14 +1,11 @@
 const path = require('path');
 
 module.exports = {
-    entry: {
-        main: './src/main.ts',
-        setup: './src/setup.ts'
-    },
+    entry: './src/main.ts',
     target: 'node',
     output: {
         path: path.resolve(__dirname, 'lib'),
-        filename: "[name].js"
+        filename: "main.js"
     },
     resolve: {
         extensions: [".ts", ".tsx", ".js"]

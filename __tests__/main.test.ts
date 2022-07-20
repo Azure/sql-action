@@ -1,4 +1,5 @@
 import * as core from "@actions/core";
+import * as tc from "@actions/tool-cache";
 import { AuthorizerFactory } from 'azure-actions-webclient/AuthorizerFactory';
 
 import run from "../src/main";
@@ -12,6 +13,7 @@ jest.mock('azure-actions-webclient/AuthorizerFactory');
 jest.mock('../src/AzureSqlAction');
 jest.mock('../src/FirewallManager');
 jest.mock('../src/AzureSqlResourceManager');
+jest.mock('../src/Setup');
 
 describe('main.ts tests', () => {
     afterEach(() => {
@@ -43,7 +45,7 @@ describe('main.ts tests', () => {
         expect(AzureSqlAction).toHaveBeenCalled();
         expect(detectIPAddressSpy).toHaveBeenCalled();
         expect(getAuthorizerSpy).not.toHaveBeenCalled();
-        expect(getInputSpy).toHaveBeenCalledTimes(9);
+        expect(getInputSpy).toHaveBeenCalledTimes(10);
         expect(resolveFilePathSpy).toHaveBeenCalled();
         expect(addFirewallRuleSpy).not.toHaveBeenCalled();
         expect(actionExecuteSpy).toHaveBeenCalled();

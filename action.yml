@@ -1,6 +1,3 @@
-# This file contains metadata about this GitHub Action
-# For syntax, see: https://docs.github.com/actions/creating-actions/metadata-syntax-for-github-actions
-
 name: 'Azure SQL Deploy'
 description: 'Deploy a database project, DACPAC, or a SQL script to Azure SQL database'
 inputs:
@@ -33,5 +30,4 @@ inputs:
     required: false
 runs:
   using: 'node12'
-  pre: 'lib/setup.js'
   main: 'lib/main.js'
