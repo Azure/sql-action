@@ -28,7 +28,7 @@ async function downloadAndExtractSqlcmd(): Promise<string> {
     switch (process.platform) {
         case 'linux':
             downloadPath = await tc.downloadTool(`https://github.com/microsoft/go-sqlcmd/releases/download/v${sqlcmdVersion}/sqlcmd-v${sqlcmdVersion}-linux-x64.tar.bz2`);
-            return await tc.extractTar(downloadPath);
+            return await tc.extractTar(downloadPath, undefined, 'xj');
 
         case 'win32':
             downloadPath = await tc.downloadTool(`https://github.com/microsoft/go-sqlcmd/releases/download/v${sqlcmdVersion}/sqlcmd-v${sqlcmdVersion}-windows-x64.zip`);
