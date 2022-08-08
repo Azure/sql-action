@@ -22,6 +22,7 @@
   "dependencies": {
     "@actions/core": "^1.2.6",
     "@actions/exec": "^1.0.1",
+    "@actions/tool-cache": "^2.0.1",
     "azure-actions-webclient": "^1.0.3",
     "es-aggregate-error": "^1.0.8",
     "glob": "^7.1.4",

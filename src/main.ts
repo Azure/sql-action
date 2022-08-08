@@ -10,10 +10,13 @@ import AzureSqlActionHelper from "./AzureSqlActionHelper";
 import SqlConnectionConfig from "./SqlConnectionConfig";
 import SqlUtils from "./SqlUtils";
 import Constants from "./Constants";
+import Setup from "./Setup";
 
 const userAgentPrefix = !!process.env.AZURE_HTTP_USER_AGENT ? `${process.env.AZURE_HTTP_USER_AGENT}` : "";
 
 export default async function run() {
+    await Setup.setupSqlcmd();
+
     let firewallManager;
     try {
         setUserAgentVariable();
