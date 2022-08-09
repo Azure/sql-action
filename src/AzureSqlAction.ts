@@ -109,7 +109,7 @@ export default class AzureSqlAction {
         switch (authentication?.type) {
             case undefined:
                 // No authentication type defaults SQL login
-                sqlcmdCall += ` -U ${inputs.connectionConfig.Config.user}`;
+                sqlcmdCall += ` -U "${inputs.connectionConfig.Config.user}"`;
                 core.exportVariable(Constants.sqlcmdPasswordEnvVarName, inputs.connectionConfig.Config.password);
                 break;
 
@@ -118,14 +118,14 @@ export default class AzureSqlAction {
                 break;
 
             case 'azure-active-directory-password':
-                sqlcmdCall += ` --authentication-method=ActiveDirectoryPassword -U ${authentication['userName']}`;
-                core.exportVariable(Constants.sqlcmdPasswordEnvVarName, authentication['password']);
+                sqlcmdCall += ` --authentication-method=ActiveDirectoryPassword -U "${authentication.options.userName}"`;
+                core.exportVariable(Constants.sqlcmdPasswordEnvVarName, authentication.options.password);
                 break;
 
             case 'azure-active-directory-service-principal-secret':
                 // Per go-sqlcmd docs, user is in the form <service principal id>@<tenant id>
-                sqlcmdCall += ` --authentication-method=ActiveDirectoryServicePrincipal -U ${authentication['clientId']}@${authentication['tenantId']}`;
-                core.exportVariable(Constants.sqlcmdPasswordEnvVarName, authentication['clientSecret']);
+                sqlcmdCall += ` --authentication-method=ActiveDirectoryServicePrincipal -U "${authentication.options.clientId}@${authentication.options.tenantId}"`;
+                core.exportVariable(Constants.sqlcmdPasswordEnvVarName, authentication.options.clientSecret);
                 break;
 
             default:

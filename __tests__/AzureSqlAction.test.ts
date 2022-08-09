@@ -51,7 +51,7 @@ describe('AzureSqlAction tests', () => {
         await action.execute();
 
         expect(execSpy).toHaveBeenCalledTimes(1);
-        expect(execSpy).toHaveBeenCalledWith(`"${sqlcmdExe}" -S testServer.database.windows.net -d testDB -U testUser -i "./TestFile.sql" -t 20`);
+        expect(execSpy).toHaveBeenCalledWith(`"${sqlcmdExe}" -S testServer.database.windows.net -d testDB -U "testUser" -i "./TestFile.sql" -t 20`);
         expect(exportVariableSpy).toHaveBeenCalledTimes(1);
         expect(exportVariableSpy).toHaveBeenCalledWith(Constants.sqlcmdPasswordEnvVarName, "placeholder");
     });
