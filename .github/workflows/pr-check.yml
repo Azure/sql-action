@@ -72,14 +72,6 @@ jobs:
         tenant-id: '${{ secrets.AAD_TENANT_ID }}'
         sql-file: ./__testdata__/testsql.sql
 
-    # Test that go-sqlcmd has been added to runner, this step will be removed in future PR when go-sqlcmd is hooked up
-    - name: Test go-sqlcmd is setup
-      run: sqlcmd -?
-
-    - name: Set database name for cleanup
-      if: always()
-      run: sed 's/$(DbName)/${{ env.TEST_DB }}/' ./__testdata__/cleanup.sql > ${{ runner.temp }}/cleanup.sql
-
     - name: Cleanup Test Database
       if: always()
       uses: ./
@@ -87,3 +79,4 @@ jobs:
         connection-string: '${{ secrets[matrix.connection_string_secret] }}Initial Catalog=master;'
         tenant-id: '${{ secrets.AAD_TENANT_ID }}'
         sql-file: ${{ runner.temp }}/cleanup.sql
+        arguments: '-v DbName="${{ env.TEST_DB }}"'

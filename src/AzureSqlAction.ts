@@ -123,8 +123,6 @@ export default class AzureSqlAction {
                 break;
 
             case 'azure-active-directory-service-principal-secret':
-                // Per go-sqlcmd docs, user is in the form <service principal id>@<tenant id>
-                // sqlcmdCall += ` --authentication-method=ActiveDirectoryServicePrincipal -U "${authentication.options.clientId}@${authentication.options.tenantId}"`;
                 sqlcmdCall += ` --authentication-method=ActiveDirectoryServicePrincipal -U "${inputs.connectionConfig.Config.user}"`;
                 core.exportVariable(Constants.sqlcmdPasswordEnvVarName, authentication.options.clientSecret);
                 break;

@@ -44,7 +44,8 @@ describe('AzureSqlAction tests', () => {
         const testCases = [
             ['SQL login', 'Server=testServer.database.windows.net;Database=testDB;User Id=testUser;Password=placeholder', '-S testServer.database.windows.net -d testDB -U "testUser" -i "./TestFile.sql" -t 20'],
             ['AAD password', 'Server=testServer.database.windows.net;Database=testDB;Authentication=Active Directory Password;User Id=testAADUser;Password=placeholder', '-S testServer.database.windows.net -d testDB --authentication-method=ActiveDirectoryPassword -U "testAADUser" -i "./TestFile.sql" -t 20'],
-            ['AAD service principal', 'Server=testServer.database.windows.net;Database=testDB;Authentication=Active Directory Service Principal;User Id=appId;Password=placeholder', '-S testServer.database.windows.net -d testDB --authentication-method=ActiveDirectoryServicePrincipal -U "appId" -i "./TestFile.sql" -t 20']
+            ['AAD service principal', 'Server=testServer.database.windows.net;Database=testDB;Authentication=Active Directory Service Principal;User Id=appId;Password=placeholder', '-S testServer.database.windows.net -d testDB --authentication-method=ActiveDirectoryServicePrincipal -U "appId" -i "./TestFile.sql" -t 20'],
+            ['AAD default', 'Server=testServer.database.windows.net;Database=testDB;Authentication=Active Directory Default;', '-S testServer.database.windows.net -d testDB --authentication-method=ActiveDirectoryDefault -i "./TestFile.sql" -t 20']
         ];
 
         it.each(testCases)('%s', async (testCase, connectionString, expectedSqlCmdCall) => {
@@ -59,8 +60,15 @@ describe('AzureSqlAction tests', () => {
     
             expect(execSpy).toHaveBeenCalledTimes(1);
             expect(execSpy).toHaveBeenCalledWith(`"${sqlcmdExe}" ${expectedSqlCmdCall}`);
-            expect(exportVariableSpy).toHaveBeenCalledTimes(1);
-            expect(exportVariableSpy).toHaveBeenCalledWith(Constants.sqlcmdPasswordEnvVarName, "placeholder");
+
+            // Except for AAD default, password/client secret should be set as SqlCmdPassword environment variable
+            if (inputs.connectionConfig.Config['authentication']?.type !== 'azure-active-directory-default') {
+                expect(exportVariableSpy).toHaveBeenCalledTimes(1);
+                expect(exportVariableSpy).toHaveBeenCalledWith(Constants.sqlcmdPasswordEnvVarName, "placeholder");
+            }
+            else {
+                expect(exportVariableSpy).not.toHaveBeenCalled();
+            }
         })
     });
 
