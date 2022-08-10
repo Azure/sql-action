@@ -78,5 +78,5 @@ jobs:
       with: 
         connection-string: '${{ secrets[matrix.connection_string_secret] }}Initial Catalog=master;'
         tenant-id: '${{ secrets.AAD_TENANT_ID }}'
-        sql-file: ${{ runner.temp }}/cleanup.sql
+        sql-file: './__testdata__/cleanup.sql'
         arguments: '-v DbName="${{ env.TEST_DB }}"'
