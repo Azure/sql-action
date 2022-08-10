@@ -16,6 +16,7 @@ jest.mock('../src/Setup');
 
 describe('main.ts tests', () => {
     beforeEach(() => {
+        jest.restoreAllMocks();
         jest.clearAllMocks();
     });
 
