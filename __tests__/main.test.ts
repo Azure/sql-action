@@ -22,7 +22,7 @@ describe('main.ts tests', () => {
 
     it('gets inputs and executes build and publish action', async () => {
         const resolveFilePathSpy = jest.spyOn(AzureSqlActionHelper, 'resolveFilePath').mockReturnValue('./TestProject.sqlproj');
-        let getInputSpy = jest.spyOn(core, 'getInput').mockImplementation((name, options) => {
+        const getInputSpy = jest.spyOn(core, 'getInput').mockImplementation((name, options) => {
             switch(name) {
                 case 'server-name': return 'test2.database.windows.net';
                 case 'connection-string': return 'Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder;';

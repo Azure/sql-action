@@ -134,6 +134,12 @@ describe('AzureSqlAction tests', () => {
     });
 });
 
+/**
+ * Gets test inputs used by the SQL action based on actionType.
+ * @param actionType The action type used for testing
+ * @param connectionString The custom connection string to be used for the test. If not specified, a default one using SQL login will be used.
+ * @returns An ActionInputs objects based on the given action type.
+ */
 function getInputs(actionType: ActionType, connectionString: string = '') {
 
     const defaultConnectionString = 'Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder';
