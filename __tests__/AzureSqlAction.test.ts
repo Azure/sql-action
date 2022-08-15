@@ -1,11 +1,11 @@
-import * as fs from 'fs';
 import * as path from 'path';
+import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 import AzureSqlAction, { IBuildAndPublishInputs, IDacpacActionInputs, ISqlActionInputs, ActionType, SqlPackageAction } from "../src/AzureSqlAction";
 import AzureSqlActionHelper from "../src/AzureSqlActionHelper";
 import DotnetUtils from '../src/DotnetUtils';
 import SqlConnectionConfig from '../src/SqlConnectionConfig';
-import SqlUtils from '../src/SqlUtils';
+import Constants from '../src/Constants';
 
 jest.mock('fs');
 
@@ -39,38 +39,46 @@ describe('AzureSqlAction tests', () => {
         expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('executes sql action for SqlAction type', async () => {
-        const inputs = getInputs(ActionType.SqlAction) as ISqlActionInputs;
-        const action = new AzureSqlAction(inputs);
+    describe('sql script action tests for different auth types', async () => {
+        // Format: [test case description, connection string, expected sqlcmd arguments]
+        const testCases = [
+            ['SQL login', 'Server=testServer.database.windows.net;Database=testDB;User Id=testUser;Password=placeholder', '-S testServer.database.windows.net -d testDB -U "testUser" -i "./TestFile.sql" -t 20'],
+            ['AAD password', 'Server=testServer.database.windows.net;Database=testDB;Authentication=Active Directory Password;User Id=testAADUser;Password=placeholder', '-S testServer.database.windows.net -d testDB --authentication-method=ActiveDirectoryPassword -U "testAADUser" -i "./TestFile.sql" -t 20'],
+            ['AAD service principal', 'Server=testServer.database.windows.net;Database=testDB;Authentication=Active Directory Service Principal;User Id=appId;Password=placeholder', '-S testServer.database.windows.net -d testDB --authentication-method=ActiveDirectoryServicePrincipal -U "appId" -i "./TestFile.sql" -t 20'],
+            ['AAD default', 'Server=testServer.database.windows.net;Database=testDB;Authentication=Active Directory Default;', '-S testServer.database.windows.net -d testDB --authentication-method=ActiveDirectoryDefault -i "./TestFile.sql" -t 20']
+        ];
 
-        const fsSpy = jest.spyOn(fs, 'readFileSync').mockReturnValue('select * from table1');
-        const sqlSpy = jest.spyOn(SqlUtils, 'executeSql').mockResolvedValue();
+        it.each(testCases)('%s', async (testCase, connectionString, expectedSqlCmdCall) => {
+            const inputs = getInputs(ActionType.SqlAction, connectionString) as ISqlActionInputs;
+            const action = new AzureSqlAction(inputs);
+            const sqlcmdExe = process.platform === 'win32' ? 'sqlcmd.exe' : 'sqlcmd';
+    
+            const execSpy = jest.spyOn(exec, 'exec').mockResolvedValue(0);
+            const exportVariableSpy = jest.spyOn(core, 'exportVariable');
+    
+            await action.execute();
+    
+            expect(execSpy).toHaveBeenCalledTimes(1);
+            expect(execSpy).toHaveBeenCalledWith(`"${sqlcmdExe}" ${expectedSqlCmdCall}`);
 
-        await action.execute();
-
-        expect(fsSpy).toHaveBeenCalledTimes(1);
-        expect(sqlSpy).toHaveBeenCalledTimes(1);
-        expect(sqlSpy).toHaveBeenCalledWith(inputs.connectionConfig, 'select * from table1');
+            // Except for AAD default, password/client secret should be set as SqlCmdPassword environment variable
+            if (inputs.connectionConfig.Config['authentication']?.type !== 'azure-active-directory-default') {
+                expect(exportVariableSpy).toHaveBeenCalledTimes(1);
+                expect(exportVariableSpy).toHaveBeenCalledWith(Constants.sqlcmdPasswordEnvVarName, "placeholder");
+            }
+            else {
+                expect(exportVariableSpy).not.toHaveBeenCalled();
+            }
+        })
     });
 
-    it('throws if sql action cannot read file', async () => {
-        const inputs = getInputs(ActionType.SqlAction) as ISqlActionInputs;
-        const action = new AzureSqlAction(inputs);
-        const fsSpy = jest.spyOn(fs, 'readFileSync').mockImplementation(() => {
-            throw new Error('Cannot read file');
-        });
+    it('throws if SqlCmd.exe fails to execute sql', async () => {
+        let inputs = getInputs(ActionType.SqlAction) as ISqlActionInputs;
+        let action = new AzureSqlAction(inputs);
 
-        let error: Error | undefined;
-        try {
-            await action.execute();
-        }
-        catch (e) {
-            error = e;
-        }
+        jest.spyOn(exec, 'exec').mockRejectedValue(1);
 
-        expect(fsSpy).toHaveBeenCalledTimes(1);
-        expect(error).toBeDefined();
-        expect(error!.message).toMatch(`Cannot read contents of file ./TestFile.sql due to error 'Cannot read file'.`);
+        expect(await action.execute().catch(() => null)).rejects;
     });
 
     it('should build and publish database project', async () => {
@@ -126,11 +134,19 @@ describe('AzureSqlAction tests', () => {
     });
 });
 
-function getInputs(actionType: ActionType) {
+/**
+ * Gets test inputs used by the SQL action based on actionType.
+ * @param actionType The action type used for testing
+ * @param connectionString The custom connection string to be used for the test. If not specified, a default one using SQL login will be used.
+ * @returns An ActionInputs objects based on the given action type.
+ */
+function getInputs(actionType: ActionType, connectionString: string = '') {
+
+    const defaultConnectionString = 'Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder';
+    const config = connectionString ? new SqlConnectionConfig(connectionString) : new SqlConnectionConfig(defaultConnectionString);
 
     switch(actionType) {
         case ActionType.DacpacAction: {
-            const config = new SqlConnectionConfig('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder');
             return {
                 serverName: config.Config.server,
                 actionType: ActionType.DacpacAction,
@@ -141,19 +157,19 @@ function getInputs(actionType: ActionType) {
             } as IDacpacActionInputs;
         }
         case ActionType.SqlAction: {
-            const config = new SqlConnectionConfig('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder');
             return {
                 serverName: config.Config.server,
                 actionType: ActionType.SqlAction,
                 connectionConfig: config,
-                sqlFile: './TestFile.sql'
+                sqlFile: './TestFile.sql',
+                additionalArguments: '-t 20'
             } as ISqlActionInputs;
         }
         case ActionType.BuildAndPublish: {
             return {
                 serverName: 'testServer.database.windows.net',
                 actionType: ActionType.BuildAndPublish,
-                connectionConfig: new SqlConnectionConfig('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder'),
+                connectionConfig: config,
                 projectFile: './TestProject.sqlproj',
                 buildArguments: '--verbose --test "test value"'
             } as IBuildAndPublishInputs

@@ -1,5 +1,4 @@
 import * as core from "@actions/core";
-import * as tc from "@actions/tool-cache";
 import { AuthorizerFactory } from 'azure-actions-webclient/AuthorizerFactory';
 
 import run from "../src/main";
@@ -16,9 +15,10 @@ jest.mock('../src/AzureSqlResourceManager');
 jest.mock('../src/Setup');
 
 describe('main.ts tests', () => {
-    afterEach(() => {
+    beforeEach(() => {
         jest.restoreAllMocks();
-    })
+        jest.clearAllMocks();
+    });
 
     it('gets inputs and executes build and publish action', async () => {
         const resolveFilePathSpy = jest.spyOn(AzureSqlActionHelper, 'resolveFilePath').mockReturnValue('./TestProject.sqlproj');
@@ -45,7 +45,7 @@ describe('main.ts tests', () => {
         expect(AzureSqlAction).toHaveBeenCalled();
         expect(detectIPAddressSpy).toHaveBeenCalled();
         expect(getAuthorizerSpy).not.toHaveBeenCalled();
-        expect(getInputSpy).toHaveBeenCalledTimes(10);
+        expect(getInputSpy).toHaveBeenCalledTimes(9);
         expect(resolveFilePathSpy).toHaveBeenCalled();
         expect(addFirewallRuleSpy).not.toHaveBeenCalled();
         expect(actionExecuteSpy).toHaveBeenCalled();
