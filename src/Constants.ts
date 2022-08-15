@@ -6,4 +6,6 @@ export default class Constants {
     static readonly dacpacExtension = ".dacpac";
     static readonly sqlFileExtension = ".sql";
     static readonly sqlprojExtension = ".sqlproj";
+
+    static readonly sqlcmdPasswordEnvVarName = "SQLCMDPASSWORD";
 }

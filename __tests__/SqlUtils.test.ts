@@ -59,7 +59,63 @@ describe('SqlUtils tests', () => {
 
         expect(error).toBeDefined();
         expect(error!.message).toMatch('Failed to add firewall rule. Unable to detect client IP Address.');
+        expect(mssqlSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('detectIPAddress should retry connection with DB if master connection fails', async () => {
+        const mssqlSpy = jest.spyOn(mssql, 'connect').mockImplementationOnce((config) => {
+            // First call, call the original to get login failure
+            return mssql.connect(config);
+        }).mockImplementationOnce((config) => {
+            // Second call, mock return successful connection
+            return new mssql.ConnectionPool('');
+        });
+
+        const ipAddress = await SqlUtils.detectIPAddress(getConnectionConfig());
+
+        expect(mssqlSpy).toHaveBeenCalledTimes(2);
+        expect(ipAddress).toBe('');
+    });
+
+    it('detectIPAddress should fail fast if initial connection fails with unknown error', async () => {
+        const mssqlSpy = jest.spyOn(mssql, 'connect').mockImplementationOnce((config) => {
+            if (config['database'] === 'master') {
+                throw new Error('This is an unknown error.');
+            }
+        });
+
+        let error: Error | undefined;
+        try {
+            await SqlUtils.detectIPAddress(getConnectionConfig());
+        }
+        catch (e) {
+            error = e;
+        }
+
+        expect(error).toBeDefined();
+        expect(error!.message).toMatch('This is an unknown error.');
         expect(mssqlSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('detectIPAddress should fail if retry fails again', async () => {
+        const errorSpy = jest.spyOn(core, 'error');
+        const mssqlSpy = jest.spyOn(mssql, 'connect').mockImplementation((config) => {
+            throw new mssql.ConnectionError(new Error('Custom connection error message.'));
+        })
+
+        let error: Error | undefined;
+        try {
+            await SqlUtils.detectIPAddress(getConnectionConfig());
+        }
+        catch (e) {
+            error = e;
+        }
+
+        expect(error).toBeDefined();
+        expect(error!.message).toMatch('Failed to add firewall rule. Unable to detect client IP Address.');
+        expect(mssqlSpy).toHaveBeenCalledTimes(2);
+        expect(errorSpy).toHaveBeenCalledTimes(1);
+        expect(errorSpy).toHaveBeenCalledWith('Custom connection error message.');
     });
 
     it('should report single MSSQLError', async () => {
@@ -67,7 +123,7 @@ describe('SqlUtils tests', () => {
         const error = new mssql.RequestError(new Error('Fake error'));
 
         await SqlUtils.reportMSSQLError(error);
-
+        
         expect(errorSpy).toHaveBeenCalledTimes(1);
         expect(errorSpy).toHaveBeenCalledWith('Fake error');
     });
@@ -87,80 +143,7 @@ describe('SqlUtils tests', () => {
         expect(errorSpy).toHaveBeenNthCalledWith(1, 'Fake error 1');
         expect(errorSpy).toHaveBeenNthCalledWith(2, 'Fake error 2');
         expect(errorSpy).toHaveBeenNthCalledWith(3, 'Fake error 3');
-    })
-
-    it('should execute sql script', async () => {
-        const connectionConfig = getConnectionConfig();
-        const connectSpy = jest.spyOn(mssql, 'connect').mockImplementation(() => {
-            // Successful connection
-            return new mssql.ConnectionPool(connectionConfig.Config);
-        });
-        const querySpy = jest.spyOn(mssql.ConnectionPool.prototype, 'query').mockImplementation(() => {
-            return {
-                recordsets: [{test: "11"}, {test: "22"}],
-                rowsAffected: [1, 2]
-            };
-        });
-        const consoleSpy = jest.spyOn(console, 'log');
-
-        await SqlUtils.executeSql(connectionConfig, 'select * from Table1');
-
-        expect(connectSpy).toHaveBeenCalledTimes(1);
-        expect(querySpy).toHaveBeenCalledTimes(1);
-        expect(consoleSpy).toHaveBeenCalledTimes(4);
-        expect(consoleSpy).toHaveBeenNthCalledWith(1, 'Rows affected: 1');
-        expect(consoleSpy).toHaveBeenNthCalledWith(2, 'Result: {"test":"11"}');
-        expect(consoleSpy).toHaveBeenNthCalledWith(3, 'Rows affected: 2');
-        expect(consoleSpy).toHaveBeenNthCalledWith(4, 'Result: {"test":"22"}');
     });
-
-    it('should fail to execute sql due to connection error', async () => {
-        const connectSpy = jest.spyOn(mssql, 'connect').mockImplementation(() => {
-            throw new mssql.ConnectionError(new Error('Failed to connect'));
-        });
-        const errorSpy = jest.spyOn(core, 'error');
-
-        let error: Error | undefined;
-        try {
-            await SqlUtils.executeSql(getConnectionConfig(), 'select * from Table1');
-        }
-        catch (e) {
-            error = e;
-        }
-
-        expect(connectSpy).toHaveBeenCalledTimes(1);
-        expect(error).toBeDefined();
-        expect(error!.message).toMatch('Failed to execute query.');
-        expect(errorSpy).toHaveBeenCalledTimes(1);
-        expect(errorSpy).toHaveBeenCalledWith('Failed to connect');
-    });
-
-    it('should fail to execute sql due to request error', async () => {
-        const connectSpy = jest.spyOn(mssql, 'connect').mockImplementation(() => {
-            // Successful connection
-            return new mssql.ConnectionPool('');
-        });
-        const querySpy = jest.spyOn(mssql.ConnectionPool.prototype, 'query').mockImplementation(() => {
-            throw new mssql.RequestError(new Error('Failed to query'));
-        })
-        const errorSpy = jest.spyOn(core, 'error');
-
-        let error: Error | undefined;
-        try {
-            await SqlUtils.executeSql(getConnectionConfig(), 'select * from Table1');
-        }
-        catch (e) {
-            error = e;
-        }
-
-        expect(connectSpy).toHaveBeenCalledTimes(1);
-        expect(querySpy).toHaveBeenCalledTimes(1);
-        expect(error).toBeDefined();
-        expect(error!.message).toMatch('Failed to execute query.');
-        expect(errorSpy).toHaveBeenCalledTimes(1);
-        expect(errorSpy).toHaveBeenCalledWith('Failed to query');
-    });
-
 });
 
 function getConnectionConfig(): SqlConnectionConfig {

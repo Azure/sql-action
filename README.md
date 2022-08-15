@@ -29,8 +29,8 @@ The definition of this GitHub Action is in [action.yml](https://github.com/Azure
     # optional tenant ID of the Active Directory when using AAD auth and the 'common' tenant isn't available
     tenant-id:
 
-    # optional additional sqlpackage arguments
-    sqlpackage-arguments:
+    # optional additional sqlpackage or go-sqlcmd arguments
+    arguments:
 
     # optional additional dotnet build arguments when building a database project file
     build-arguments:
@@ -56,8 +56,8 @@ jobs:
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './Database.sqlproj'
         action: 'publish'
-        build-arguments: '-c Release'                            # Optional arguments passed to dotnet build
-        sqlpackage-arguments: '/p:DropObjectsNotInSource=true'   # Optional parameters for SqlPackage Publish
+        build-arguments: '-c Release'                 # Optional arguments passed to dotnet build
+        arguments: '/p:DropObjectsNotInSource=true'   # Optional parameters for SqlPackage Publish
 ```
 
 ### Deploy SQL scripts to an Azure SQL Database with a temporary firewall rule
@@ -96,7 +96,7 @@ jobs:
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './Database.dacpac'
         action: 'publish'
-        sqlpackage-arguments: '/p:DropObjectsNotInSource=true'   # Optional parameters for SqlPackage Publish
+        arguments: '/p:DropObjectsNotInSource=true'   # Optional parameters for SqlPackage Publish
 ```
 
 

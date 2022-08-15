@@ -30,6 +30,8 @@ PERFORMANCE OF THIS SOFTWARE.
 
 /*! @azure/msal-common v6.3.0 2022-05-02 */
 
+/*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> */
+
 /**
  * @copyright (c) 2016, Philipp Thürwächter & Pattrick Hüper
  * @copyright (c) 2007-present, Stephen Colebourne & Michael Nascimento Santos

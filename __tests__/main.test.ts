@@ -12,11 +12,13 @@ jest.mock('azure-actions-webclient/AuthorizerFactory');
 jest.mock('../src/AzureSqlAction');
 jest.mock('../src/FirewallManager');
 jest.mock('../src/AzureSqlResourceManager');
+jest.mock('../src/Setup');
 
 describe('main.ts tests', () => {
-    afterEach(() => {
+    beforeEach(() => {
         jest.restoreAllMocks();
-    })
+        jest.clearAllMocks();
+    });
 
     it('gets inputs and executes build and publish action', async () => {
         const resolveFilePathSpy = jest.spyOn(AzureSqlActionHelper, 'resolveFilePath').mockReturnValue('./TestProject.sqlproj');
