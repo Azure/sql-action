@@ -4,6 +4,7 @@ import * as path from "path";
 import * as fs from 'fs';
 import * as glob from 'glob';
 import winreg from 'winreg';
+import { SqlPackageAction } from './AzureSqlAction';
 
 const IS_WINDOWS = process.platform === 'win32';
 const IS_LINUX = process.platform === 'linux';
@@ -86,6 +87,15 @@ export default class AzureSqlActionHelper {
         }
         
         return filePath;
+    }
+
+    public static getSqlpackageActionTypeFromString(action: string): SqlPackageAction {
+        switch (action.trim().toLowerCase()) {
+            case 'publish':
+                return SqlPackageAction.Publish;
+            default:
+                throw new Error(`Action ${action} is invalid. Supported action types are: Publish.`);
+        }
     }
 
     /**

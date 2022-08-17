@@ -14,23 +14,18 @@ export enum ActionType {
 }
 
 export interface IActionInputs {
-    serverName: string;
     actionType: ActionType;
     connectionConfig: SqlConnectionConfig;
+    filePath: string;
     additionalArguments?: string;
 }
 
 export interface IDacpacActionInputs extends IActionInputs {
-    dacpacPackage: string;
     sqlpackageAction: SqlPackageAction;
 }
 
-export interface ISqlActionInputs extends IActionInputs {
-    sqlFile: string;
-}
-
 export interface IBuildAndPublishInputs extends IActionInputs {
-    projectFile: string;
+    sqlpackageAction: SqlPackageAction;
     buildArguments?: string;
 }
 
@@ -55,18 +50,17 @@ export default class AzureSqlAction {
             await this._executeDacpacAction(this._inputs as IDacpacActionInputs);
         }
         else if (this._inputs.actionType === ActionType.SqlAction) {
-            await this._executeSqlFile(this._inputs as ISqlActionInputs);
+            await this._executeSqlFile(this._inputs);
         }
         else if (this._inputs.actionType === ActionType.BuildAndPublish) {
             const dacpacPath = await this._executeBuildProject(this._inputs as IBuildAndPublishInputs);
 
             // Reuse DacpacAction for publish
             const publishInputs = {
-                serverName: this._inputs.serverName,
                 actionType: ActionType.DacpacAction,
                 connectionConfig: this._inputs.connectionConfig,
+                filePath: dacpacPath,
                 additionalArguments: this._inputs.additionalArguments,
-                dacpacPackage: dacpacPath,
                 sqlpackageAction: SqlPackageAction.Publish
             } as IDacpacActionInputs;
             await this._executeDacpacAction(publishInputs);
@@ -86,7 +80,7 @@ export default class AzureSqlAction {
         console.log(`Successfully executed action ${SqlPackageAction[inputs.sqlpackageAction]} on target database.`);
     }
 
-    private async _executeSqlFile(inputs: ISqlActionInputs) {
+    private async _executeSqlFile(inputs: IActionInputs) {
         core.debug('Begin executing sql script');
 
         // sqlcmd should be added to PATH already, we just need to see if need to add ".exe" for Windows
@@ -104,7 +98,7 @@ export default class AzureSqlAction {
         }
 
         // Determine the correct sqlcmd arguments based on the auth type in connectionConfig
-        let sqlcmdCall = `"${sqlCmdPath}" -S ${inputs.serverName} -d ${inputs.connectionConfig.Config.database}`;
+        let sqlcmdCall = `"${sqlCmdPath}" -S ${inputs.connectionConfig.Config.server} -d ${inputs.connectionConfig.Config.database}`;
         const authentication = inputs.connectionConfig.Config['authentication'];
         switch (authentication?.type) {
             case undefined:
@@ -131,14 +125,19 @@ export default class AzureSqlAction {
                 throw new Error(`Authentication type ${authentication.type} is not supported.`);
         }
 
-        await exec.exec(`${sqlcmdCall} -i "${inputs.sqlFile}" ${inputs.additionalArguments}`);
+        sqlcmdCall += ` -i "${inputs.filePath}"`;
+        if (!!inputs.additionalArguments) {
+            sqlcmdCall += ` ${inputs.additionalArguments}`;
+        }
+
+        await exec.exec(sqlcmdCall);
         
         console.log(`Successfully executed SQL file on target database.`);
     }
 
     private async _executeBuildProject(inputs: IBuildAndPublishInputs): Promise<string> {
         core.debug('Begin building project');
-        const projectName = path.basename(inputs.projectFile, Constants.sqlprojExtension);
+        const projectName = path.basename(inputs.filePath, Constants.sqlprojExtension);
         const additionalBuildArguments = inputs.buildArguments ?? '';
         const parsedArgs = await DotnetUtils.parseCommandArguments(additionalBuildArguments);
         let outputDir = '';
@@ -151,10 +150,10 @@ export default class AzureSqlAction {
             // Set output dir to ./bin/<configuration> if configuration is set via arguments
             // Default to Debug if configuration is not set
             const configuration = await DotnetUtils.findArgument(parsedArgs, "--configuration", "-c") ?? "Debug";
-            outputDir = path.join(path.dirname(inputs.projectFile), "bin", configuration);
+            outputDir = path.join(path.dirname(inputs.filePath), "bin", configuration);
         }
 
-        await exec.exec(`dotnet build "${inputs.projectFile}" -p:NetCoreBuild=true ${additionalBuildArguments}`);
+        await exec.exec(`dotnet build "${inputs.filePath}" -p:NetCoreBuild=true ${additionalBuildArguments}`);
 
         const dacpacPath = path.join(outputDir, projectName + Constants.dacpacExtension);
         console.log(`Successfully built database project to ${dacpacPath}`);
@@ -166,7 +165,7 @@ export default class AzureSqlAction {
 
         switch (inputs.sqlpackageAction) {
             case SqlPackageAction.Publish: {
-                args += `/Action:Publish /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${inputs.dacpacPackage}"`;
+                args += `/Action:Publish /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${inputs.filePath}"`;
                 break;
             }
             default: {
@@ -175,7 +174,7 @@ export default class AzureSqlAction {
         }
 
         if (!!inputs.additionalArguments) {
-            args += ' ' + inputs.additionalArguments
+            args += ' ' + inputs.additionalArguments;
         }
 
         return args;
