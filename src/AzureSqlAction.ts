@@ -1,4 +1,3 @@
-import * as fs from 'fs';
 import * as path from 'path';
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
@@ -7,7 +6,6 @@ import AzureSqlActionHelper from './AzureSqlActionHelper';
 import DotnetUtils from './DotnetUtils';
 import Constants from './Constants';
 import SqlConnectionConfig from './SqlConnectionConfig';
-import SqlUtils from './SqlUtils';
 
 export enum ActionType {
     DacpacAction,
@@ -19,17 +17,16 @@ export interface IActionInputs {
     actionType: ActionType;
     connectionConfig: SqlConnectionConfig;
     filePath: string;
+    additionalArguments?: string;
 }
 
 export interface IDacpacActionInputs extends IActionInputs {
     sqlpackageAction: SqlPackageAction;
-    sqlpackageArguments?: string;
 }
 
 export interface IBuildAndPublishInputs extends IActionInputs {
     sqlpackageAction: SqlPackageAction;
     buildArguments?: string;
-    sqlpackageArguments?: string;
 }
 
 export enum SqlPackageAction {
@@ -55,15 +52,16 @@ export default class AzureSqlAction {
             await this._executeSqlFile(this._inputs);
         }
         else if (this._inputs.actionType === ActionType.BuildAndPublish) {
-            const dacpacPath = await this._executeBuildProject(this._inputs as IBuildAndPublishInputs);
+            const buildAndPublishInputs = this._inputs as IBuildAndPublishInputs;
+            const dacpacPath = await this._executeBuildProject(buildAndPublishInputs);
 
             // Reuse DacpacAction for publish
             const publishInputs = {
                 actionType: ActionType.DacpacAction,
-                connectionConfig: this._inputs.connectionConfig,
+                connectionConfig: buildAndPublishInputs.connectionConfig,
                 filePath: dacpacPath,
-                sqlpackageArguments: (this._inputs as IBuildAndPublishInputs).sqlpackageArguments,
-                sqlpackageAction: (this._inputs as IBuildAndPublishInputs).sqlpackageAction
+                additionalArguments: buildAndPublishInputs.additionalArguments,
+                sqlpackageAction: buildAndPublishInputs.sqlpackageAction
             } as IDacpacActionInputs;
             await this._executeDacpacAction(publishInputs);
         }
@@ -84,15 +82,55 @@ export default class AzureSqlAction {
 
     private async _executeSqlFile(inputs: IActionInputs) {
         core.debug('Begin executing sql script');
-        let scriptContents: string;
-        try {
-            scriptContents = fs.readFileSync(inputs.filePath, "utf8");
+
+        // sqlcmd should be added to PATH already, we just need to see if need to add ".exe" for Windows
+        let sqlCmdPath: string;
+        switch (process.platform) {
+            case "win32": 
+                sqlCmdPath = "sqlcmd.exe";
+                break;
+            case "linux":
+            case "darwin":
+                sqlCmdPath = "sqlcmd";
+                break;
+            default:
+                throw new Error(`Platform ${process.platform} is not supported.`);
         }
-        catch (e) {
-            throw new Error(`Cannot read contents of file ${inputs.filePath} due to error '${e.message}'.`);
+
+        // Determine the correct sqlcmd arguments based on the auth type in connectionConfig
+        let sqlcmdCall = `"${sqlCmdPath}" -S ${inputs.connectionConfig.Config.server} -d ${inputs.connectionConfig.Config.database}`;
+        const authentication = inputs.connectionConfig.Config['authentication'];
+        switch (authentication?.type) {
+            case undefined:
+                // No authentication type defaults SQL login
+                sqlcmdCall += ` -U "${inputs.connectionConfig.Config.user}"`;
+                core.exportVariable(Constants.sqlcmdPasswordEnvVarName, inputs.connectionConfig.Config.password);
+                break;
+
+            case 'azure-active-directory-default':
+                sqlcmdCall += ` --authentication-method=ActiveDirectoryDefault`;
+                break;
+
+            case 'azure-active-directory-password':
+                sqlcmdCall += ` --authentication-method=ActiveDirectoryPassword -U "${authentication.options.userName}"`;
+                core.exportVariable(Constants.sqlcmdPasswordEnvVarName, authentication.options.password);
+                break;
+
+            case 'azure-active-directory-service-principal-secret':
+                sqlcmdCall += ` --authentication-method=ActiveDirectoryServicePrincipal -U "${inputs.connectionConfig.Config.user}"`;
+                core.exportVariable(Constants.sqlcmdPasswordEnvVarName, authentication.options.clientSecret);
+                break;
+
+            default:
+                throw new Error(`Authentication type ${authentication.type} is not supported.`);
         }
-        
-        await SqlUtils.executeSql(inputs.connectionConfig, scriptContents);
+
+        sqlcmdCall += ` -i "${inputs.filePath}"`;
+        if (!!inputs.additionalArguments) {
+            sqlcmdCall += ` ${inputs.additionalArguments}`;
+        }
+
+        await exec.exec(sqlcmdCall);
         
         console.log(`Successfully executed SQL file on target database.`);
     }
@@ -132,13 +170,18 @@ export default class AzureSqlAction {
             case SqlPackageAction.DriftReport:
                 args += `/Action:${SqlPackageAction[inputs.sqlpackageAction]} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${inputs.filePath}"`;
                 break;
+            
+            // When action isn't specified, default to Publish
+            case undefined:
+                args += `/Action:Publish /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${inputs.filePath}"`;
+                break;
 
             default:
                 throw new Error(`Not supported SqlPackage action: '${SqlPackageAction[inputs.sqlpackageAction]}'`);
         }
 
-        if (!!inputs.sqlpackageArguments) {
-            args += ' ' + inputs.sqlpackageArguments;
+        if (!!inputs.additionalArguments) {
+            args += ' ' + inputs.additionalArguments;
         }
 
         return args;

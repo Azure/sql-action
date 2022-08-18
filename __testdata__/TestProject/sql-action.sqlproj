@@ -5,5 +5,6 @@
     <Name>sql-action</Name>
     <DSP>Microsoft.Data.Tools.Schema.Sql.SqlAzureV12DatabaseSchemaProvider</DSP>
     <ModelCollation>1033, CI</ModelCollation>
+    <ProjectGuid>{829ec500-6bb6-42c3-a1ab-ab621099d153}</ProjectGuid>
   </PropertyGroup>
 </Project>

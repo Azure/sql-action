@@ -1,11 +1,11 @@
-import * as fs from 'fs';
 import * as path from 'path';
+import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 import AzureSqlAction, { IBuildAndPublishInputs, IDacpacActionInputs, ActionType, SqlPackageAction, IActionInputs } from "../src/AzureSqlAction";
 import AzureSqlActionHelper from "../src/AzureSqlActionHelper";
 import DotnetUtils from '../src/DotnetUtils';
+import Constants from '../src/Constants';
 import SqlConnectionConfig from '../src/SqlConnectionConfig';
-import SqlUtils from '../src/SqlUtils';
 
 jest.mock('fs');
 
@@ -23,7 +23,7 @@ describe('AzureSqlAction tests', () => {
         ];
 
         it.each(inputs)('Validate %s action with args %s', async (actionName, sqlpackageArgs) => {
-            let inputs = getInputs(ActionType.DacpacAction, actionName, sqlpackageArgs) as IDacpacActionInputs;
+            let inputs = getInputsWithCustomSqlPackageAction(ActionType.DacpacAction, SqlPackageAction[actionName], sqlpackageArgs) as IDacpacActionInputs;
             let action = new AzureSqlAction(inputs);
     
             let getSqlPackagePathSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlPackagePath').mockResolvedValue('SqlPackage.exe');
@@ -48,38 +48,46 @@ describe('AzureSqlAction tests', () => {
         expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('executes sql action for SqlAction type', async () => {
-        const inputs = getInputs(ActionType.SqlAction);
-        const action = new AzureSqlAction(inputs);
+    describe('sql script action tests for different auth types', async () => {
+        // Format: [test case description, connection string, expected sqlcmd arguments]
+        const testCases = [
+            ['SQL login', 'Server=testServer.database.windows.net;Database=testDB;User Id=testUser;Password=placeholder', '-S testServer.database.windows.net -d testDB -U "testUser" -i "./TestFile.sql" -t 20'],
+            ['AAD password', 'Server=testServer.database.windows.net;Database=testDB;Authentication=Active Directory Password;User Id=testAADUser;Password=placeholder', '-S testServer.database.windows.net -d testDB --authentication-method=ActiveDirectoryPassword -U "testAADUser" -i "./TestFile.sql" -t 20'],
+            ['AAD service principal', 'Server=testServer.database.windows.net;Database=testDB;Authentication=Active Directory Service Principal;User Id=appId;Password=placeholder', '-S testServer.database.windows.net -d testDB --authentication-method=ActiveDirectoryServicePrincipal -U "appId" -i "./TestFile.sql" -t 20'],
+            ['AAD default', 'Server=testServer.database.windows.net;Database=testDB;Authentication=Active Directory Default;', '-S testServer.database.windows.net -d testDB --authentication-method=ActiveDirectoryDefault -i "./TestFile.sql" -t 20']
+        ];
 
-        const fsSpy = jest.spyOn(fs, 'readFileSync').mockReturnValue('select * from table1');
-        const sqlSpy = jest.spyOn(SqlUtils, 'executeSql').mockResolvedValue();
+        it.each(testCases)('%s', async (testCase, connectionString, expectedSqlCmdCall) => {
+            const inputs = getInputs(ActionType.SqlAction, connectionString) as IActionInputs;
+            const action = new AzureSqlAction(inputs);
+            const sqlcmdExe = process.platform === 'win32' ? 'sqlcmd.exe' : 'sqlcmd';
+    
+            const execSpy = jest.spyOn(exec, 'exec').mockResolvedValue(0);
+            const exportVariableSpy = jest.spyOn(core, 'exportVariable');
+    
+            await action.execute();
+    
+            expect(execSpy).toHaveBeenCalledTimes(1);
+            expect(execSpy).toHaveBeenCalledWith(`"${sqlcmdExe}" ${expectedSqlCmdCall}`);
 
-        await action.execute();
-
-        expect(fsSpy).toHaveBeenCalledTimes(1);
-        expect(sqlSpy).toHaveBeenCalledTimes(1);
-        expect(sqlSpy).toHaveBeenCalledWith(inputs.connectionConfig, 'select * from table1');
+            // Except for AAD default, password/client secret should be set as SqlCmdPassword environment variable
+            if (inputs.connectionConfig.Config['authentication']?.type !== 'azure-active-directory-default') {
+                expect(exportVariableSpy).toHaveBeenCalledTimes(1);
+                expect(exportVariableSpy).toHaveBeenCalledWith(Constants.sqlcmdPasswordEnvVarName, "placeholder");
+            }
+            else {
+                expect(exportVariableSpy).not.toHaveBeenCalled();
+            }
+        })
     });
 
-    it('throws if sql action cannot read file', async () => {
-        const inputs = getInputs(ActionType.SqlAction);
-        const action = new AzureSqlAction(inputs);
-        const fsSpy = jest.spyOn(fs, 'readFileSync').mockImplementation(() => {
-            throw new Error('Cannot read file');
-        });
+    it('throws if SqlCmd.exe fails to execute sql', async () => {
+        let inputs = getInputs(ActionType.SqlAction) as IActionInputs;
+        let action = new AzureSqlAction(inputs);
 
-        let error: Error | undefined;
-        try {
-            await action.execute();
-        }
-        catch (e) {
-            error = e;
-        }
+        jest.spyOn(exec, 'exec').mockRejectedValue(1);
 
-        expect(fsSpy).toHaveBeenCalledTimes(1);
-        expect(error).toBeDefined();
-        expect(error!.message).toMatch(`Cannot read contents of file ./TestFile.sql due to error 'Cannot read file'.`);
+        expect(await action.execute().catch(() => null)).rejects;
     });
 
     describe('validate build actions', () => {
@@ -91,7 +99,7 @@ describe('AzureSqlAction tests', () => {
         ];
 
         it.each(inputs)('Validate build and %s action with args %s', async (actionName, sqlpackageArgs) => {
-            const inputs = getInputs(ActionType.BuildAndPublish, actionName, sqlpackageArgs) as IBuildAndPublishInputs;
+            const inputs = getInputsWithCustomSqlPackageAction(ActionType.BuildAndPublish, SqlPackageAction[actionName], sqlpackageArgs) as IBuildAndPublishInputs;
             const action = new AzureSqlAction(inputs);
             const expectedDacpac = path.join('./bin/Debug', 'TestProject.dacpac');
 
@@ -147,7 +155,7 @@ describe('AzureSqlAction tests', () => {
         const inputs = [ ['Extract'], ['Export'], ['Import'] ];
 
         it.each(inputs)('Throws for unsupported action %s', async (actionName) => {
-            const inputs = getInputs(ActionType.DacpacAction, actionName);
+            const inputs = getInputsWithCustomSqlPackageAction(ActionType.DacpacAction, SqlPackageAction[actionName]);
             const action = new AzureSqlAction(inputs);
     
             const getSqlPackagePathSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlPackagePath').mockResolvedValue('SqlPackage.exe');
@@ -167,34 +175,82 @@ describe('AzureSqlAction tests', () => {
     });
 });
 
-function getInputs(actionType: ActionType, sqlpackageAction: string = 'Publish', sqlpackageArguments?: string) {
+/**
+ * Gets test inputs used by the SQL action based on actionType.
+ * @param actionType The action type used for testing
+ * @param connectionString The custom connection string to be used for the test. If not specified, a default one using SQL login will be used.
+ * @returns An ActionInputs objects based on the given action type.
+ */
+function getInputs(actionType: ActionType, connectionString: string = '') {
+
+    const defaultConnectionString = 'Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder';
+    const config = connectionString ? new SqlConnectionConfig(connectionString) : new SqlConnectionConfig(defaultConnectionString);
+
     switch(actionType) {
         case ActionType.DacpacAction: {
-            const config = new SqlConnectionConfig('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder');
             return {
                 actionType: ActionType.DacpacAction,
                 connectionConfig: config,
                 filePath: './TestPackage.dacpac',
-                sqlpackageAction: SqlPackageAction[sqlpackageAction],
-                sqlpackageArguments: sqlpackageArguments
+                sqlpackageAction: SqlPackageAction.Publish,
+                additionalArguments: '/TargetTimeout:20'
             } as IDacpacActionInputs;
         }
         case ActionType.SqlAction: {
-            const config = new SqlConnectionConfig('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder');
             return {
                 actionType: ActionType.SqlAction,
                 connectionConfig: config,
-                filePath: './TestFile.sql'
+                filePath: './TestFile.sql',
+                additionalArguments: '-t 20'
             } as IActionInputs;
         }
         case ActionType.BuildAndPublish: {
             return {
                 actionType: ActionType.BuildAndPublish,
-                connectionConfig: new SqlConnectionConfig('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder'),
+                connectionConfig: config,
+                filePath: './TestProject.sqlproj',
+                buildArguments: '--verbose --test "test value"'
+            } as IBuildAndPublishInputs
+        }
+    }
+}
+
+/**
+ * Gets test inputs used by SQL action based on actionType. Also accepts a custom SqlpackageAction type and additional arguments.
+ * @param actionType The action type used for testing
+ * @param sqlpackageAction The custom sqlpackage action type to test
+ * @param additionalArguments Additional arguments for this action type.
+ * @returns An ActionInputs objects based on the given action type.
+ */
+function getInputsWithCustomSqlPackageAction(actionType: ActionType, sqlpackageAction: SqlPackageAction, additionalArguments: string = '') {
+    const defaultConnectionConfig = new SqlConnectionConfig('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder');
+
+    switch(actionType) {
+        case ActionType.DacpacAction: {
+            return {
+                actionType: ActionType.DacpacAction,
+                connectionConfig: defaultConnectionConfig,
+                filePath: './TestPackage.dacpac',
+                sqlpackageAction: sqlpackageAction,
+                additionalArguments: additionalArguments
+            } as IDacpacActionInputs;
+        }
+        case ActionType.SqlAction: {
+            return {
+                actionType: ActionType.SqlAction,
+                connectionConfig: defaultConnectionConfig,
+                filePath: './TestFile.sql',
+                additionalArguments: additionalArguments
+            } as IActionInputs;
+        }
+        case ActionType.BuildAndPublish: {
+            return {
+                actionType: ActionType.BuildAndPublish,
+                connectionConfig: defaultConnectionConfig,
                 filePath: './TestProject.sqlproj',
                 buildArguments: '--verbose --test "test value"',
-                sqlpackageAction: SqlPackageAction[sqlpackageAction],
-                sqlpackageArguments: sqlpackageArguments
+                sqlpackageAction: sqlpackageAction,
+                additionalArguments: additionalArguments
             } as IBuildAndPublishInputs
         }
     }
