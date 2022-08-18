@@ -90,6 +90,11 @@ export default class AzureSqlActionHelper {
     }
 
     public static getSqlpackageActionTypeFromString(action: string): SqlPackageAction {
+        // Default to Publish if not specified
+        if (!action) {
+            return SqlPackageAction.Publish;
+        }
+
         switch (action.trim().toLowerCase()) {
             case 'publish':
                 return SqlPackageAction.Publish;

@@ -4,8 +4,8 @@ import * as exec from '@actions/exec';
 import AzureSqlAction, { IBuildAndPublishInputs, IDacpacActionInputs, ActionType, SqlPackageAction, IActionInputs } from "../src/AzureSqlAction";
 import AzureSqlActionHelper from "../src/AzureSqlActionHelper";
 import DotnetUtils from '../src/DotnetUtils';
-import Constants from '../src/Constants';
 import SqlConnectionConfig from '../src/SqlConnectionConfig';
+import Constants from '../src/Constants';
 
 jest.mock('fs');
 
@@ -209,7 +209,8 @@ function getInputs(actionType: ActionType, connectionString: string = '') {
                 actionType: ActionType.BuildAndPublish,
                 connectionConfig: config,
                 filePath: './TestProject.sqlproj',
-                buildArguments: '--verbose --test "test value"'
+                buildArguments: '--verbose --test "test value"',
+                sqlpackageAction: SqlPackageAction.Publish
             } as IBuildAndPublishInputs
         }
     }
