@@ -24,7 +24,7 @@ describe('Setup.ts tests', () => {
         if (process.platform === 'win32') {
             expect(extractZipSpy).toHaveBeenCalled();
         }
-        else if (process.platform === 'linux') {
+        else {
             expect(extractTarSpy).toHaveBeenCalled();
         }
         expect(addPathSpy).toHaveBeenCalled();
