@@ -48,7 +48,7 @@ describe('AzureSqlAction tests', () => {
         expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
     });
 
-    describe('sql script action tests for different auth types', async () => {
+    describe('sql script action tests for different auth types', () => {
         // Format: [test case description, connection string, expected sqlcmd arguments]
         const testCases = [
             ['SQL login', 'Server=testServer.database.windows.net;Database=testDB;User Id=testUser;Password=placeholder', '-S testServer.database.windows.net -d testDB -U "testUser" -i "./TestFile.sql" -t 20'],
