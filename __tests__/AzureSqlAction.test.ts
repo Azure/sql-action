@@ -150,29 +150,6 @@ describe('AzureSqlAction tests', () => {
         expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);  // Verify build succeeds and calls into Publish
         expect(execSpy).toHaveBeenCalledTimes(2);
     });
-
-    describe('validate errors on unsupported sqlpackage action types', () => {
-        const inputs = [ ['Extract'], ['Export'], ['Import'] ];
-
-        it.each(inputs)('Throws for unsupported action %s', async (actionName) => {
-            const inputs = getInputsWithCustomSqlPackageAction(ActionType.DacpacAction, SqlPackageAction[actionName]);
-            const action = new AzureSqlAction(inputs);
-    
-            const getSqlPackagePathSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlPackagePath').mockResolvedValue('SqlPackage.exe');
-    
-            let error: Error | undefined;
-            try {
-                await action.execute();
-            }
-            catch (e) {
-                error = e;
-            }
-    
-            expect(error).toBeDefined();
-            expect(error!.message).toMatch(`Not supported SqlPackage action: '${actionName}'`);
-            expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
-        });
-    });
 });
 
 /**
@@ -181,7 +158,7 @@ describe('AzureSqlAction tests', () => {
  * @param connectionString The custom connection string to be used for the test. If not specified, a default one using SQL login will be used.
  * @returns An ActionInputs objects based on the given action type.
  */
-function getInputs(actionType: ActionType, connectionString: string = '') {
+function getInputs(actionType: ActionType, connectionString: string = ''): IActionInputs {
 
     const defaultConnectionString = 'Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder';
     const config = connectionString ? new SqlConnectionConfig(connectionString) : new SqlConnectionConfig(defaultConnectionString);
@@ -223,7 +200,7 @@ function getInputs(actionType: ActionType, connectionString: string = '') {
  * @param additionalArguments Additional arguments for this action type.
  * @returns An ActionInputs objects based on the given action type.
  */
-function getInputsWithCustomSqlPackageAction(actionType: ActionType, sqlpackageAction: SqlPackageAction, additionalArguments: string = '') {
+function getInputsWithCustomSqlPackageAction(actionType: ActionType, sqlpackageAction: SqlPackageAction, additionalArguments: string = ''): IActionInputs {
     const defaultConnectionConfig = new SqlConnectionConfig('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder');
 
     switch(actionType) {

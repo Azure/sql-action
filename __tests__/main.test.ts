@@ -144,4 +144,28 @@ describe('main.ts tests', () => {
         expect(detectIPAddressSpy).not.toHaveBeenCalled();
         expect(setFailedSpy).toHaveBeenCalledWith('Unable to find file at location'); 
     })
+
+    describe('validate errors on unsupported sqlpackage action types', () => {
+        const inputs = [ ['Extract'], ['Export'], ['Import'], ['InvalidAction'] ];
+
+        it.each(inputs)('Throws for unsupported action %s', async (actionName) => {
+            let resolveFilePathSpy = jest.spyOn(AzureSqlActionHelper, 'resolveFilePath').mockReturnValue('./TestDacpacPackage.dacpac');
+            let setFailedSpy = jest.spyOn(core, 'setFailed');
+            let getInputSpy = jest.spyOn(core, 'getInput').mockImplementation((name, options) => {
+                switch(name) {
+                    case 'connection-string': return 'Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder;';
+                    case 'path': return './TestDacpacPackage.dacpac';
+                    case 'action': return actionName;
+                    default: return '';
+                }
+            });
+
+            await run();
+
+            expect(resolveFilePathSpy).toHaveBeenCalled();
+            expect(getInputSpy).toHaveBeenCalled();
+            expect(setFailedSpy).toHaveBeenCalled();
+            expect(setFailedSpy).toHaveBeenCalledWith(`Action ${actionName} is invalid. Supported action types are: Publish, Script, DriftReport, or DeployReport.`);
+        });
+    });
 })
