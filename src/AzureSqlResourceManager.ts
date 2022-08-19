@@ -2,6 +2,9 @@ import { IAuthorizer } from 'azure-actions-webclient/Authorizer/IAuthorizer';
 import { WebRequest } from 'azure-actions-webclient/WebClient';
 import { ServiceClient as AzureRestClient, ToError, AzureError } from 'azure-actions-webclient/AzureRestClient'
 
+// API docs: https://docs.microsoft.com/rest/api/sql
+const SqlApiVersion = '2021-11-01';
+
 export interface AzureSqlServer {
     id: string;
     kind: string;
@@ -51,9 +54,10 @@ export default class AzureSqlResourceManager {
         let today = new Date();
         let firewallRuleName = `ClientIPAddress_${today.getFullYear()}-${today.getMonth()}-${today.getDay()}_${startIpAddress}`;
 
+        // https://docs.microsoft.com/rest/api/sql/2021-11-01/firewall-rules/create-or-update
         let httpRequest: WebRequest = {
             method: 'PUT',
-            uri: this._restClient.getRequestUri(`/${this._resource!.id}/firewallRules/${firewallRuleName}`, {}, [], '2014-04-01'),
+            uri: this._restClient.getRequestUri(`/${this._resource!.id}/firewallRules/${firewallRuleName}`, {}, [], SqlApiVersion),
             body: JSON.stringify({
                 'properties': {
                     'startIpAddress': startIpAddress,
@@ -81,9 +85,10 @@ export default class AzureSqlResourceManager {
     }
 
     public async removeFirewallRule(firewallRule: FirewallRule): Promise<void> {
+        // https://docs.microsoft.com/rest/api/sql/2021-11-01/firewall-rules/delete
         let httpRequest: WebRequest = {
             method: 'DELETE',
-            uri: this._restClient.getRequestUri(`/${this._resource!.id}/firewallRules/${firewallRule.name}`, {}, [], '2014-04-01')
+            uri: this._restClient.getRequestUri(`/${this._resource!.id}/firewallRules/${firewallRule.name}`, {}, [], SqlApiVersion)
         };
 
         try {
@@ -109,9 +114,10 @@ export default class AzureSqlResourceManager {
             serverName = serverName.slice(0, serverName.lastIndexOf(sqlServerHostNameSuffix));
         }
 
+        // https://docs.microsoft.com/rest/api/sql/2021-11-01/servers/list
         let httpRequest: WebRequest = {
             method: 'GET',
-            uri: this._restClient.getRequestUri('//subscriptions/{subscriptionId}/providers/Microsoft.Sql/servers', {}, [], '2015-05-01-preview')
+            uri: this._restClient.getRequestUri('//subscriptions/{subscriptionId}/providers/Microsoft.Sql/servers', {}, [], SqlApiVersion)
         }
 
         try {
