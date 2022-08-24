@@ -30,7 +30,6 @@ export interface IBuildAndPublishInputs extends IActionInputs {
 }
 
 export enum SqlPackageAction {
-    // Only the Publish action is supported currently
     Publish,
     Extract,
     Export,
@@ -53,15 +52,16 @@ export default class AzureSqlAction {
             await this._executeSqlFile(this._inputs);
         }
         else if (this._inputs.actionType === ActionType.BuildAndPublish) {
-            const dacpacPath = await this._executeBuildProject(this._inputs as IBuildAndPublishInputs);
+            const buildAndPublishInputs = this._inputs as IBuildAndPublishInputs;
+            const dacpacPath = await this._executeBuildProject(buildAndPublishInputs);
 
             // Reuse DacpacAction for publish
             const publishInputs = {
                 actionType: ActionType.DacpacAction,
-                connectionConfig: this._inputs.connectionConfig,
+                connectionConfig: buildAndPublishInputs.connectionConfig,
                 filePath: dacpacPath,
-                additionalArguments: this._inputs.additionalArguments,
-                sqlpackageAction: SqlPackageAction.Publish
+                additionalArguments: buildAndPublishInputs.additionalArguments,
+                sqlpackageAction: buildAndPublishInputs.sqlpackageAction
             } as IDacpacActionInputs;
             await this._executeDacpacAction(publishInputs);
         }
@@ -164,13 +164,15 @@ export default class AzureSqlAction {
         let args = '';
 
         switch (inputs.sqlpackageAction) {
-            case SqlPackageAction.Publish: {
-                args += `/Action:Publish /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${inputs.filePath}"`;
+            case SqlPackageAction.Publish: 
+            case SqlPackageAction.Script:
+            case SqlPackageAction.DeployReport:
+            case SqlPackageAction.DriftReport:
+                args += `/Action:${SqlPackageAction[inputs.sqlpackageAction]} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${inputs.filePath}"`;
                 break;
-            }
-            default: {
+
+            default:
                 throw new Error(`Not supported SqlPackage action: '${SqlPackageAction[inputs.sqlpackageAction]}'`);
-            }
         }
 
         if (!!inputs.additionalArguments) {

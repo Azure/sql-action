@@ -12,22 +12,31 @@ jest.mock('fs');
 describe('AzureSqlAction tests', () => {
     afterEach(() => {
        jest.restoreAllMocks();
-    })
-
-    it('executes dacpac action for DacpacAction type', async () => {
-        let inputs = getInputs(ActionType.DacpacAction) as IDacpacActionInputs;
-        let action = new AzureSqlAction(inputs);
-
-        let getSqlPackagePathSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlPackagePath').mockResolvedValue('SqlPackage.exe');
-        let execSpy = jest.spyOn(exec, 'exec').mockResolvedValue(0);
-
-        await action.execute();
-
-        expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
-        expect(execSpy).toHaveBeenCalledTimes(1);
-        expect(execSpy).toHaveBeenCalledWith(`"SqlPackage.exe" /Action:Publish /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${inputs.filePath}" /TargetTimeout:20`);
     });
-  
+
+    describe('validate sqlpackage calls for DacpacAction', () => {
+        const inputs = [
+            ['Publish', '/TargetTimeout:20'],
+            ['Script', '/DeployScriptPath:script.sql'],
+            ['DriftReport', '/OutputPath:report.xml'],
+            ['DeployReport', '/OutputPath:report.xml']
+        ];
+
+        it.each(inputs)('Validate %s action with args %s', async (actionName, sqlpackageArgs) => {
+            let inputs = getInputsWithCustomSqlPackageAction(ActionType.DacpacAction, SqlPackageAction[actionName], sqlpackageArgs) as IDacpacActionInputs;
+            let action = new AzureSqlAction(inputs);
+    
+            let getSqlPackagePathSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlPackagePath').mockResolvedValue('SqlPackage.exe');
+            let execSpy = jest.spyOn(exec, 'exec').mockResolvedValue(0);
+    
+            await action.execute();
+    
+            expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
+            expect(execSpy).toHaveBeenCalledTimes(1);
+            expect(execSpy).toHaveBeenCalledWith(`"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${inputs.filePath}" ${sqlpackageArgs}`);
+        });
+    });
+
     it('throws if SqlPackage.exe fails to publish dacpac', async () => {
         let inputs = getInputs(ActionType.DacpacAction) as IDacpacActionInputs;
         let action = new AzureSqlAction(inputs);
@@ -39,7 +48,7 @@ describe('AzureSqlAction tests', () => {
         expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
     });
 
-    describe('sql script action tests for different auth types', async () => {
+    describe('sql script action tests for different auth types', () => {
         // Format: [test case description, connection string, expected sqlcmd arguments]
         const testCases = [
             ['SQL login', 'Server=testServer.database.windows.net;Database=testDB;User Id=testUser;Password=placeholder', '-S testServer.database.windows.net -d testDB -U "testUser" -i "./TestFile.sql" -t 20'],
@@ -81,24 +90,33 @@ describe('AzureSqlAction tests', () => {
         expect(await action.execute().catch(() => null)).rejects;
     });
 
-    it('should build and publish database project', async () => {
-        const inputs = getInputs(ActionType.BuildAndPublish) as IBuildAndPublishInputs;
-        const action = new AzureSqlAction(inputs);
-        const expectedDacpac = path.join('./bin/Debug', 'TestProject.dacpac');
+    describe('validate build actions', () => {
+        const inputs = [
+            ['Publish', '/p:DropPermissionsNotInSource=true'],
+            ['Script', '/DeployScriptPath:script.sql'],
+            ['DriftReport', '/OutputPath:report.xml'],
+            ['DeployReport', '/OutputPath:report.xml']
+        ];
 
-        const parseCommandArgumentsSpy = jest.spyOn(DotnetUtils, 'parseCommandArguments').mockResolvedValue({});
-        const findArgumentSpy = jest.spyOn(DotnetUtils, 'findArgument').mockResolvedValue(undefined);
-        const getSqlPackagePathSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlPackagePath').mockResolvedValue('SqlPackage.exe');
-        const execSpy = jest.spyOn(exec, 'exec').mockResolvedValue(0);
+        it.each(inputs)('Validate build and %s action with args %s', async (actionName, sqlpackageArgs) => {
+            const inputs = getInputsWithCustomSqlPackageAction(ActionType.BuildAndPublish, SqlPackageAction[actionName], sqlpackageArgs) as IBuildAndPublishInputs;
+            const action = new AzureSqlAction(inputs);
+            const expectedDacpac = path.join('./bin/Debug', 'TestProject.dacpac');
 
-        await action.execute();
-
-        expect(parseCommandArgumentsSpy).toHaveBeenCalledTimes(1);
-        expect(findArgumentSpy).toHaveBeenCalledTimes(2);
-        expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
-        expect(execSpy).toHaveBeenCalledTimes(2);
-        expect(execSpy).toHaveBeenNthCalledWith(1, `dotnet build "./TestProject.sqlproj" -p:NetCoreBuild=true --verbose --test "test value"`);
-        expect(execSpy).toHaveBeenNthCalledWith(2, `"SqlPackage.exe" /Action:Publish /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${expectedDacpac}"`);
+            const parseCommandArgumentsSpy = jest.spyOn(DotnetUtils, 'parseCommandArguments').mockResolvedValue({});
+            const findArgumentSpy = jest.spyOn(DotnetUtils, 'findArgument').mockResolvedValue(undefined);
+            const getSqlPackagePathSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlPackagePath').mockResolvedValue('SqlPackage.exe');
+            const execSpy = jest.spyOn(exec, 'exec').mockResolvedValue(0);
+    
+            await action.execute();
+    
+            expect(parseCommandArgumentsSpy).toHaveBeenCalledTimes(1);
+            expect(findArgumentSpy).toHaveBeenCalledTimes(2);
+            expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
+            expect(execSpy).toHaveBeenCalledTimes(2);
+            expect(execSpy).toHaveBeenNthCalledWith(1, `dotnet build "./TestProject.sqlproj" -p:NetCoreBuild=true --verbose --test "test value"`);
+            expect(execSpy).toHaveBeenNthCalledWith(2, `"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${expectedDacpac}" ${sqlpackageArgs}`);
+        });
     });
 
     it('throws if dotnet fails to build sqlproj', async () => {
@@ -140,7 +158,7 @@ describe('AzureSqlAction tests', () => {
  * @param connectionString The custom connection string to be used for the test. If not specified, a default one using SQL login will be used.
  * @returns An ActionInputs objects based on the given action type.
  */
-function getInputs(actionType: ActionType, connectionString: string = '') {
+function getInputs(actionType: ActionType, connectionString: string = ''): IActionInputs {
 
     const defaultConnectionString = 'Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder';
     const config = connectionString ? new SqlConnectionConfig(connectionString) : new SqlConnectionConfig(defaultConnectionString);
@@ -168,7 +186,49 @@ function getInputs(actionType: ActionType, connectionString: string = '') {
                 actionType: ActionType.BuildAndPublish,
                 connectionConfig: config,
                 filePath: './TestProject.sqlproj',
-                buildArguments: '--verbose --test "test value"'
+                buildArguments: '--verbose --test "test value"',
+                sqlpackageAction: SqlPackageAction.Publish
+            } as IBuildAndPublishInputs
+        }
+    }
+}
+
+/**
+ * Gets test inputs used by SQL action based on actionType. Also accepts a custom SqlpackageAction type and additional arguments.
+ * @param actionType The action type used for testing
+ * @param sqlpackageAction The custom sqlpackage action type to test
+ * @param additionalArguments Additional arguments for this action type.
+ * @returns An ActionInputs objects based on the given action type.
+ */
+function getInputsWithCustomSqlPackageAction(actionType: ActionType, sqlpackageAction: SqlPackageAction, additionalArguments: string = ''): IActionInputs {
+    const defaultConnectionConfig = new SqlConnectionConfig('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder');
+
+    switch(actionType) {
+        case ActionType.DacpacAction: {
+            return {
+                actionType: ActionType.DacpacAction,
+                connectionConfig: defaultConnectionConfig,
+                filePath: './TestPackage.dacpac',
+                sqlpackageAction: sqlpackageAction,
+                additionalArguments: additionalArguments
+            } as IDacpacActionInputs;
+        }
+        case ActionType.SqlAction: {
+            return {
+                actionType: ActionType.SqlAction,
+                connectionConfig: defaultConnectionConfig,
+                filePath: './TestFile.sql',
+                additionalArguments: additionalArguments
+            } as IActionInputs;
+        }
+        case ActionType.BuildAndPublish: {
+            return {
+                actionType: ActionType.BuildAndPublish,
+                connectionConfig: defaultConnectionConfig,
+                filePath: './TestProject.sqlproj',
+                buildArguments: '--verbose --test "test value"',
+                sqlpackageAction: sqlpackageAction,
+                additionalArguments: additionalArguments
             } as IBuildAndPublishInputs
         }
     }
