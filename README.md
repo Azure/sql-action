@@ -32,7 +32,7 @@ The definition of this GitHub Action is in [action.yml](https://github.com/Azure
     # optional additional sqlpackage or go-sqlcmd arguments
     arguments:
 
-    # optional additional dotnet build arguments when building a database project file
+    # optional additional dotnet build options when building a database project file
     build-arguments:
 ```
 
@@ -56,8 +56,8 @@ jobs:
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './Database.sqlproj'
         action: 'publish'
-        build-arguments: '-c Release'                 # Optional arguments passed to dotnet build
-        arguments: '/p:DropObjectsNotInSource=true'   # Optional parameters for SqlPackage Publish
+        build-arguments: '-c Release'                 # Optional build options passed to dotnet build
+        arguments: '/p:DropObjectsNotInSource=true'   # Optional properties and parameters for SqlPackage Publish
 ```
 
 ### Deploy SQL scripts to an Azure SQL Database with a temporary firewall rule
@@ -96,7 +96,7 @@ jobs:
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './Database.dacpac'
         action: 'publish'
-        arguments: '/p:DropObjectsNotInSource=true'   # Optional parameters for SqlPackage Publish
+        arguments: '/p:DropObjectsNotInSource=true'   # Optional properties parameters for SqlPackage Publish
 ```
 
 
@@ -105,6 +105,13 @@ jobs:
 ### Authentication
 
 The v1.x version of sql-action supports SQL authentication only in the connection string. Starting in v2, AAD Password, AAD Service Principal, and AAD Default authentications are also supported.
+
+### Arguments
+
+sql-action supports passing arguments to SqlPackage, go-sqlcmd, and dotnet build.
+- **SqlPackage**: SqlPackage publish properties are passed to the SqlPackage utility from the `arguments` property. More information on these properties is available in the [SqlPackage publish](https://docs.microsoft.com/sql/tools/sqlpackage/sqlpackage-publish#properties-specific-to-the-publish-action) documentation. SqlPackage [parameters](https://docs.microsoft.com/sql/tools/sqlpackage/sqlpackage-publish#parameters-for-the-publish-action) that do not impact the source or target setting are also valid, including `/Profile:` for a publish profile, `/DeployReportPath:` for a deployment report, and `/Variables:` to set SQLCMD variable values.
+- **go-sqlcmd**: go-sqlcmd parameters are passed to the go-sqlcmd utility from the `arguments` property. This enables SQLCMD variables `-v` to be passed  to scripts as seen in the [sqlcmd documentation](https://docs.microsoft.com/sql/tools/sqlcmd-utility#syntax).
+- **dotnet build**: dotnet build options are passed to the SQL project build step from the `build-arguments` property. More information on options is available in the [dotnet build documentation](https://docs.microsoft.com/dotnet/core/tools/dotnet-build#options).
 
 ### Environments
 
