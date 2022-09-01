@@ -63,7 +63,7 @@ describe('AzureSqlAction tests', () => {
             const sqlcmdExe = process.platform === 'win32' ? 'sqlcmd.exe' : 'sqlcmd';
     
             const execSpy = jest.spyOn(exec, 'exec').mockResolvedValue(0);
-            const exportVariableSpy = jest.spyOn(core, 'exportVariable');
+            const exportVariableSpy = jest.spyOn(core, 'exportVariable').mockReturnValue();
     
             await action.execute();
     
