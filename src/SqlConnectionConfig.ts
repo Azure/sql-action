@@ -17,8 +17,8 @@ export default class SqlConnectionConfig {
         this._connectionString = connectionString;
         this._connectionConfig = ConnectionPool.parseConnectionString(connectionString);
 
-        this._clientId = core.getInput('client-id');
-        this._tenantId = core.getInput('tenant-id');
+        this._clientId = core.getInput('client-id') || '';
+        this._tenantId = core.getInput('tenant-id') || '';
 
         this._maskSecrets();
         this._setAuthentication();
