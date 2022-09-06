@@ -9,7 +9,7 @@ export interface ConnectionResult {
     success: boolean,
 
     /** Connection error on failure */
-    error?: Error,
+    errorMessage?: string,
 
     /** Client IP address if connection fails due to firewall rule */
     ipAddress?: string
@@ -42,7 +42,7 @@ export default class SqlUtils {
             return result.ipAddress;
         }
         else {
-            throw new Error(`Failed to add firewall rule. Unable to detect client IP Address. ${result.error}`);
+            throw new Error(`Failed to add firewall rule. Unable to detect client IP Address. ${result.errorMessage}`);
         }
     }
 
@@ -58,13 +58,17 @@ export default class SqlUtils {
         if (useMaster) {
             connectionConfig.database = "master";
         }
-
+        
+        let sqlCmdError = '';
         try {
             core.debug(`Validating if client has access to '${connectionConfig.database}' on '${connectionConfig.server}'.`);
             let sqlCmdCall = this.buildSqlCmdCallWithConnectionInfo(config);
             sqlCmdCall += ` -Q "select getdate()"`;
             await exec.exec(sqlCmdCall, [], {
-                silent: true
+                silent: true,
+                listeners: {
+                    stderr: (data: Buffer) => sqlCmdError += data.toString()
+                }
             });
 
             // If we reached here it means connection succeeded
@@ -73,21 +77,22 @@ export default class SqlUtils {
             };
         }
         catch (error) {
+            core.debug(error);
             return {
                 success: false,
-                error: error,
-                ipAddress: this.parseErrorForIpAddress(error)
+                errorMessage: sqlCmdError,
+                ipAddress: this.parseErrorForIpAddress(sqlCmdError)
             };
         }
     }
 
     /**
-     * Parse a ConnectionError to see if its message contains an IP address.
+     * Parse an error message to see if it contains an IP address.
      * Returns the IP address if found, otherwise undefined.
      */
-    private static parseErrorForIpAddress(connectionError: Error): string | undefined {
+    private static parseErrorForIpAddress(errorMessage: string): string | undefined {
         let ipAddress: string | undefined;
-        const ipAddresses = connectionError.toString().match(Constants.ipv4MatchPattern);
+        const ipAddresses = errorMessage.toString().match(Constants.ipv4MatchPattern);
         if (!!ipAddresses) {
             ipAddress = ipAddresses[0];      
         }
