@@ -8,8 +8,8 @@ import Constants from './Constants';
 export default class SqlConnectionConfig {
     private _connectionConfig: config;
     private _connectionString: string;
-    private _clientId: string | undefined;
-    private _tenantId: string | undefined;
+    private _clientId: string;
+    private _tenantId: string;
 
     constructor(connectionString: string) {
         this._validateConnectionString(connectionString);
