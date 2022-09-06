@@ -65,7 +65,7 @@ export default class SqlUtils {
             let sqlCmdCall = this.buildSqlCmdCallWithConnectionInfo(config);
             sqlCmdCall += ` -Q "select getdate()"`;
             await exec.exec(sqlCmdCall, [], {
-                silent: true,
+                // silent: true,
                 listeners: {
                     stderr: (data: Buffer) => sqlCmdError += data.toString()
                 }
@@ -77,7 +77,8 @@ export default class SqlUtils {
             };
         }
         catch (error) {
-            core.debug(error);
+            core.debug(`Sqlcmd process error: ${error.message}`);
+            core.debug(`SqlCmd stderr: ${sqlCmdError}`)
             return {
                 success: false,
                 errorMessage: sqlCmdError,
@@ -92,7 +93,7 @@ export default class SqlUtils {
      */
     private static parseErrorForIpAddress(errorMessage: string): string | undefined {
         let ipAddress: string | undefined;
-        const ipAddresses = errorMessage.toString().match(Constants.ipv4MatchPattern);
+        const ipAddresses = errorMessage.match(Constants.ipv4MatchPattern);
         if (!!ipAddresses) {
             ipAddress = ipAddresses[0];      
         }
