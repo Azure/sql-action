@@ -54,20 +54,23 @@ export default class SqlUtils {
      */
     private static async tryConnection(config: SqlConnectionConfig, useMaster?: boolean): Promise<ConnectionResult> {
         // Clone the connection config so we can change the database without modifying the original
-        const connectionConfig = JSON.parse(JSON.stringify(config.Config)) as mssql.config;
+        const connectionConfig = JSON.parse(JSON.stringify(config)) as SqlConnectionConfig;
         if (useMaster) {
-            connectionConfig.database = "master";
+            connectionConfig.Config.database = "master";
         }
         
         let sqlCmdError = '';
         try {
-            core.debug(`Validating if client has access to '${connectionConfig.database}' on '${connectionConfig.server}'.`);
-            let sqlCmdCall = this.buildSqlCmdCallWithConnectionInfo(config);
+            core.debug(`Validating if client has access to '${connectionConfig.Config.database}' on '${connectionConfig.Config.server}'.`);
+            let sqlCmdCall = this.buildSqlCmdCallWithConnectionInfo(connectionConfig);
             sqlCmdCall += ` -Q "select getdate()"`;
             await exec.exec(sqlCmdCall, [], {
                 // silent: true,
                 listeners: {
-                    stderr: (data: Buffer) => sqlCmdError += data.toString()
+                    stderr: (data: Buffer) => sqlCmdError += data.toString(),
+                    // Some AAD errors come through as regular stdout. For this scenario, we will just append any stdout 
+                    // to the error string since it will only be surfaced if sqlcmd actually fails.
+                    stdout: (data: Buffer) => sqlCmdError += data.toString()
                 }
             });
 
@@ -77,8 +80,8 @@ export default class SqlUtils {
             };
         }
         catch (error) {
-            core.debug(`Sqlcmd process error: ${error.message}`);
-            core.debug(`SqlCmd stderr: ${sqlCmdError}`)
+            core.debug(`${error.message}`);
+            core.debug(`SqlCmd stderr: ${sqlCmdError}`);
             return {
                 success: false,
                 errorMessage: sqlCmdError,
