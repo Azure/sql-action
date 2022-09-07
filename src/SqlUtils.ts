@@ -65,7 +65,7 @@ export default class SqlUtils {
             let sqlCmdCall = this.buildSqlCmdCallWithConnectionInfo(connectionConfig);
             sqlCmdCall += ` -Q "select getdate()"`;
             await exec.exec(sqlCmdCall, [], {
-                // silent: true,
+                silent: true,
                 listeners: {
                     stderr: (data: Buffer) => sqlCmdError += data.toString(),
                     // Some AAD errors come through as regular stdout. For this scenario, we will just append any stdout 
