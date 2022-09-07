@@ -1,6 +1,6 @@
 import * as core from "@actions/core";
 import * as exec from '@actions/exec';
-import * as mssql from "mssql";
+import { config } from "mssql";
 import Constants from "./Constants";
 import SqlConnectionConfig from "./SqlConnectionConfig";
 
@@ -54,7 +54,7 @@ export default class SqlUtils {
      */
     private static async tryConnection(config: SqlConnectionConfig, useMaster?: boolean): Promise<ConnectionResult> {
         // Clone the connection config so we can change the database without modifying the original
-        const connectionConfig = JSON.parse(JSON.stringify(config.Config)) as mssql.config;
+        const connectionConfig = JSON.parse(JSON.stringify(config.Config)) as config;
         if (useMaster) {
             connectionConfig.database = "master";
         }
@@ -108,7 +108,7 @@ export default class SqlUtils {
      * @param connectionConfig The connection settings to be used for this sqlcmd call.
      * @returns A partial sqlcmd command with connection and authentication settings.
      */
-    public static buildSqlCmdCallWithConnectionInfo(connectionConfig: mssql.config): string {
+    public static buildSqlCmdCallWithConnectionInfo(connectionConfig: config): string {
         // sqlcmd should be added to PATH already, we just need to see if need to add ".exe" for Windows
         let sqlCmdPath: string;
         switch (process.platform) {

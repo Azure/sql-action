@@ -8,17 +8,12 @@ import Constants from './Constants';
 export default class SqlConnectionConfig {
     private _connectionConfig: config;
     private _connectionString: string;
-    private _clientId: string;
-    private _tenantId: string;
 
     constructor(connectionString: string) {
         this._validateConnectionString(connectionString);
 
         this._connectionString = connectionString;
         this._connectionConfig = ConnectionPool.parseConnectionString(connectionString);
-
-        this._clientId = core.getInput('client-id') || '';
-        this._tenantId = core.getInput('tenant-id') || '';
 
         this._maskSecrets();
         this._setAuthentication();
@@ -71,14 +66,6 @@ export default class SqlConnectionConfig {
 
         if (this._connectionConfig.password) {
             core.setSecret(this._connectionConfig.password);
-        }
-
-        if (this._clientId) {
-            core.setSecret(this._clientId);
-        }
-
-        if (this._tenantId) {
-            core.setSecret(this._tenantId);
         }
     }
 
@@ -154,19 +141,14 @@ export default class SqlConnectionConfig {
                     "options": {
                       // User and password should have been parsed already  
                       "userName": this._connectionConfig.user,
-                      "password": this._connectionConfig.password,
-                      "clientId": this._clientId,
-                      "tenantId": this._tenantId
+                      "password": this._connectionConfig.password
                     }
                 }
                 break;
             }
             case 'activedirectorydefault': {
                 this._connectionConfig['authentication'] = {
-                    type: 'azure-active-directory-default',
-                    options: {
-                      "clientId": this._clientId
-                    }
+                    type: 'azure-active-directory-default'
                 }
                 break;
             }
@@ -177,8 +159,7 @@ export default class SqlConnectionConfig {
                       // From connection string, client ID == user ID and secret == password
                       // https://docs.microsoft.com/sql/connect/ado-net/sql/azure-active-directory-authentication#using-active-directory-service-principal-authentication
                       "clientId": this._connectionConfig.user,
-                      "clientSecret": this._connectionConfig.password,
-                      "tenantId": this._tenantId
+                      "clientSecret": this._connectionConfig.password
                     }
                 }
                 break;
