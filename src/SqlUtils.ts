@@ -54,14 +54,14 @@ export default class SqlUtils {
      */
     private static async tryConnection(config: SqlConnectionConfig, useMaster?: boolean): Promise<ConnectionResult> {
         // Clone the connection config so we can change the database without modifying the original
-        const connectionConfig = JSON.parse(JSON.stringify(config)) as SqlConnectionConfig;
+        const connectionConfig = JSON.parse(JSON.stringify(config.Config)) as mssql.config;
         if (useMaster) {
-            connectionConfig.Config.database = "master";
+            connectionConfig.database = "master";
         }
         
         let sqlCmdError = '';
         try {
-            core.debug(`Validating if client has access to '${connectionConfig.Config.database}' on '${connectionConfig.Config.server}'.`);
+            core.debug(`Validating if client has access to '${connectionConfig.database}' on '${connectionConfig.server}'.`);
             let sqlCmdCall = this.buildSqlCmdCallWithConnectionInfo(connectionConfig);
             sqlCmdCall += ` -Q "select getdate()"`;
             await exec.exec(sqlCmdCall, [], {
@@ -108,7 +108,7 @@ export default class SqlUtils {
      * @param connectionConfig The connection settings to be used for this sqlcmd call.
      * @returns A partial sqlcmd command with connection and authentication settings.
      */
-    public static buildSqlCmdCallWithConnectionInfo(connectionConfig: SqlConnectionConfig): string {
+    public static buildSqlCmdCallWithConnectionInfo(connectionConfig: mssql.config): string {
         // sqlcmd should be added to PATH already, we just need to see if need to add ".exe" for Windows
         let sqlCmdPath: string;
         switch (process.platform) {
@@ -123,15 +123,15 @@ export default class SqlUtils {
                 throw new Error(`Platform ${process.platform} is not supported.`);
         }
 
-        let sqlcmdCall = `"${sqlCmdPath}" -S ${connectionConfig.Config.server} -d ${connectionConfig.Config.database}`;
+        let sqlcmdCall = `"${sqlCmdPath}" -S ${connectionConfig.server} -d ${connectionConfig.database}`;
 
         // Determine the correct sqlcmd arguments based on the auth type in connectionConfig
-        const authentication = connectionConfig.Config['authentication'];
+        const authentication = connectionConfig['authentication'];
         switch (authentication?.type) {
             case undefined:
                 // No authentication type defaults SQL login
-                sqlcmdCall += ` -U "${connectionConfig.Config.user}"`;
-                core.exportVariable(Constants.sqlcmdPasswordEnvVarName, connectionConfig.Config.password);
+                sqlcmdCall += ` -U "${connectionConfig.user}"`;
+                core.exportVariable(Constants.sqlcmdPasswordEnvVarName, connectionConfig.password);
                 break;
 
             case 'azure-active-directory-default':
@@ -144,7 +144,7 @@ export default class SqlUtils {
                 break;
 
             case 'azure-active-directory-service-principal-secret':
-                sqlcmdCall += ` --authentication-method=ActiveDirectoryServicePrincipal -U "${connectionConfig.Config.user}"`;
+                sqlcmdCall += ` --authentication-method=ActiveDirectoryServicePrincipal -U "${connectionConfig.user}"`;
                 core.exportVariable(Constants.sqlcmdPasswordEnvVarName, authentication.options.clientSecret);
                 break;
 
