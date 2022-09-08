@@ -68,34 +68,8 @@ describe('SqlConnectionConfig tests', () => {
         expect(setSecretSpy).toHaveBeenCalledWith('placeholder');
     });
 
-    it('should mask client id', () => {
-        const setSecretSpy = jest.spyOn(core, 'setSecret');
-        const getInputSpy = jest.spyOn(core, 'getInput').mockImplementation((name, options) => {
-            switch (name) {
-                case 'client-id': return 'testClientId';
-                default: return '';
-            }
-        });
-        new SqlConnectionConfig('User Id=user;Password=placeholder;Server=test1.database.windows.net;Initial Catalog=testDB');
-        expect(getInputSpy).toHaveBeenCalled();
-        expect(setSecretSpy).toHaveBeenCalledWith('testClientId');
-    });
-
-    it('should mask tenant id', () => {
-        const setSecretSpy = jest.spyOn(core, 'setSecret');
-        const getInputSpy = jest.spyOn(core, 'getInput').mockImplementation((name, options) => {
-            switch (name) {
-                case 'tenant-id': return 'testTenantId';
-                default: return '';
-            }
-        });
-        new SqlConnectionConfig('User Id=user;Password=placeholder;Server=test1.database.windows.net;Initial Catalog=testDB');
-        expect(getInputSpy).toHaveBeenCalled();
-        expect(setSecretSpy).toHaveBeenCalledWith('testTenantId');
-    });
-
     describe('parse authentication in connection strings', () => {
-        // For ease of testing, all user/tenant IDs will be 'user' and password/secrets will be 'placeholder'
+        // For ease of testing, all user/client IDs will be 'user' and password/secrets will be 'placeholder'
         const connectionStrings = [
             [`Server=test1.database.windows.net;Database=testdb;Authentication="Active Directory Password";User Id=user;Password="placeholder";`, 'azure-active-directory-password', 'Validates AAD password with double quotes'],
             [`Server=test1.database.windows.net;Database=testdb;Authentication=Active Directory Password;User Id=user;Password="placeholder";`, 'azure-active-directory-password', 'Validates AAD password with no quotes'],
@@ -116,14 +90,15 @@ describe('SqlConnectionConfig tests', () => {
             expect(config.ConnectionString).toMatch(connectionStringInput);
             expect(config.Config['authentication']).toBeDefined();
             expect(config.Config['authentication']!.type).toMatch(expectedAuthType);
-            expect(config.Config['authentication']!.options).toBeDefined();
             switch (expectedAuthType) {
                 case 'azure-active-directory-password': {
+                    expect(config.Config['authentication']!.options).toBeDefined();
                     expect(config.Config['authentication']!.options!.userName).toMatch('user');
                     expect(config.Config['authentication']!.options!.password).toMatch('placeholder');
                     break;
                 }
                 case 'azure-active-directory-service-principal-secret': {
+                    expect(config.Config['authentication']!.options).toBeDefined();
                     expect(config.Config['authentication']!.options!.clientId).toMatch('user');
                     expect(config.Config['authentication']!.options!.clientSecret).toMatch('placeholder');
                     break;
@@ -134,30 +109,5 @@ describe('SqlConnectionConfig tests', () => {
                 }
             }
         });
-    })
-
-    it('should include client and tenant IDs in AAD connection', () => {
-        const clientId = '00000000-0000-0000-0000-000000000000';
-        const tenantId = '11111111-1111-1111-1111-111111111111';
-        const getInputSpy = jest.spyOn(core, 'getInput').mockImplementation((name, options) => {
-            switch (name) {
-                case 'client-id': return clientId;
-                case 'tenant-id': return tenantId;
-                default: return '';
-            }
-        });
-
-        const config = new SqlConnectionConfig(`Server=test1.database.windows.net;Database=testdb;Authentication="Active Directory Password";User Id=user;Password="abcd"`);
-        expect(getInputSpy).toHaveBeenCalledTimes(2);
-        expect(config.Config.server).toMatch('test1.database.windows.net');
-        expect(config.Config.database).toMatch('testdb');
-        expect(config.Config['authentication']).toBeDefined();
-        expect(config.Config['authentication']!.type).toMatch('azure-active-directory-password');
-        expect(config.Config['authentication']!.options).toBeDefined();
-        expect(config.Config['authentication']!.options!.userName).toMatch('user');
-        expect(config.Config['authentication']!.options!.password).toMatch('abcd');
-        expect(config.Config['authentication']!.options!.clientId).toMatch(clientId);
-        expect(config.Config['authentication']!.options!.tenantId).toMatch(tenantId);
     });
-
 })

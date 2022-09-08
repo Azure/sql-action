@@ -53,7 +53,6 @@ jobs:
       uses: ./
       with:
         connection-string: '${{ secrets[matrix.connection_string_secret] }}Initial Catalog=${{ env.TEST_DB }};'
-        tenant-id: '${{ secrets.AAD_TENANT_ID }}'
         path: ./__testdata__/sql-action.dacpac
         action: 'publish'
 
@@ -62,7 +61,6 @@ jobs:
       uses: ./
       with:
         connection-string: '${{ secrets[matrix.connection_string_secret] }}Initial Catalog=${{ env.TEST_DB }};'
-        tenant-id: '${{ secrets.AAD_TENANT_ID }}'
         path: ./__testdata__/TestProject/sql-action.sqlproj
         action: 'publish'
 
@@ -71,7 +69,6 @@ jobs:
       uses: ./
       with:
         connection-string: '${{ secrets[matrix.connection_string_secret] }}Initial Catalog=${{ env.TEST_DB }};'
-        tenant-id: '${{ secrets.AAD_TENANT_ID }}'
         path: ./__testdata__/testsql.sql
 
     # Test that go-sqlcmd has been added to runner, this step will be removed in future PR when go-sqlcmd is hooked up
@@ -87,5 +84,4 @@ jobs:
       uses: ./
       with: 
         connection-string: '${{ secrets[matrix.connection_string_secret] }}Initial Catalog=master;'
-        tenant-id: '${{ secrets.AAD_TENANT_ID }}'
         path: ${{ runner.temp }}/cleanup.sql

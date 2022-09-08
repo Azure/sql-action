@@ -6,6 +6,7 @@ import AzureSqlActionHelper from './AzureSqlActionHelper';
 import DotnetUtils from './DotnetUtils';
 import Constants from './Constants';
 import SqlConnectionConfig from './SqlConnectionConfig';
+import SqlUtils from './SqlUtils';
 
 export enum ActionType {
     DacpacAction,
@@ -83,48 +84,7 @@ export default class AzureSqlAction {
     private async _executeSqlFile(inputs: IActionInputs) {
         core.debug('Begin executing sql script');
 
-        // sqlcmd should be added to PATH already, we just need to see if need to add ".exe" for Windows
-        let sqlCmdPath: string;
-        switch (process.platform) {
-            case "win32": 
-                sqlCmdPath = "sqlcmd.exe";
-                break;
-            case "linux":
-            case "darwin":
-                sqlCmdPath = "sqlcmd";
-                break;
-            default:
-                throw new Error(`Platform ${process.platform} is not supported.`);
-        }
-
-        // Determine the correct sqlcmd arguments based on the auth type in connectionConfig
-        let sqlcmdCall = `"${sqlCmdPath}" -S ${inputs.connectionConfig.Config.server} -d ${inputs.connectionConfig.Config.database}`;
-        const authentication = inputs.connectionConfig.Config['authentication'];
-        switch (authentication?.type) {
-            case undefined:
-                // No authentication type defaults SQL login
-                sqlcmdCall += ` -U "${inputs.connectionConfig.Config.user}"`;
-                core.exportVariable(Constants.sqlcmdPasswordEnvVarName, inputs.connectionConfig.Config.password);
-                break;
-
-            case 'azure-active-directory-default':
-                sqlcmdCall += ` --authentication-method=ActiveDirectoryDefault`;
-                break;
-
-            case 'azure-active-directory-password':
-                sqlcmdCall += ` --authentication-method=ActiveDirectoryPassword -U "${authentication.options.userName}"`;
-                core.exportVariable(Constants.sqlcmdPasswordEnvVarName, authentication.options.password);
-                break;
-
-            case 'azure-active-directory-service-principal-secret':
-                sqlcmdCall += ` --authentication-method=ActiveDirectoryServicePrincipal -U "${inputs.connectionConfig.Config.user}"`;
-                core.exportVariable(Constants.sqlcmdPasswordEnvVarName, authentication.options.clientSecret);
-                break;
-
-            default:
-                throw new Error(`Authentication type ${authentication.type} is not supported.`);
-        }
-
+        let sqlcmdCall = SqlUtils.buildSqlCmdCallWithConnectionInfo(inputs.connectionConfig.Config);
         sqlcmdCall += ` -i "${inputs.filePath}"`;
         if (!!inputs.additionalArguments) {
             sqlcmdCall += ` ${inputs.additionalArguments}`;

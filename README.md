@@ -23,12 +23,6 @@ The definition of this GitHub Action is in [action.yml](https://github.com/Azure
     # sqlpackage action on the .dacpac or .sqlproj file, supported options are: Publish, Script, DeployReport, DriftReport
     action:
 
-    # optional app (client) ID when using Azure Active Directory authentication
-    client-id:
-
-    # optional tenant ID of the Active Directory when using AAD auth and the 'common' tenant isn't available
-    tenant-id:
-
     # optional additional sqlpackage or go-sqlcmd arguments
     arguments:
 

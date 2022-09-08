@@ -1,6 +1,6 @@
 import * as core from "@actions/core";
-import AggregateError from "es-aggregate-error";
-import * as mssql from "mssql";
+import * as exec from '@actions/exec';
+import { config } from "mssql";
 import Constants from "./Constants";
 import SqlConnectionConfig from "./SqlConnectionConfig";
 
@@ -8,11 +8,8 @@ export interface ConnectionResult {
     /** True if connection succeeds, false otherwise */
     success: boolean,
 
-    /** The connection object on success */
-    connection?: mssql.ConnectionPool,
-
     /** Connection error on failure */
-    error?: mssql.ConnectionError,
+    errorMessage?: string,
 
     /** Client IP address if connection fails due to firewall rule */
     ipAddress?: string
@@ -30,7 +27,6 @@ export default class SqlUtils {
         // First try connection to master
         let result = await this.tryConnection(connectionConfig, true);
         if (result.success) {
-            result.connection?.close();
             return '';
         }
         else if (result.ipAddress) {
@@ -40,15 +36,13 @@ export default class SqlUtils {
         // Retry connection with user DB
         result = await this.tryConnection(connectionConfig, false);
         if (result.success) {
-            result.connection?.close();
             return '';
         }
         else if (result.ipAddress) {
             return result.ipAddress;
         }
         else {
-            this.reportMSSQLError(result.error!);
-            throw new Error(`Failed to add firewall rule. Unable to detect client IP Address.`);
+            throw new Error(`Failed to add firewall rule. Unable to detect client IP Address. ${result.errorMessage}`);
         }
     }
 
@@ -60,73 +54,105 @@ export default class SqlUtils {
      */
     private static async tryConnection(config: SqlConnectionConfig, useMaster?: boolean): Promise<ConnectionResult> {
         // Clone the connection config so we can change the database without modifying the original
-        const connectionConfig = JSON.parse(JSON.stringify(config.Config)) as mssql.config;
+        const connectionConfig = JSON.parse(JSON.stringify(config.Config)) as config;
         if (useMaster) {
             connectionConfig.database = "master";
         }
-
+        
+        let sqlCmdError = '';
         try {
             core.debug(`Validating if client has access to '${connectionConfig.database}' on '${connectionConfig.server}'.`);
-            const pool = await mssql.connect(connectionConfig);
+            let sqlCmdCall = this.buildSqlCmdCallWithConnectionInfo(connectionConfig);
+            sqlCmdCall += ` -Q "SELECT 'Validating connection from GitHub SQL Action'"`;
+            await exec.exec(sqlCmdCall, [], {
+                silent: true,
+                listeners: {
+                    stderr: (data: Buffer) => sqlCmdError += data.toString(),
+                    // Some AAD errors come through as regular stdout. For this scenario, we will just append any stdout 
+                    // to the error string since it will only be surfaced if sqlcmd actually fails.
+                    stdout: (data: Buffer) => sqlCmdError += data.toString()
+                }
+            });
+
+            // If we reached here it means connection succeeded
             return {
-                success: true,
-                connection: pool
+                success: true
             };
-        } 
+        }
         catch (error) {
-            if (error instanceof mssql.ConnectionError) {
-                return {
-                    success: false,
-                    error: error,
-                    ipAddress: this.parseErrorForIpAddress(error)
-                };
-            }
-            else {
-                throw error;            // Unknown error
-            }
+            core.debug(`${error.message}`);
+            core.debug(`SqlCmd stderr: ${sqlCmdError}`);
+            return {
+                success: false,
+                errorMessage: sqlCmdError,
+                ipAddress: this.parseErrorForIpAddress(sqlCmdError)
+            };
         }
     }
 
     /**
-     * Parse a ConnectionError to see if its message contains an IP address.
+     * Parse an error message to see if it contains an IP address.
      * Returns the IP address if found, otherwise undefined.
      */
-    private static parseErrorForIpAddress(connectionError: mssql.ConnectionError): string | undefined {
+    private static parseErrorForIpAddress(errorMessage: string): string | undefined {
         let ipAddress: string | undefined;
-
-        if (connectionError.originalError instanceof AggregateError) {
-            // The IP address error can be anywhere inside the AggregateError
-            for (const err of connectionError.originalError.errors) {
-                core.debug(err.message);
-                const ipAddresses = err.message.match(Constants.ipv4MatchPattern);
-                if (!!ipAddresses) {
-                    ipAddress = ipAddresses[0];
-                    break;
-                }
-            }
+        const ipAddresses = errorMessage.match(Constants.ipv4MatchPattern);
+        if (!!ipAddresses) {
+            ipAddress = ipAddresses[0];      
         }
-        else {
-            core.debug(connectionError.originalError!.message);
-            const ipAddresses = connectionError.originalError!.message.match(Constants.ipv4MatchPattern);
-            if (!!ipAddresses) {
-                ipAddress = ipAddresses[0];
-            }
-        }
-
         return ipAddress;
     }
 
     /**
-     * Outputs the contents of a MSSQLError to the Github Action console.
-     * MSSQLError may contain a single error or an AggregateError.
+     * Builds the beginning of a sqlcmd command populated with the connection settings.
+     * @param connectionConfig The connection settings to be used for this sqlcmd call.
+     * @returns A partial sqlcmd command with connection and authentication settings.
      */
-    public static async reportMSSQLError(error: mssql.MSSQLError) {
-        if (error.originalError instanceof AggregateError) {
-            error.originalError.errors.map(e => core.error(e.message));
+    public static buildSqlCmdCallWithConnectionInfo(connectionConfig: config): string {
+        // sqlcmd should be added to PATH already, we just need to see if need to add ".exe" for Windows
+        let sqlCmdPath: string;
+        switch (process.platform) {
+            case "win32": 
+                sqlCmdPath = "sqlcmd.exe";
+                break;
+            case "linux":
+            case "darwin":
+                sqlCmdPath = "sqlcmd";
+                break;
+            default:
+                throw new Error(`Platform ${process.platform} is not supported.`);
         }
-        else {
-            core.error(error.originalError!.message);
+
+        let sqlcmdCall = `"${sqlCmdPath}" -S ${connectionConfig.server} -d ${connectionConfig.database}`;
+
+        // Determine the correct sqlcmd arguments based on the auth type in connectionConfig
+        const authentication = connectionConfig['authentication'];
+        switch (authentication?.type) {
+            case undefined:
+                // No authentication type defaults SQL login
+                sqlcmdCall += ` -U "${connectionConfig.user}"`;
+                core.exportVariable(Constants.sqlcmdPasswordEnvVarName, connectionConfig.password);
+                break;
+
+            case 'azure-active-directory-default':
+                sqlcmdCall += ` --authentication-method=ActiveDirectoryDefault`;
+                break;
+
+            case 'azure-active-directory-password':
+                sqlcmdCall += ` --authentication-method=ActiveDirectoryPassword -U "${authentication.options.userName}"`;
+                core.exportVariable(Constants.sqlcmdPasswordEnvVarName, authentication.options.password);
+                break;
+
+            case 'azure-active-directory-service-principal-secret':
+                sqlcmdCall += ` --authentication-method=ActiveDirectoryServicePrincipal -U "${connectionConfig.user}"`;
+                core.exportVariable(Constants.sqlcmdPasswordEnvVarName, authentication.options.clientSecret);
+                break;
+
+            default:
+                throw new Error(`Authentication type ${authentication.type} is not supported.`);
         }
+
+        return sqlcmdCall;
     }
 
 }
