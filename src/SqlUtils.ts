@@ -63,7 +63,7 @@ export default class SqlUtils {
         try {
             core.debug(`Validating if client has access to '${connectionConfig.database}' on '${connectionConfig.server}'.`);
             let sqlCmdCall = this.buildSqlCmdCallWithConnectionInfo(connectionConfig);
-            sqlCmdCall += ` -Q "select getdate()"`;
+            sqlCmdCall += ` -Q "SELECT 'Validating connection from GitHub SQL Action'"`;
             await exec.exec(sqlCmdCall, [], {
                 silent: true,
                 listeners: {
