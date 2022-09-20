@@ -24,7 +24,6 @@
     "@actions/exec": "^1.0.1",
     "azure-actions-webclient": "^1.0.3",
     "glob": "^7.1.4",
-    "typed-rest-client": "^1.5.0",
     "winreg": "^1.2.4"
   },
   "devDependencies": {
