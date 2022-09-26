@@ -109,7 +109,7 @@ The following rules are to be followed while passing special characters in value
 4. If the value contains both single-quote and double-quote characters, the quotation mark character used to enclose the value must be doubled every time it occurs within the value.
         
 
-For more information about connection strings, see https://aka.ms/sqlconnectionstrings
+For more information about connection strings, see https://aka.ms/sqlconnectionstring
 
 ### Arguments
 
