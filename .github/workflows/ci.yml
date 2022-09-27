@@ -1,7 +1,4 @@
-on:
-  pull_request:
-    branches:
-      - master
+on: push
 
 jobs:
   build_test_job:
