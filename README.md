@@ -96,9 +96,20 @@ jobs:
 
 ## 📓 User Guide
 
-### Authentication
+### Authentication and Connection String
 
 The v1.x version of sql-action supports SQL authentication only in the connection string. Starting in v2, AAD Password, AAD Service Principal, and AAD Default authentications are also supported.
+
+The basic format of a connection string includes a series of keyword/value pairs separated by semicolons. The equal sign (=) connects each keyword and its value. (Ex: Key1=Val1;Key2=Val2)  An example connection string template is: `Server=<servername>; User ID=<user_id>; Password=<password>; Initial Catalog=<database>`.
+
+The following rules are to be followed while passing special characters in values:
+1. To include values that contain a semicolon, single-quote character, or double-quote character, the value must be enclosed in double quotation marks. 
+2. If the value contains both a semicolon and a double-quote character, the value can be enclosed in single quotation marks. 
+3. The single quotation mark is also useful if the value starts with a double-quote character. Conversely, the double quotation mark can be used if the value starts with a single quotation mark. 
+4. If the value contains both single-quote and double-quote characters, the quotation mark character used to enclose the value must be doubled every time it occurs within the value.
+        
+
+For more information about connection strings, see https://aka.ms/sqlconnectionstring
 
 ### Arguments
 
