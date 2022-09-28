@@ -17,8 +17,18 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest]
+        auth_type: [sql_login, aad_password, service_principal] # Unique for each parallel job run, part of TEST_DB name to ensure no collisions from parallel jobs
+        include:
+          # Includes the connection string Github secret name, effectively a switch statement on auth_type
+          - auth_type: sql_login
+            connection_string_secret: AZURE_SQL_CONNECTION_STRING_NO_DATABASE
+          - auth_type: aad_password
+            connection_string_secret: AAD_PASSWORD_CONNECTION_STRING_NO_DATABASE
+          - auth_type: service_principal
+            connection_string_secret: SERVICE_PRINCIPAL_CONNECTION_STRING_NO_DATABASE
+
     env:
-      TEST_DB: 'SqlActionTest-${{ matrix.os }}'
+      TEST_DB: 'SqlActionTest-${{ matrix.os }}-${{ matrix.auth_type }}'
 
     steps:
     - name: Checkout from PR branch
@@ -42,26 +52,36 @@ jobs:
     - name: Test DACPAC Action
       uses: ./
       with:
-        connection-string: '${{ secrets.AZURE_SQL_CONNECTION_STRING_NO_DATABASE }}Initial Catalog=${{ env.TEST_DB }};'
-        dacpac-package: ./__testdata__/sql-action.dacpac
+        connection-string: '${{ secrets[matrix.connection_string_secret] }}Initial Catalog=${{ env.TEST_DB }};'
+        path: ./__testdata__/sql-action.dacpac
+        action: 'publish'
 
     # Build and publish sqlproj that should create a new view
     - name: Test Build and Publish
       uses: ./
       with:
-        connection-string: '${{ secrets.AZURE_SQL_CONNECTION_STRING_NO_DATABASE }}Initial Catalog=${{ env.TEST_DB }};'
-        project-file: ./__testdata__/TestProject/sql-action.sqlproj
+        connection-string: '${{ secrets[matrix.connection_string_secret] }}Initial Catalog=${{ env.TEST_DB }};'
+        path: ./__testdata__/TestProject/sql-action.sqlproj
+        action: 'publish'
 
-    # Execute testsql.sql via SQLCMD on server
+    # Execute testsql.sql via script action on server
     - name: Test SQL Action
       uses: ./
       with:
-        connection-string: '${{ secrets.AZURE_SQL_CONNECTION_STRING_NO_DATABASE }}Initial Catalog=${{ env.TEST_DB }};'
-        sql-file: ./__testdata__/testsql.sql
+        connection-string: '${{ secrets[matrix.connection_string_secret] }}Initial Catalog=${{ env.TEST_DB }};'
+        path: ./__testdata__/testsql.sql
+
+    # Test that go-sqlcmd has been added to runner, this step will be removed in future PR when go-sqlcmd is hooked up
+    - name: Test go-sqlcmd is setup
+      run: sqlcmd -?
+
+    - name: Set database name for cleanup
+      if: always()
+      run: sed 's/$(DbName)/${{ env.TEST_DB }}/' ./__testdata__/cleanup.sql > ${{ runner.temp }}/cleanup.sql
 
     - name: Cleanup Test Database
+      if: always()
       uses: ./
       with: 
-        connection-string: '${{ secrets.AZURE_SQL_CONNECTION_STRING_NO_DATABASE }}Initial Catalog=master;'
-        sql-file: ./__testdata__/cleanup.sql
-        arguments: '-v DbName="${{ env.TEST_DB }}"'
+        connection-string: '${{ secrets[matrix.connection_string_secret] }}Initial Catalog=master;'
+        path: ${{ runner.temp }}/cleanup.sql

@@ -11,23 +11,23 @@ Get started today with a [free Azure account](https://azure.com/free/open-source
 The definition of this GitHub Action is in [action.yml](https://github.com/Azure/sql-action/blob/master/action.yml).  Learn more in the [user guide](#📓-user-guide).
 
 ```yaml
-- uses: azure/sql-action@v1.3
+- uses: azure/sql-action@v2
   with:
-    connection-string: # required, connection string incl the database and user authentication information
+    # required, connection string incl the database and user authentication information
+    connection-string:
 
-    # optional for SQL project deployment - project-file, build-arguments
-    project-file: # path to a .sqlproj file
-    build-arguments: # additional arguments applied to dotnet build when building the .sqlproj to .dacpac
+    # required, path to either a .sql, .dacpac, or .sqlproj file
+    path:
 
-    # optional for dacpac deployment - dacpac-package
-    dacpac-package: # path to a .dacpac file
+    # optional when using a .sql script, required otherwise
+    # sqlpackage action on the .dacpac or .sqlproj file, supported options are: Publish, Script, DeployReport, DriftReport
+    action:
 
-    # optional for SQL scripts deployment - sql-file
-    sql-file: # path to SQL scripts
+    # optional additional sqlpackage or go-sqlcmd arguments
+    arguments:
 
-
-    # optional for all deployments - arguments
-    arguments: # sqlpackage arguments for .sqlproj or .dacpac deployment or sqlcmd arguments for SQL script deployment
+    # optional additional dotnet build options when building a database project file
+    build-arguments:
 ```
 
 ## 🎨 Samples
@@ -45,12 +45,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - uses: azure/sql-action@v1.3
+    - uses: azure/sql-action@v2
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
-        project-file: './Database.sqlproj'
-        build-arguments: '-c Release'                 # Optional arguments passed to dotnet build
-        arguments: '/p:DropObjectsNotInSource=true'   # Optional parameters for SqlPackage Publish
+        path: './Database.sqlproj'
+        action: 'publish'
+        build-arguments: '-c Release'                 # Optional build options passed to dotnet build
+        arguments: '/p:DropObjectsNotInSource=true'   # Optional properties and parameters for SqlPackage Publish
 ```
 
 ### Deploy SQL scripts to an Azure SQL Database with a temporary firewall rule
@@ -67,10 +68,10 @@ jobs:
     - uses: azure/login@v1                            # Azure login required to add a temporary firewall rule
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
-    - uses: azure/sql-action@v1.3
+    - uses: azure/sql-action@v2
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
-        sql-file: './sqlscripts/*.sql'
+        path: './sqlscripts/*.sql'
 ```
 
 ### Deploy a DACPAC to an Azure SQL database with Allow Azure Services access enabled
@@ -84,27 +85,43 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
-    - uses: azure/sql-action@v1.3
+    - uses: azure/sql-action@v2
       with:
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
-        dacpac-package: './Database.dacpac'
-        arguments: '/p:DropObjectsNotInSource=true'   # Optional parameters for SqlPackage Publish
+        path: './Database.dacpac'
+        action: 'publish'
+        arguments: '/p:DropObjectsNotInSource=true'   # Optional properties parameters for SqlPackage Publish
 ```
 
 
 ## 📓 User Guide
 
-### Authentication
+### Authentication and Connection String
 
-The v1.x version of sql-action supports SQL authentication only in the connection string.
+The v1.x version of sql-action supports SQL authentication only in the connection string. Starting in v2, AAD Password, AAD Service Principal, and AAD Default authentications are also supported.
 
-The `server-name` action YAML key is optional and is only available to provide backward compatibility. It is strongly recommended to put the server name in the connection string as displayed in the examples. The connection string uses this template: `Server=<servername>; User ID=<user_id>; Password=<password>; Initial Catalog=<database>`. In case the server name is put both in the `server-name` and in the `connection-string`, the server name used will be the one specified in the `server-name` YAML key.
+The basic format of a connection string includes a series of keyword/value pairs separated by semicolons. The equal sign (=) connects each keyword and its value. (Ex: Key1=Val1;Key2=Val2)  An example connection string template is: `Server=<servername>; User ID=<user_id>; Password=<password>; Initial Catalog=<database>`.
+
+The following rules are to be followed while passing special characters in values:
+1. To include values that contain a semicolon, single-quote character, or double-quote character, the value must be enclosed in double quotation marks. 
+2. If the value contains both a semicolon and a double-quote character, the value can be enclosed in single quotation marks. 
+3. The single quotation mark is also useful if the value starts with a double-quote character. Conversely, the double quotation mark can be used if the value starts with a single quotation mark. 
+4. If the value contains both single-quote and double-quote characters, the quotation mark character used to enclose the value must be doubled every time it occurs within the value.
+        
+
+For more information about connection strings, see https://aka.ms/sqlconnectionstring
+
+### Arguments
+
+sql-action supports passing arguments to SqlPackage, go-sqlcmd, and dotnet build.
+- **SqlPackage**: SqlPackage publish properties are passed to the SqlPackage utility from the `arguments` property. More information on these properties is available in the [SqlPackage publish](https://docs.microsoft.com/sql/tools/sqlpackage/sqlpackage-publish#properties-specific-to-the-publish-action) documentation. SqlPackage [parameters](https://docs.microsoft.com/sql/tools/sqlpackage/sqlpackage-publish#parameters-for-the-publish-action) that do not impact the source or target setting are also valid, including `/Profile:` for a publish profile, `/DeployReportPath:` for a deployment report, and `/Variables:` to set SQLCMD variable values.
+- **go-sqlcmd**: go-sqlcmd parameters are passed to the go-sqlcmd utility from the `arguments` property. This enables SQLCMD variables `-v` to be passed  to scripts as seen in the [sqlcmd documentation](https://docs.microsoft.com/sql/tools/sqlcmd-utility#syntax).
+- **dotnet build**: dotnet build options are passed to the SQL project build step from the `build-arguments` property. More information on options is available in the [dotnet build documentation](https://docs.microsoft.com/dotnet/core/tools/dotnet-build#options).
 
 ### Environments
 
 sql-action is supported on both Windows and Linux environments.  The [default images](https://github.com/actions/virtual-environments) include the prerequisites:
 
-- sqlcmd
 - sqlpackage (for sqlproj or dacpac deployment)
 - dotnet (for sqlproj build)
 
@@ -166,10 +183,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - uses: azure/sql-action@v1.3
+    - uses: azure/sql-action@v2
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
-        project-file: './Database.sqlproj'
+        path: './Database.sqlproj'
+        action: 'publish'
 ```
 3. Place the connection string from the Azure Portal in GitHub secrets as `AZURE_SQL_CONNECTION_STRING`. Connection string format is: `Server=<server.database.windows.net>;User ID=<user>;Password=<password>;Initial Catalog=<database>`.
 4. Copy the below SQL project template and paste the content in your project repository as `Database.sqlproj`.
@@ -218,10 +236,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - uses: azure/sql-action@v1.3
+    - uses: azure/sql-action@v2
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
-        dacpac-package: './PreviousDatabase.dacpac'
+        path: './PreviousDatabase.dacpac'
+        action: 'publish'
 ```
 4. Place the connection string from the Azure Portal in GitHub secrets as `AZURE_SQL_CONNECTION_STRING`. Connection string format is: `Server=<server.database.windows.net>;User ID=<user>;Password=<password>;Initial Catalog=<database>`.
 5. Commit and push your project to GitHub repository, you should see a new GitHub Action initiated in **Actions** tab.

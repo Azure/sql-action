@@ -4,6 +4,7 @@ import * as path from "path";
 import * as fs from 'fs';
 import * as glob from 'glob';
 import winreg from 'winreg';
+import { SqlPackageAction } from './AzureSqlAction';
 
 const IS_WINDOWS = process.platform === 'win32';
 const IS_LINUX = process.platform === 'linux';
@@ -27,25 +28,6 @@ export default class AzureSqlActionHelper {
         }
 
         return this._sqlPackagePath;
-    }
-
-    public static async getSqlCmdPath(): Promise<string> {
-        if (!!this._sqlCmdPath) {
-            core.debug(`Return the cached path of SqlCmd executable: ${this._sqlCmdPath}`);
-            return this._sqlCmdPath;
-        }
-
-        if (IS_WINDOWS) {
-            this._sqlCmdPath = await this._getSqlCmdExecutablePath();
-        }
-        else if (IS_LINUX) {
-            this._sqlCmdPath = this._getSqlCmdBinaryPathLinux();
-        }
-        else {
-            this._sqlCmdPath = this._getSqlCmdBinaryPathMac();
-        }
-
-        return this._sqlCmdPath;
     }
 
     public static getRegistrySubKeys(path: string): Promise<winreg.Registry[]> {
@@ -105,6 +87,32 @@ export default class AzureSqlActionHelper {
         }
         
         return filePath;
+    }
+
+    public static getSqlpackageActionTypeFromString(action: string): SqlPackageAction {
+        // Default to Publish if not specified
+        if (!action) {
+            return SqlPackageAction.Publish;
+        }
+
+        switch (action.trim().toLowerCase()) {
+            case 'publish':
+                return SqlPackageAction.Publish;
+            // case 'extract':
+            //     return SqlPackageAction.Extract;
+            // case 'import':
+            //     return SqlPackageAction.Import;
+            // case 'export':
+            //     return SqlPackageAction.Export;
+            case 'driftreport':
+                return SqlPackageAction.DriftReport;
+            case 'deployreport':
+                return SqlPackageAction.DeployReport;
+            case 'script':
+                return SqlPackageAction.Script;
+            default:
+                throw new Error(`Action ${action} is invalid. Supported action types are: Publish, Script, DriftReport, or DeployReport.`);
+        }
     }
 
     /**
@@ -314,64 +322,13 @@ export default class AzureSqlActionHelper {
         );
     }
 
-    private static async _getSqlCmdExecutablePath(): Promise<string>{
-        core.debug('Getting location of sqlcmd.exe');
-
-        let sqlServerRegistryKey64 = path.join('\\', 'SOFTWARE', 'Microsoft', 'Microsoft SQL Server'); 
-        if (!(await AzureSqlActionHelper.registryKeyExists(sqlServerRegistryKey64))) {
-            throw new Error('Unable to find the location for SqlCmd.exe from registry');
-        }
-
-        let subKeys = await AzureSqlActionHelper.getRegistrySubKeys(sqlServerRegistryKey64); 
-        let sqlServerRegistryKeys = this._getVersionsRegistryKeys(subKeys);
-
-        for(let registryKey of sqlServerRegistryKeys) {
-            
-            let clientSetupToolsRegistryKeyPath = path.join(registryKey.key, 'Tools', 'ClientSetup');
-
-            if (await AzureSqlActionHelper.registryKeyExists(clientSetupToolsRegistryKeyPath)) {
-                let toolsPath = await AzureSqlActionHelper.getRegistryValue(new winreg ({
-                    hive: winreg.HKLM,
-                    key: clientSetupToolsRegistryKeyPath
-                }), 'ODBCToolsPath');
-
-                if (!toolsPath) {
-                    // for older versions
-                    await AzureSqlActionHelper.getRegistryValue(new winreg ({
-                        hive: winreg.HKLM,
-                        key: clientSetupToolsRegistryKeyPath
-                    }), 'Path');
-                }
-
-                if (!!toolsPath) {
-                    let sqlCmdPath = path.join(toolsPath, 'SQLCMD.exe');
-                    if (fs.existsSync(sqlCmdPath)) {
-                        core.debug(`SqlCmd.exe found at location: ${sqlCmdPath}`);
-                        return sqlCmdPath;
-                    }
-                }
-            }
-        }
-
-        throw new Error('Unable to find location of sqlcmd.exe');
-    }
-
     private static _getSqlPackageBinaryPathLinux(): string {
         return 'sqlpackage';
-    }
-
-    private static _getSqlCmdBinaryPathLinux(): string {
-        return 'sqlcmd';
     }
 
     private static _getSqlPackageBinaryPathMac(): string {
         throw new Error('This action is not supported on a Mac environment.');
     }
 
-    private static _getSqlCmdBinaryPathMac(): string {
-        throw new Error('This action is not supported on a Mac environment.');
-    }
-
     private static _sqlPackagePath = '';
-    private static _sqlCmdPath = '';
 }

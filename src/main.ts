@@ -3,32 +3,31 @@ import * as crypto from "crypto";
 import * as path from 'path';
 import { AuthorizerFactory } from "azure-actions-webclient/AuthorizerFactory";
 
-import AzureSqlAction, { IActionInputs, ISqlActionInputs, IDacpacActionInputs, IBuildAndPublishInputs, ActionType, SqlPackageAction } from "./AzureSqlAction";
-import AzureSqlResourceManager from './AzureSqlResourceManager'
+import AzureSqlAction, { IActionInputs, IDacpacActionInputs, IBuildAndPublishInputs, ActionType, SqlPackageAction } from "./AzureSqlAction";
+import AzureSqlResourceManager from './AzureSqlResourceManager';
 import FirewallManager from "./FirewallManager";
 import AzureSqlActionHelper from "./AzureSqlActionHelper";
-import SqlConnectionStringBuilder from "./SqlConnectionStringBuilder";
+import SqlConnectionConfig from "./SqlConnectionConfig";
 import SqlUtils from "./SqlUtils";
 import Constants from "./Constants";
+import Setup from "./Setup";
 
-let userAgentPrefix = !!process.env.AZURE_HTTP_USER_AGENT ? `${process.env.AZURE_HTTP_USER_AGENT}` : "";
+const userAgentPrefix = !!process.env.AZURE_HTTP_USER_AGENT ? `${process.env.AZURE_HTTP_USER_AGENT}` : "";
 
 export default async function run() {
+    await Setup.setupSqlcmd();
+
     let firewallManager;
     try {
-        // Set user agent variable
-        let usrAgentRepo = crypto.createHash('sha256').update(`${process.env.GITHUB_REPOSITORY}`).digest('hex');
-        let actionName = 'AzureSqlAction';
-        let userAgentString = (!!userAgentPrefix ? `${userAgentPrefix}+` : '') + `GITHUBACTIONS_${actionName}_${usrAgentRepo}`;
-        core.exportVariable('AZURE_HTTP_USER_AGENT', userAgentString);
+        setUserAgentVariable();
         
-        let inputs = getInputs();
-        let azureSqlAction = new AzureSqlAction(inputs);
+        const inputs = getInputs();
+        const azureSqlAction = new AzureSqlAction(inputs);
         
-        const runnerIPAddress = await SqlUtils.detectIPAddress(inputs.serverName, inputs.connectionString);
+        const runnerIPAddress = await SqlUtils.detectIPAddress(inputs.connectionConfig);
         if (runnerIPAddress) {
             let azureResourceAuthorizer = await AuthorizerFactory.getAuthorizer();
-            let azureSqlResourceManager = await AzureSqlResourceManager.getResourceManager(inputs.serverName, azureResourceAuthorizer);
+            let azureSqlResourceManager = await AzureSqlResourceManager.getResourceManager(inputs.connectionConfig.Config.server, azureResourceAuthorizer);
             firewallManager = new FirewallManager(azureSqlResourceManager);
             await firewallManager.addFirewallRule(runnerIPAddress);
         }
@@ -47,81 +46,65 @@ export default async function run() {
     }
 }
 
+function setUserAgentVariable(): void {
+    const usrAgentRepo = crypto.createHash('sha256').update(`${process.env.GITHUB_REPOSITORY}`).digest('hex');
+    const actionName = 'AzureSqlAction';
+    const userAgentString = (!!userAgentPrefix ? `${userAgentPrefix}+` : '') + `GITHUBACTIONS_${actionName}_${usrAgentRepo}`;
+    core.exportVariable('AZURE_HTTP_USER_AGENT', userAgentString);
+}
+
 function getInputs(): IActionInputs {
     core.debug('Get action inputs.');
 
-    let connectionString = core.getInput('connection-string', { required: true });
-    let connectionStringBuilder = new SqlConnectionStringBuilder(connectionString);
-    
-    let serverName = core.getInput('server-name', { required: false });
-    if ((!!serverName && !!connectionStringBuilder.server) && (serverName != connectionStringBuilder.server)) 
-        core.debug("'server-name' is conflicting with 'server' property specified in the connection string. 'server-name' will take precedence.");
-    
-    // if serverName has not been specified, use the server name from the connection string
-    if (!serverName) serverName = connectionStringBuilder.server;    
+    const connectionString = core.getInput('connection-string', { required: true });
+    const connectionConfig = new SqlConnectionConfig(connectionString);
 
-    let additionalArguments = core.getInput('arguments');
+    let filePath = core.getInput('path', { required: true });
+    filePath = AzureSqlActionHelper.resolveFilePath(filePath);
 
-    let dacpacPackage = core.getInput('dacpac-package');
-    if (!!dacpacPackage) {
-        dacpacPackage = AzureSqlActionHelper.resolveFilePath(dacpacPackage);
-        if (path.extname(dacpacPackage).toLowerCase() !== Constants.dacpacExtension) {
-            throw new Error(`Invalid dacpac file path provided as input ${dacpacPackage}`);
-        }
+    // Optional inputs
+    const action = core.getInput('action');
 
-        if (!serverName) {
-            throw new Error(`Missing server name or address in the configuration.`);
-        }
-    
-        return {
-            serverName: serverName,
-            connectionString: connectionStringBuilder,
-            dacpacPackage: dacpacPackage,
-            sqlpackageAction: SqlPackageAction.Publish,
-            actionType: ActionType.DacpacAction,
-            additionalArguments: additionalArguments
-        } as IDacpacActionInputs;
+    switch (path.extname(filePath).toLowerCase()) {
+        case Constants.sqlFileExtension:
+            return {
+                actionType: ActionType.SqlAction,
+                connectionConfig: connectionConfig,
+                filePath: filePath
+            };
+
+        case Constants.dacpacExtension:
+            if (!action) {
+                throw new Error('The action input must be specified when using a .dacpac file.');
+            }
+
+            return {
+                actionType: ActionType.DacpacAction,
+                connectionConfig: connectionConfig,
+                filePath: filePath,
+                sqlpackageAction: AzureSqlActionHelper.getSqlpackageActionTypeFromString(action),
+                additionalArguments: core.getInput('arguments') || undefined
+            } as IDacpacActionInputs;
+
+        case Constants.sqlprojExtension:
+            if (!action) {
+                throw new Error('The action input must be specified when using a .sqlproj file.');
+            }
+
+            return {
+                actionType: ActionType.BuildAndPublish,
+                connectionConfig: connectionConfig,
+                filePath: filePath,
+                buildArguments: core.getInput('build-arguments') || undefined,
+                sqlpackageAction: AzureSqlActionHelper.getSqlpackageActionTypeFromString(action),
+                additionalArguments: core.getInput('arguments') || undefined
+            } as IBuildAndPublishInputs;
+
+            break;
+
+        default:
+            throw new Error(`Invalid file type provided as input ${filePath}. File must be a .sql, .dacpac, or .sqlproj file.`)
     }
-
-    let sqlFilePath = core.getInput('sql-file');
-    if (!!sqlFilePath) {
-        sqlFilePath = AzureSqlActionHelper.resolveFilePath(sqlFilePath);
-        if (path.extname(sqlFilePath).toLowerCase() !== '.sql') {
-            throw new Error(`Invalid sql file path provided as input ${sqlFilePath}`);
-        }
-
-        if (!serverName) {
-            throw new Error(`Missing server name or address in the configuration.`);
-        }
-
-        return {
-            serverName: serverName,
-            connectionString: connectionStringBuilder,
-            sqlFile: sqlFilePath,
-            actionType: ActionType.SqlAction,
-            additionalArguments: additionalArguments
-        } as ISqlActionInputs;
-    }
-
-    let sqlProjPath = core.getInput('project-file');
-    if (!!sqlProjPath) {
-        sqlProjPath = AzureSqlActionHelper.resolveFilePath(sqlProjPath);
-        if (path.extname(sqlProjPath).toLowerCase() !== Constants.sqlprojExtension) {
-            throw new Error(`Invalid database project file path provided as input ${sqlProjPath}`);
-        }
-
-        const buildArguments = core.getInput('build-arguments');
-        return {
-            serverName: serverName,
-            connectionString: connectionStringBuilder,
-            actionType: ActionType.BuildAndPublish,
-            additionalArguments: additionalArguments,
-            projectFile: sqlProjPath,
-            buildArguments: buildArguments
-        } as IBuildAndPublishInputs;
-    }
-  
-    throw new Error('Required SQL file, DACPAC package, or database project file to execute action.');
 }
 
 run();

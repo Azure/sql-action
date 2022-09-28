@@ -1,38 +1,77 @@
-import * as exec from '@actions/exec';
+import * as exec from "@actions/exec";
 import SqlUtils from "../src/SqlUtils";
-import AzureSqlActionHelper from "../src/AzureSqlActionHelper";
-import SqlConnectionStringBuilder from '../src/SqlConnectionStringBuilder';
+import SqlConnectionConfig from '../src/SqlConnectionConfig';
 
 describe('SqlUtils tests', () => {
+    afterEach(() => {
+       jest.restoreAllMocks();
+    });
+
     it('detectIPAddress should return ipaddress', async () => {
-        let getSqlCmdPathSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlCmdPath').mockResolvedValue('SqlCmd.exe');
-        let execSpy = jest.spyOn(exec, 'exec').mockImplementation((_commandLine, _args, options) => {
+        const execSpy = jest.spyOn(exec, 'exec').mockImplementation((_commandLine, _args, options) => {
             let sqlClientError = `Client with IP address '1.2.3.4' is not allowed to access the server.`;
             options!.listeners!.stderr!(Buffer.from(sqlClientError));
             return Promise.reject(1);
-        }); 
-        let ipAddress = await SqlUtils.detectIPAddress('serverName', new SqlConnectionStringBuilder('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder'));
+        });
+        const ipAddress = await SqlUtils.detectIPAddress(getConnectionConfig());
 
-        expect(getSqlCmdPathSpy).toHaveBeenCalledTimes(1);
         expect(execSpy).toHaveBeenCalledTimes(1);
         expect(ipAddress).toBe('1.2.3.4');
     });
 
     it('detectIPAddress should return empty', async () => {
-        let getSqlCmdSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlCmdPath').mockResolvedValue('SqlCmd.exe');
-        let execSpy = jest.spyOn(exec, 'exec').mockResolvedValue(0);
-        let ipAddress = await SqlUtils.detectIPAddress('serverName', new SqlConnectionStringBuilder('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder'));
+        const execSpy = jest.spyOn(exec, 'exec').mockResolvedValue(0);
+        const ipAddress = await SqlUtils.detectIPAddress(getConnectionConfig());
 
-        expect(getSqlCmdSpy).toHaveBeenCalledTimes(1);
         expect(execSpy).toHaveBeenCalledTimes(1);
         expect(ipAddress).toBe('');
     });
 
-    it('detectIPAddress should throw error', () => {
-        let getSqlCmdSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlCmdPath').mockResolvedValue('SqlCmd.exe')
+    it('detectIPAddress should throw error', async () => {
+        const execSpy = jest.spyOn(exec, 'exec').mockRejectedValue(1);
+        let error: Error | undefined;
+        try {
+            await SqlUtils.detectIPAddress(getConnectionConfig());
+        }
+        catch (e) {
+            error = e;
+        }
 
-        expect(SqlUtils.detectIPAddress('serverName', new SqlConnectionStringBuilder('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder'))).rejects;
-        expect(getSqlCmdSpy).toHaveBeenCalledTimes(1);
+        expect(error).toBeDefined();
+        expect(error!.message).toMatch('Failed to add firewall rule. Unable to detect client IP Address.');
+        expect(execSpy).toHaveBeenCalledTimes(2);
     });
 
+    it('detectIPAddress should retry connection with DB if master connection fails', async () => {
+        // Mock failure on first call and success on subsequent
+        const execSpy = jest.spyOn(exec, 'exec').mockRejectedValueOnce(1).mockResolvedValue(0);
+
+        const ipAddress = await SqlUtils.detectIPAddress(getConnectionConfig());
+
+        expect(execSpy).toHaveBeenCalledTimes(2);
+        expect(ipAddress).toBe('');
+    });
+
+    it('detectIPAddress should fail if retry fails again', async () => {
+        const execSpy = jest.spyOn(exec, 'exec').mockRejectedValueOnce(1).mockImplementation((_commandLine, _args, options) => {
+            options!.listeners!.stderr!(Buffer.from('Custom connection error message.'));
+            return Promise.reject(1);
+        });
+
+        let error: Error | undefined;
+        try {
+            await SqlUtils.detectIPAddress(getConnectionConfig());
+        }
+        catch (e) {
+            error = e;
+        }
+
+        expect(error).toBeDefined();
+        expect(error!.message).toMatch('Failed to add firewall rule. Unable to detect client IP Address.');
+        expect(execSpy).toHaveBeenCalledTimes(2);
+    });
 });
+
+function getConnectionConfig(): SqlConnectionConfig {
+    return new SqlConnectionConfig('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder');
+}

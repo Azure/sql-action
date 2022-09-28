@@ -1,26 +1,20 @@
 name: 'Azure SQL Deploy'
 description: 'Deploy a database project, DACPAC, or a SQL script to Azure SQL database'
 inputs:
-  server-name:
-    description: 'Name of the Azure SQL Server name, like Fabrikam.database.windows.net.'
-    required: false
   connection-string:
-    description:  'The connection string, including authentication information, for the Azure SQL Server database.'
+    description: 'The connection string, including authentication information, for the Azure SQL Server database.'
     required: true
-  dacpac-package:
-    description: 'Path to DACPAC file to deploy'
-    required: false
-  sql-file:
-    description: 'Path to SQL script file to deploy'
-    required: false
-  project-file:
-    description: 'Path to the SQL database project file to deploy'
+  path:
+    description: 'Path to the file used for this action. Supported file types are .sql, .dacpac, or .sqlproj.'
+    required: true
+  action:
+    description: 'If not using a .sql file, the sqlpackage action to execute.'
     required: false
   arguments:
-    description: 'In case DACPAC option is selected, additional SqlPackage arguments that will be applied. When SQL query option is selected, additional sqlcmd arguments will be applied.'
+    description: 'In case of .dacpac or .sqlproj file types, additional sqlpackage arguments that will be applied. In case of .sql file type, additional go-sqlcmd argument that will be applied.'
     required: false
   build-arguments:
-    description: 'In case Build and Publish option is selected, additional arguments that will be applied to dotnet build when building the database project.'
+    description: 'In case of a .sqlproj file, additional arguments that will be applied to dotnet build when building the database project.'
     required: false
 runs:
   using: 'node12'
