@@ -76,5 +76,5 @@ jobs:
       uses: ./
       with: 
         connection-string: '${{ secrets[matrix.connection_string_secret] }}Initial Catalog=master;'
-        path: ${{ runner.temp }}/cleanup.sql
+        path: ./__testdata__/cleanup.sql
         arguments: '-v DbName="${{ env.TEST_DB }}"'
