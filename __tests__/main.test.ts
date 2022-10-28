@@ -2,7 +2,7 @@ import * as core from "@actions/core";
 import { AuthorizerFactory } from 'azure-actions-webclient/AuthorizerFactory';
 
 import run from "../src/main";
-import AzureSqlAction from "../src/AzureSqlAction";
+import AzureSqlAction, { ActionType, IActionInputs, IBuildAndPublishInputs, IDacpacActionInputs, SqlPackageAction } from "../src/AzureSqlAction";
 import FirewallManager from "../src/FirewallManager";
 import AzureSqlActionHelper from '../src/AzureSqlActionHelper';
 import SqlUtils from '../src/SqlUtils';
@@ -27,6 +27,8 @@ describe('main.ts tests', () => {
                 case 'connection-string': return 'Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder;';
                 case 'path': return './TestProject.sqlproj';
                 case 'action': return 'publish';
+                case 'arguments': return '/p:FakeSqlpackageArgument';
+                case 'build-arguments': return '-p FakeDotnetArgument';
                 default : return '';
             }
         });
@@ -43,6 +45,16 @@ describe('main.ts tests', () => {
         await run();
 
         expect(AzureSqlAction).toHaveBeenCalled();
+        expect(AzureSqlAction).toHaveBeenCalledWith(
+            expect.objectContaining({
+                actionType: ActionType.BuildAndPublish,
+                filePath: './TestProject.sqlproj',
+                buildArguments: '-p FakeDotnetArgument',
+                sqlpackageAction: SqlPackageAction.Publish,
+                additionalArguments: '/p:FakeSqlpackageArgument'
+            } as IBuildAndPublishInputs)
+        );
+
         expect(detectIPAddressSpy).toHaveBeenCalled();
         expect(getAuthorizerSpy).not.toHaveBeenCalled();
         expect(getInputSpy).toHaveBeenCalledTimes(5);
@@ -59,7 +71,8 @@ describe('main.ts tests', () => {
             switch(name) {
                 case 'connection-string': return 'Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder;';
                 case 'path': return './TestDacpacPackage.dacpac';
-                case 'action': return 'publish';
+                case 'action': return 'script';
+                case 'arguments': return '/p:FakeSqlpackageArgument';
             }
 
             return '';
@@ -77,6 +90,15 @@ describe('main.ts tests', () => {
         await run();
 
         expect(AzureSqlAction).toHaveBeenCalled();
+        expect(AzureSqlAction).toHaveBeenCalledWith(
+            expect.objectContaining({
+                actionType: ActionType.DacpacAction,
+                filePath: './TestDacpacPackage.dacpac',
+                sqlpackageAction: SqlPackageAction.Script,
+                additionalArguments: '/p:FakeSqlpackageArgument'
+            } as IDacpacActionInputs)
+        );
+
         expect(detectIPAddressSpy).toHaveBeenCalled();
         expect(getAuthorizerSpy).not.toHaveBeenCalled();
         expect(getInputSpy).toHaveBeenCalledTimes(4);
@@ -93,7 +115,7 @@ describe('main.ts tests', () => {
             switch(name) {
                 case 'connection-string': return 'Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder;';
                 case 'path': return './TestSqlFile.sql';
-                case 'action': return 'publish';
+                case 'arguments': return '-v FakeSqlcmdArgument';
                 default: return '';
             }
         });
@@ -110,9 +132,17 @@ describe('main.ts tests', () => {
         await run();
 
         expect(AzureSqlAction).toHaveBeenCalled();
+        expect(AzureSqlAction).toHaveBeenCalledWith(
+            expect.objectContaining({
+                actionType: ActionType.SqlAction,
+                filePath: './TestSqlFile.sql',
+                additionalArguments: '-v FakeSqlcmdArgument'
+            } as IActionInputs)
+        );
+
         expect(detectIPAddressSpy).toHaveBeenCalled();
         expect(getAuthorizerSpy).not.toHaveBeenCalled();
-        expect(getInputSpy).toHaveBeenCalledTimes(3);
+        expect(getInputSpy).toHaveBeenCalledTimes(4);
         expect(resolveFilePathSpy).toHaveBeenCalled();
         expect(addFirewallRuleSpy).not.toHaveBeenCalled();
         expect(actionExecuteSpy).toHaveBeenCalled();
