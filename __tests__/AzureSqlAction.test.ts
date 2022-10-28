@@ -7,8 +7,6 @@ import DotnetUtils from '../src/DotnetUtils';
 import SqlConnectionConfig from '../src/SqlConnectionConfig';
 import Constants from '../src/Constants';
 
-jest.mock('fs');
-
 describe('AzureSqlAction tests', () => {
     afterEach(() => {
        jest.restoreAllMocks();
