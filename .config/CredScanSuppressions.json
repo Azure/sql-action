@@ -1,0 +1,9 @@
+{
+    "tool": "Credential Scanner",
+    "suppressions": [
+        {
+            "file": "lib/main.js",
+            "_justification": "Build output"
+        }
+    ]
+}
