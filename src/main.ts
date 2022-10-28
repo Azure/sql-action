@@ -70,7 +70,8 @@ function getInputs(): IActionInputs {
             return {
                 actionType: ActionType.SqlAction,
                 connectionConfig: connectionConfig,
-                filePath: filePath
+                filePath: filePath,
+                additionalArguments: core.getInput('arguments') || undefined
             };
 
         case Constants.dacpacExtension:
