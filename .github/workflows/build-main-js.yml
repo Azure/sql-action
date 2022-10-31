@@ -1,0 +1,25 @@
+on: pull_request
+
+jobs:
+  build:
+    name: 'Build main.js'
+    runs-on: ubuntu-latest
+    steps:
+    - name: 'Check out'
+      uses: actions/checkout@v3
+
+    - name: 'Setup git config'
+      run: |
+        git config user.name "GitHub Actions Bot"
+        git config user.email "<>"
+
+    - name: 'Validate build'
+      run: |
+        npm install
+        npm run build
+
+    - name: 'Commit main.js changes'
+      run: |
+        git status
+        git commit -m "main.js changes for ${GITHUB_SHA}" ./lib/main.js
+        git push
