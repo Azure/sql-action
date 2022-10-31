@@ -2,12 +2,10 @@
 
 This repository contains the sql-action GitHub Action for deploying changes to Azure SQL or SQL Server in a dacpac, SQL scripts, or an SDK-style SQL project. With the Azure SQL Action for GitHub, you can automate your workflow to deploy updates to Azure SQL or SQL Server.
 
-
-
 Get started today with a [free Azure account](https://azure.com/free/open-source)!
 
-
 ## 🚀 Usage
+
 The definition of this GitHub Action is in [action.yml](https://github.com/Azure/sql-action/blob/master/action.yml).  Learn more in the [user guide](#📓-user-guide).
 
 ```yaml
@@ -109,7 +107,7 @@ The following rules are to be followed while passing special characters in value
 4. If the value contains both single-quote and double-quote characters, the quotation mark character used to enclose the value must be doubled every time it occurs within the value.
         
 
-For more information about connection strings, see https://aka.ms/sqlconnectionstring
+For more information about connection strings, see <https://aka.ms/sqlconnectionstring>.
 
 ### Arguments
 
@@ -142,7 +140,7 @@ Azure SQL Action for GitHub is supported for the Azure public cloud as well as A
 
 If you need to configure Azure Credentials to automatically manage firewall rules, you need to create a Service Principal, and store the related credentials into a GitHub Secret so that it can be used by the Azure Login actions to authenticate and authorize any subsequent request.
 
-Paste the output of the below [az cli](https://docs.microsoft.com/cli/azure/?view=azure-cli-latest) command as the value of secret variable, for example `AZURE_CREDENTIALS`.
+Paste the output of the below [az cli](https://learn.microsoft.com/cli/azure/?view=azure-cli-latest) command as the value of secret variable, for example `AZURE_CREDENTIALS`.
 
 ```bash
 az ad sp create-for-rbac --role contributor --sdk-auth --name "sqldeployserviceprincipal" \
@@ -152,7 +150,7 @@ Replace {subscription-id}, {resource-group} with the subscription ID and resourc
 
 The command should output a JSON object similar to this:
 
-```
+```json
 {
   "clientId": "<GUID>",
   "clientSecret": "<GUID>",
@@ -166,85 +164,89 @@ The command should output a JSON object similar to this:
 
 All the above examples use `{{secrets.AZURE_SQL}}` syntax for sensitive information, where content such as connection strings are stored in GitHub secrets. To create [secrets](https://help.github.com/en/github/automating-your-workflow-with-github-actions/virtual-environments-for-github-actions#creating-and-using-secrets-encrypted-variables) in GitHub, navigate within your repository to **Settings** and then **Secrets**. Be careful to check the connection string which you copy from Azure SQL as the connection string has this **Password={your_password}** and you will need to supply the correct password for your connection string.
 
-
-
 ## 📦 End-to-End Examples
 
 ### Create Azure SQL Database + SQL Projects
 
 1. Follow the tutorial [Azure SQL Quickstart to create a single database](https://docs.microsoft.com/azure/azure-sql/database/single-database-create-quickstart?tabs=azure-portal#create-a-single-database)
 2. Copy the below template and paste the contents in `.github/workflows/` in your project repository as `sql-workflow.yml`.
-```yaml
-# .github/workflows/sql-workflow.yml
-on: [push]
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v1
-    - uses: azure/sql-action@v2
-      with:        
-        connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
-        path: './Database.sqlproj'
-        action: 'publish'
-```
+  ```yaml
+  # .github/workflows/sql-workflow.yml
+  on: [push]
+  
+  jobs:
+    build:
+      runs-on: ubuntu-latest
+      steps:
+      - uses: actions/checkout@v1
+      - uses: azure/sql-action@v2
+        with:        
+          connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+          path: './Database.sqlproj'
+          action: 'publish'
+  ```
+
 3. Place the connection string from the Azure Portal in GitHub secrets as `AZURE_SQL_CONNECTION_STRING`. Connection string format is: `Server=<server.database.windows.net>;User ID=<user>;Password=<password>;Initial Catalog=<database>`.
 4. Copy the below SQL project template and paste the content in your project repository as `Database.sqlproj`.
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build">
-  <Sdk Name="Microsoft.Build.Sql" Version="0.1.3-preview" />
-  <PropertyGroup>
-    <Name>reactions</Name>
-    <DSP>Microsoft.Data.Tools.Schema.Sql.SqlAzureV12DatabaseSchemaProvider</DSP>
-    <ModelCollation>1033, CI</ModelCollation>
-  </PropertyGroup>
-</Project>
-```
+
+  ```xml
+  <?xml version="1.0" encoding="utf-8"?>
+  <Project DefaultTargets="Build">
+    <Sdk Name="Microsoft.Build.Sql" Version="0.1.3-preview" />
+    <PropertyGroup>
+      <Name>reactions</Name>
+      <DSP>Microsoft.Data.Tools.Schema.Sql.SqlAzureV12DatabaseSchemaProvider</DSP>
+      <ModelCollation>1033, CI</ModelCollation>
+    </PropertyGroup>
+  </Project>
+  ```
+
 5. Place any additional SQL object definitions in the project folder or in subfolders.  An example table to get you started is:
-```sql
-CREATE TABLE [dbo].[Product](
-	[ProductID] [int] IDENTITY(1,1) PRIMARY KEY NOT NULL,
-	[Name] [nvarchar](100) NOT NULL,
-	[ProductNumber] [nvarchar](25) NOT NULL,
-	[Color] [nvarchar](15) NULL,
-	[StandardCost] [money] NOT NULL,
-	[ListPrice] [money] NOT NULL,
-	[Size] [nvarchar](5) NULL,
-	[Weight] [decimal](8, 2) NULL,
-	[ProductCategoryID] [int] NULL,
-	[ProductModelID] [int] NULL,
-	[ModifiedDate] [datetime] NOT NULL
-)
-```
+
+  ```sql
+  CREATE TABLE [dbo].[Product](
+  	[ProductID] [int] IDENTITY(1,1) PRIMARY KEY NOT NULL,
+  	[Name] [nvarchar](100) NOT NULL,
+  	[ProductNumber] [nvarchar](25) NOT NULL,
+  	[Color] [nvarchar](15) NULL,
+  	[StandardCost] [money] NOT NULL,
+  	[ListPrice] [money] NOT NULL,
+  	[Size] [nvarchar](5) NULL,
+  	[Weight] [decimal](8, 2) NULL,
+  	[ProductCategoryID] [int] NULL,
+  	[ProductModelID] [int] NULL,
+  	[ModifiedDate] [datetime] NOT NULL
+  )
+  ```
+
 6. Commit and push your project to GitHub repository, you should see a new GitHub Action initiated in **Actions** tab.
 7. For further use of SQL projects in VS Code and Azure Data Studio, check out [http://aka.ms/azuredatastudio-sqlprojects](http://aka.ms/azuredatastudio-sqlprojects) for more information.
-
 
 ### Create Azure SQL Database + Deploy Existing Schema (dacpac)
 
 1. Create a dacpac from an existing SQL database with either [SSMS](https://docs.microsoft.com/sql/relational-databases/data-tier-applications/extract-a-dac-from-a-database), [Azure Data Studio](https://docs.microsoft.com/sql/azure-data-studio/extensions/sql-server-dacpac-extension) or [SqlPackage CLI](https://docs.microsoft.com/sql/tools/sqlpackage/sqlpackage-extract).  Place the dacpac file at the root of your repository.
 2. Follow the tutorial [Azure SQL Quickstart to create a single database](https://docs.microsoft.com/azure/azure-sql/database/single-database-create-quickstart?tabs=azure-portal#create-a-single-database)
 3. Copy the below template and paste the contents in `.github/workflows/` in your project repository as `sql-workflow.yml`, changing the dacpac file name as appropriate.
-```yaml
-# .github/workflows/sql-workflow.yml
-on: [push]
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v1
-    - uses: azure/sql-action@v2
-      with:        
-        connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
-        path: './PreviousDatabase.dacpac'
-        action: 'publish'
-```
+  ```yaml
+  # .github/workflows/sql-workflow.yml
+  on: [push]
+  
+  jobs:
+    build:
+      runs-on: ubuntu-latest
+      steps:
+      - uses: actions/checkout@v1
+      - uses: azure/sql-action@v2
+        with:        
+          connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+          path: './PreviousDatabase.dacpac'
+          action: 'publish'
+  ```
+
 4. Place the connection string from the Azure Portal in GitHub secrets as `AZURE_SQL_CONNECTION_STRING`. Connection string format is: `Server=<server.database.windows.net>;User ID=<user>;Password=<password>;Initial Catalog=<database>`.
 5. Commit and push your project to GitHub repository, you should see a new GitHub Action initiated in **Actions** tab.
-
 
 ## ✏️ Contributing
 
