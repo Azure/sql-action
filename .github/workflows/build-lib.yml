@@ -22,10 +22,10 @@ jobs:
     - name: 'Check if main.js has differences'
       run: |
         git status
-        echo "GIT_DIFF=$(git diff --exit-code --quiet ./lib)" >> $GITHUB_ENV
+        echo "GIT_DIFF=$(git diff --name-only ./lib)" >> $GITHUB_ENV
 
     - name: 'Commit main.js changes'
-      if: ${{ env.GIT_DIFF == 1 }}
+      if: ${{ contains(env.GIT_DIFF, 'lib/') }}
       run: |
         git commit -m "main.js changes for ${GITHUB_SHA}" ./lib
         git push
