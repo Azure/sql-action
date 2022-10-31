@@ -1,3 +1,4 @@
+# This workflow verifies lib/main.js has latest changes from src/*.ts
 on: pull_request
 
 jobs:
@@ -18,8 +19,11 @@ jobs:
         npm install
         npm run build
 
+    - name: 'Check if main.js has differences'
+      run: echo "GIT_DIFF=$(git diff --exit-code --quiet ./lib)" >> $GITHUB_ENV
+
     - name: 'Commit main.js changes'
+      if: ${{ env.GIT_DIFF == 1 }}
       run: |
-        git status
-        git commit -m "main.js changes for ${GITHUB_SHA}" ./lib/main.js
+        git commit -m "main.js changes for ${GITHUB_SHA}" ./lib
         git push
