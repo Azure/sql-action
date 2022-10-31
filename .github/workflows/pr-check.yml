@@ -5,13 +5,10 @@ name: pr-check
 
 on:
   pull_request_target:
-      - '!.github/workflows/**'
-      - '!lib/**'
 
   pull_request:
     paths:
       - '.github/workflows/**'
-      - '!lib/**'
 
 jobs:
   deploy:

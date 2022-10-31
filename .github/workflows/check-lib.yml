@@ -26,8 +26,8 @@ jobs:
 
     # If main.js was different than expected, upload the actual version
     - name: Upload actual main.js
-      uses: actions/upload-artifact@v3
       if: ${{ failure() && steps.diff.conclusion == 'failure' }}
-        with:
-          name: main.js
-          path: lib/index.js
+      uses: actions/upload-artifact@v3
+      with:
+        name: main.js
+        path: lib/index.js
