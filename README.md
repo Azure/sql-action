@@ -146,6 +146,7 @@ Paste the output of the below [az cli](https://learn.microsoft.com/cli/azure/?vi
 az ad sp create-for-rbac --role contributor --sdk-auth --name "sqldeployserviceprincipal" \
   --scopes /subscriptions/{subscription-id}/resourceGroups/{resource-group}
 ```
+
 Replace {subscription-id}, {resource-group} with the subscription ID and resource group of the Azure SQL server
 
 The command should output a JSON object similar to this:
@@ -171,54 +172,54 @@ All the above examples use `{{secrets.AZURE_SQL}}` syntax for sensitive informat
 1. Follow the tutorial [Azure SQL Quickstart to create a single database](https://docs.microsoft.com/azure/azure-sql/database/single-database-create-quickstart?tabs=azure-portal#create-a-single-database)
 2. Copy the below template and paste the contents in `.github/workflows/` in your project repository as `sql-workflow.yml`.
 
-  ```yaml
-  # .github/workflows/sql-workflow.yml
-  on: [push]
-  
-  jobs:
-    build:
-      runs-on: ubuntu-latest
-      steps:
-      - uses: actions/checkout@v1
-      - uses: azure/sql-action@v2
-        with:        
-          connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
-          path: './Database.sqlproj'
-          action: 'publish'
-  ```
+    ```yaml
+    # .github/workflows/sql-workflow.yml
+    on: [push]
+    
+    jobs:
+      build:
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/checkout@v1
+        - uses: azure/sql-action@v2
+          with:        
+            connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+            path: './Database.sqlproj'
+            action: 'publish'
+    ```
 
 3. Place the connection string from the Azure Portal in GitHub secrets as `AZURE_SQL_CONNECTION_STRING`. Connection string format is: `Server=<server.database.windows.net>;User ID=<user>;Password=<password>;Initial Catalog=<database>`.
 4. Copy the below SQL project template and paste the content in your project repository as `Database.sqlproj`.
 
-  ```xml
-  <?xml version="1.0" encoding="utf-8"?>
-  <Project DefaultTargets="Build">
-    <Sdk Name="Microsoft.Build.Sql" Version="0.1.3-preview" />
-    <PropertyGroup>
-      <Name>reactions</Name>
-      <DSP>Microsoft.Data.Tools.Schema.Sql.SqlAzureV12DatabaseSchemaProvider</DSP>
-      <ModelCollation>1033, CI</ModelCollation>
-    </PropertyGroup>
-  </Project>
-  ```
+    ```xml
+    <?xml version="1.0" encoding="utf-8"?>
+    <Project DefaultTargets="Build">
+      <Sdk Name="Microsoft.Build.Sql" Version="0.1.3-preview" />
+      <PropertyGroup>
+        <Name>reactions</Name>
+        <DSP>Microsoft.Data.Tools.Schema.Sql.SqlAzureV12DatabaseSchemaProvider</DSP>
+        <ModelCollation>1033, CI</ModelCollation>
+      </PropertyGroup>
+    </Project>
+    ```
 
 5. Place any additional SQL object definitions in the project folder or in subfolders.  An example table to get you started is:
 
-  ```sql
-  CREATE TABLE [dbo].[Product](
-  	[ProductID] [int] IDENTITY(1,1) PRIMARY KEY NOT NULL,
-  	[Name] [nvarchar](100) NOT NULL,
-  	[ProductNumber] [nvarchar](25) NOT NULL,
-  	[Color] [nvarchar](15) NULL,
-  	[StandardCost] [money] NOT NULL,
-  	[ListPrice] [money] NOT NULL,
-  	[Size] [nvarchar](5) NULL,
-  	[Weight] [decimal](8, 2) NULL,
-  	[ProductCategoryID] [int] NULL,
-  	[ProductModelID] [int] NULL,
-  	[ModifiedDate] [datetime] NOT NULL
-  )
-  ```
+    ```sql
+    CREATE TABLE [dbo].[Product](
+    	[ProductID] [int] IDENTITY(1,1) PRIMARY KEY NOT NULL,
+    	[Name] [nvarchar](100) NOT NULL,
+    	[ProductNumber] [nvarchar](25) NOT NULL,
+    	[Color] [nvarchar](15) NULL,
+    	[StandardCost] [money] NOT NULL,
+    	[ListPrice] [money] NOT NULL,
+    	[Size] [nvarchar](5) NULL,
+    	[Weight] [decimal](8, 2) NULL,
+    	[ProductCategoryID] [int] NULL,
+    	[ProductModelID] [int] NULL,
+    	[ModifiedDate] [datetime] NOT NULL
+    )
+    ```
 
 6. Commit and push your project to GitHub repository, you should see a new GitHub Action initiated in **Actions** tab.
 7. For further use of SQL projects in VS Code and Azure Data Studio, check out [http://aka.ms/azuredatastudio-sqlprojects](http://aka.ms/azuredatastudio-sqlprojects) for more information.
@@ -229,21 +230,21 @@ All the above examples use `{{secrets.AZURE_SQL}}` syntax for sensitive informat
 2. Follow the tutorial [Azure SQL Quickstart to create a single database](https://docs.microsoft.com/azure/azure-sql/database/single-database-create-quickstart?tabs=azure-portal#create-a-single-database)
 3. Copy the below template and paste the contents in `.github/workflows/` in your project repository as `sql-workflow.yml`, changing the dacpac file name as appropriate.
 
-  ```yaml
-  # .github/workflows/sql-workflow.yml
-  on: [push]
-  
-  jobs:
-    build:
-      runs-on: ubuntu-latest
-      steps:
-      - uses: actions/checkout@v1
-      - uses: azure/sql-action@v2
-        with:        
-          connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
-          path: './PreviousDatabase.dacpac'
-          action: 'publish'
-  ```
+    ```yaml
+    # .github/workflows/sql-workflow.yml
+    on: [push]
+    
+    jobs:
+      build:
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/checkout@v1
+        - uses: azure/sql-action@v2
+          with:        
+            connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+            path: './PreviousDatabase.dacpac'
+            action: 'publish'
+    ```
 
 4. Place the connection string from the Azure Portal in GitHub secrets as `AZURE_SQL_CONNECTION_STRING`. Connection string format is: `Server=<server.database.windows.net>;User ID=<user>;Password=<password>;Initial Catalog=<database>`.
 5. Commit and push your project to GitHub repository, you should see a new GitHub Action initiated in **Actions** tab.
