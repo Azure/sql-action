@@ -20,7 +20,9 @@ jobs:
         npm run build
 
     - name: 'Check if main.js has differences'
-      run: echo "GIT_DIFF=$(git diff --exit-code --quiet ./lib)" >> $GITHUB_ENV
+      run: |
+        git status
+        echo "GIT_DIFF=$(git diff --exit-code --quiet ./lib)" >> $GITHUB_ENV
 
     - name: 'Commit main.js changes'
       if: ${{ env.GIT_DIFF == 1 }}
