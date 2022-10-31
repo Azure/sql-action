@@ -14,9 +14,6 @@ jobs:
         git config user.name "GitHub Actions Bot"
         git config user.email "<>"
 
-    - name: 'Checkout current branch'
-      run: git checkout ${GITHUB_HEAD_REF}
-
     - name: 'Validate build'
       run: |
         npm install
@@ -31,4 +28,4 @@ jobs:
       if: ${{ contains(env.GIT_DIFF, 'lib/') }}
       run: |
         git commit -m "main.js changes for ${GITHUB_SHA}" ./lib
-        git push
+        git push origin HEAD:${GITHUB_HEAD_REF}
