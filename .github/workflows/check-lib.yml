@@ -1,0 +1,27 @@
+# This workflow verifies lib/main.js has latest changes from src/*.ts
+on: pull_request
+
+jobs:
+  check-lib:
+    name: Check main.js
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out
+      uses: actions/checkout@v3
+
+    - name: Validate build
+      run: |
+        npm install
+        npm run build
+
+    - name: Check if main.js has differences
+      run: git diff --exit-code lib/main.js
+      id: diff
+
+    # If main.js was different than expected, upload the actual version
+    - name: Upload actual main.js
+      if: ${{ failure() && steps.diff.conclusion == 'failure' }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: main.js
+        path: lib/index.js

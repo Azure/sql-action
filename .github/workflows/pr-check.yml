@@ -5,10 +5,12 @@ name: pr-check
 
 on:
   pull_request_target:
+    paths:
+      - '!.github/workflows/pr-check.yml'
 
   pull_request:
     paths:
-      - '.github/workflows/**'
+      - '.github/workflows/pr-check.yml'
 
 jobs:
   deploy:

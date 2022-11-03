@@ -17,6 +17,9 @@ export default class FirewallManager {
         console.log(`Successfully added firewall rule ${this._firewallRule.name}.`);
     }
 
+
+    
+
     public async removeFirewallRule() {
         if (this._firewallRule) {
             console.log(`Removing firewall rule '${this._firewallRule.name}'.`);
