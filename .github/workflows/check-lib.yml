@@ -1,8 +1,5 @@
 # This workflow verifies lib/main.js has latest changes from src/*.ts
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
