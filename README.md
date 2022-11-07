@@ -44,7 +44,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
     - uses: azure/sql-action@v2
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
@@ -64,7 +64,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
     - uses: azure/login@v1                            # Azure login required to add a temporary firewall rule
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
@@ -84,7 +84,7 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
     - uses: azure/sql-action@v2
       with:
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
@@ -182,7 +182,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
     - uses: azure/sql-action@v2
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
@@ -235,7 +235,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
     - uses: azure/sql-action@v2
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
