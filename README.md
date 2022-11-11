@@ -7,6 +7,9 @@ This repository contains the sql-action GitHub Action for deploying changes to A
 Get started today with a [free Azure account](https://azure.com/free/open-source)!
 
 
+Looking to develop with SQL for free, locally and offline, before deploying with GitHub?  Check out the [Azure SQL local emulator](https://aka.ms/azuredbemulator) and [SQL Server Developer Edition](https://www.microsoft.com/sql-server/sql-server-downloads)!
+
+
 ## 🚀 Usage
 The definition of this GitHub Action is in [action.yml](https://github.com/Azure/sql-action/blob/master/action.yml).  Learn more in the [user guide](#📓-user-guide).
 
