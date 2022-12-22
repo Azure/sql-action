@@ -69,7 +69,7 @@ describe.only('AzureSqlResourceManager tests', () => {
             headers: []
         });
 
-        expect(AzureSqlResourceManager.getResourceManager('testServer.database.windows.net', await AuthorizerFactory.getAuthorizer())).rejects.toThrowError(new Error(`Unable to get details of SQL server testServer. Sql server 'testServer' was not found in the subscription.`));
+        expect(AzureSqlResourceManager.getResourceManager('testServer.database.windows.net', await AuthorizerFactory.getAuthorizer())).rejects.toThrowError(new Error(`Unable to get details of SQL server testServer. Sql server 'testServer' was not found in the subscription SubscriptionId.`));
         
         expect(getRequestUrlSpy).toHaveBeenCalledTimes(1);
         expect(beginRequestSpy).toHaveBeenCalledTimes(1);
