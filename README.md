@@ -16,6 +16,9 @@ The definition of this GitHub Action is in [action.yml](https://github.com/Azure
 ```yaml
 - uses: azure/sql-action@v2
   with:
+    # required, GitHub token to check for go-sqlcmd releases
+    GITHUB_TOKEN: # ${{ secrets.GITHUB_TOKEN }}
+
     # required, connection string incl the database and user authentication information
     connection-string:
 
@@ -49,7 +52,8 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: azure/sql-action@v2
-      with:        
+      with:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './Database.sqlproj'
         action: 'publish'
@@ -72,7 +76,8 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
     - uses: azure/sql-action@v2
-      with:        
+      with:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './sqlscripts/*.sql'
 ```
@@ -90,6 +95,7 @@ jobs:
     - uses: actions/checkout@v3
     - uses: azure/sql-action@v2
       with:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './Database.dacpac'
         action: 'publish'
@@ -187,7 +193,8 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: azure/sql-action@v2
-      with:        
+      with:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './Database.sqlproj'
         action: 'publish'
@@ -240,7 +247,8 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: azure/sql-action@v2
-      with:        
+      with:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './PreviousDatabase.dacpac'
         action: 'publish'
