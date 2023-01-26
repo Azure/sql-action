@@ -20,7 +20,7 @@ export default class Setup {
         let sqlcmdPath: string = "";
         if (sqlcmdVersions.length > 0) {
             sqlcmdVersion = tc.evaluateVersions(sqlcmdVersions, sqlcmdVersionRange);
-            if (sqlcmdVersion) {
+            if (sqlcmdVersion && sqlcmdVersion !== "") {
                 sqlcmdPath = tc.find(sqlcmdToolName, sqlcmdVersion);
             } 
         }
