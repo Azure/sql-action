@@ -1,6 +1,5 @@
 import * as core from "@actions/core";
 import * as tc from "@actions/tool-cache";
-import { Octokit } from 'octokit';
 import Setup from "../src/Setup";
 
 jest.mock('@actions/core');
@@ -11,9 +10,6 @@ describe('Setup.ts tests', () => {
     })
 
     it('sets up sqlcmd correctly', async () => {
-        
-        const octokit = new Octokit({userAgent: "azure/sql-action-test"});
-        const octokitSpy = jest.spyOn(octokit.rest.repos, 'getReleaseByTag').mockResolvedValue(fakeOctokitRespose); // this isn't working yet
         
         const cacheLookupVersionsSpy = jest.spyOn(tc, 'findAllVersions').mockReturnValue([]);
         const cacheEvaluateVersionsSpy = jest.spyOn(tc, 'evaluateVersions').mockReturnValue('');
