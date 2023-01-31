@@ -5,7 +5,7 @@ import * as core from '@actions/core';
 import * as tc from '@actions/tool-cache';
 
 export const sqlcmdToolName = 'go-sqlcmd';
-export const sqlcmdVersion = '0.9.1';
+export const sqlcmdVersion = '0.12.0';
 
 export default class Setup {
     
