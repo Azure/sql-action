@@ -15,13 +15,13 @@ import Setup from "./Setup";
 const userAgentPrefix = !!process.env.AZURE_HTTP_USER_AGENT ? `${process.env.AZURE_HTTP_USER_AGENT}` : "";
 
 export default async function run() {
-    await Setup.setupSqlcmd();
-
     let firewallManager;
     try {
         setUserAgentVariable();
         
         const inputs = getInputs();
+        await Setup.setupSqlcmd(inputs.sqlcmdVersion);
+
         const azureSqlAction = new AzureSqlAction(inputs);
         
         const runnerIPAddress = await SqlUtils.detectIPAddress(inputs.connectionConfig);
@@ -64,6 +64,7 @@ function getInputs(): IActionInputs {
 
     // Optional inputs
     const action = core.getInput('action');
+    const sqlcmdFallbackVersion: string = core.getInput('sqlcmd-version') || "latest";
 
     switch (path.extname(filePath).toLowerCase()) {
         case Constants.sqlFileExtension:
@@ -71,6 +72,7 @@ function getInputs(): IActionInputs {
                 actionType: ActionType.SqlAction,
                 connectionConfig: connectionConfig,
                 filePath: filePath,
+                sqlcmdVersion: sqlcmdFallbackVersion,
                 additionalArguments: core.getInput('arguments') || undefined
             };
 
@@ -84,6 +86,7 @@ function getInputs(): IActionInputs {
                 connectionConfig: connectionConfig,
                 filePath: filePath,
                 sqlpackageAction: AzureSqlActionHelper.getSqlpackageActionTypeFromString(action),
+                sqlcmdVersion: sqlcmdFallbackVersion,
                 additionalArguments: core.getInput('arguments') || undefined
             } as IDacpacActionInputs;
 
@@ -98,6 +101,7 @@ function getInputs(): IActionInputs {
                 filePath: filePath,
                 buildArguments: core.getInput('build-arguments') || undefined,
                 sqlpackageAction: AzureSqlActionHelper.getSqlpackageActionTypeFromString(action),
+                sqlcmdVersion: sqlcmdFallbackVersion,
                 additionalArguments: core.getInput('arguments') || undefined
             } as IBuildAndPublishInputs;
 

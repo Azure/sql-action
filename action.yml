@@ -16,6 +16,9 @@ inputs:
   build-arguments:
     description: 'In case of a .sqlproj file, additional arguments that will be applied to dotnet build when building the database project.'
     required: false
+  sqlcmd-version:
+    description: 'Optional go-sqlcmd version to use. If not specified, the latest version will be used.'
+    required: false
 runs:
   using: 'node16'
   main: 'lib/main.js'

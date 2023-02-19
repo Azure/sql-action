@@ -18,6 +18,7 @@ export interface IActionInputs {
     actionType: ActionType;
     connectionConfig: SqlConnectionConfig;
     filePath: string;
+    sqlcmdVersion: string;
     additionalArguments?: string;
 }
 
