@@ -127,8 +127,9 @@ export default class AzureSqlAction {
             case SqlPackageAction.Publish: 
             case SqlPackageAction.Script:
             case SqlPackageAction.DeployReport:
+                args += `/SourceFile:"${inputs.filePath}"`
             case SqlPackageAction.DriftReport:
-                args += `/Action:${SqlPackageAction[inputs.sqlpackageAction]} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${inputs.filePath}"`;
+                args += ` /Action:${SqlPackageAction[inputs.sqlpackageAction]} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}"`;
                 break;
 
             default:
