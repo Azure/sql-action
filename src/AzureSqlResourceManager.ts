@@ -132,11 +132,11 @@ export default class AzureSqlResourceManager {
             if (sqlServers && sqlServers.length > 0) {
                 this._resource = sqlServers.filter((sqlResource) => sqlResource.name === serverName)[0];
                 if (!this._resource) {
-                    throw new Error(`Unable to get details of SQL server ${serverName}. Sql server '${serverName}' was not found in the subscription ${this._restClient.subscriptionId}.`);
+                    throw new Error(`Unable to get details of SQL server ${serverName}. Sql server '${serverName}' was not found in the subscription ${this._authorizer.subscriptionID}.`);
                 }
             }
             else {
-                throw new Error(`Unable to get details of SQL server ${serverName}. No SQL servers were found in the subscription ${this._restClient.subscriptionId}.`);
+                throw new Error(`Unable to get details of SQL server ${serverName}. No SQL servers were found in the subscription ${this._authorizer.subscriptionID}.`);
             }
         }
         catch(error) {

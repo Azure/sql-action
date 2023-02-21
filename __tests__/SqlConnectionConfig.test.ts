@@ -126,6 +126,6 @@ describe('SqlConnectionConfig tests', () => {
                 expect(config.Config.server).toMatch(expectedServerName);
                 expect(config.Config.database).toMatch('testdb');
                 expect(config.ConnectionString).toMatch(connectionStringInput);
-            }
+            });
     });
 })
