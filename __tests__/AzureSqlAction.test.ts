@@ -33,7 +33,12 @@ describe('AzureSqlAction tests', () => {
     
             expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
             expect(execSpy).toHaveBeenCalledTimes(1);
-            expect(execSpy).toHaveBeenCalledWith(`"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${inputs.filePath}" ${sqlpackageArgs}`);
+
+            if (actionName == 'DriftReport') {
+                expect(execSpy).toHaveBeenCalledWith(`"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" ${sqlpackageArgs}`);
+            } else {
+                expect(execSpy).toHaveBeenCalledWith(`"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${inputs.filePath}" ${sqlpackageArgs}`);
+            }
         });
     });
 
@@ -115,7 +120,11 @@ describe('AzureSqlAction tests', () => {
             expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
             expect(execSpy).toHaveBeenCalledTimes(2);
             expect(execSpy).toHaveBeenNthCalledWith(1, `dotnet build "./TestProject.sqlproj" -p:NetCoreBuild=true --verbose --test "test value"`);
-            expect(execSpy).toHaveBeenNthCalledWith(2, `"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${expectedDacpac}" ${sqlpackageArgs}`);
+            if (actionName === 'DriftReport') {
+                expect(execSpy).toHaveBeenNthCalledWith(2, `"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" ${sqlpackageArgs}`);
+            } else {
+                expect(execSpy).toHaveBeenNthCalledWith(2, `"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${expectedDacpac}" ${sqlpackageArgs}`);
+            }
         });
     });
 
