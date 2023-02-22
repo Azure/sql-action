@@ -14,7 +14,7 @@ Looking to develop with SQL for free, locally and offline, before deploying with
 The definition of this GitHub Action is in [action.yml](https://github.com/Azure/sql-action/blob/master/action.yml).  Learn more in the [user guide](#📓-user-guide).
 
 ```yaml
-- uses: azure/sql-action@v2
+- uses: azure/sql-action@v2.1
   with:
     # required, connection string incl the database and user authentication information
     connection-string:
@@ -48,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: azure/sql-action@v2
+    - uses: azure/sql-action@v2.1
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './Database.sqlproj'
@@ -71,7 +71,7 @@ jobs:
     - uses: azure/login@v1                            # Azure login required to add a temporary firewall rule
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
-    - uses: azure/sql-action@v2
+    - uses: azure/sql-action@v2.1
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './sqlscripts/*.sql'
@@ -88,7 +88,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: azure/sql-action@v2
+    - uses: azure/sql-action@v2.1
       with:
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './Database.dacpac'
@@ -101,18 +101,7 @@ jobs:
 
 ### Authentication and Connection String
 
-The v1.x version of sql-action supports SQL authentication only in the connection string. Starting in v2, AAD Password, AAD Service Principal, and AAD Default authentications are also supported.
-
-The basic format of a connection string includes a series of keyword/value pairs separated by semicolons. The equal sign (=) connects each keyword and its value. (Ex: Key1=Val1;Key2=Val2)  An example connection string template is: `Server=<servername>; User ID=<user_id>; Password=<password>; Initial Catalog=<database>`.
-
-The following rules are to be followed while passing special characters in values:
-1. To include values that contain a semicolon, single-quote character, or double-quote character, the value must be enclosed in double quotation marks. 
-2. If the value contains both a semicolon and a double-quote character, the value can be enclosed in single quotation marks. 
-3. The single quotation mark is also useful if the value starts with a double-quote character. Conversely, the double quotation mark can be used if the value starts with a single quotation mark. 
-4. If the value contains both single-quote and double-quote characters, the quotation mark character used to enclose the value must be doubled every time it occurs within the value.
-        
-
-For more information about connection strings, see https://aka.ms/sqlconnectionstring
+The v1.x version of sql-action supports SQL authentication only in the connection string. Starting in v2, AAD Password, AAD Service Principal, and AAD Default authentications are also supported.  **Read more about implementing sql-action with different authentication methods in the [connection](CONNECTION.md) guide.**
 
 ### Arguments
 
@@ -132,18 +121,12 @@ sql-action is supported on both Windows and Linux environments.  The [default im
 
 If you *can* use the option [Allow Azure Services and resources to access this server](https://docs.microsoft.com/en-us/azure/azure-sql/database/firewall-configure#connections-from-inside-azure), you are all set and you don't need to to anything else to allow GitHub Action to connect to your Azure SQL database.
 
-If you *cannot* use the aforementioned option, the action can automatically add and remove a [SQL server firewall rule](https://docs.microsoft.com/azure/sql-database/sql-database-server-level-firewall-rule) specific to the GitHub Action runner's IP address. Without the firewall rule, the runner cannot communicate with Azure SQL Database. **To enable the action to automatically add/remove a firewall rule, add an [`Azure/login`](https://github.com/Azure/login) step before the `sql-action` step.** Also, the service principal used in the Azure login action needs to have elevated permissions, i.e. membership in SQL Security Manager RBAC role, or a similarly high permission in the database to create the firewall rule.
-
-Potential errors:
-- If the Azure/login action is not included, then the sql action would fail with a firewall exception and appropriate messaging.
-- Alternatively, if enough permissions are not granted on the service principal or login action is not included, then the firewall rules have to be explicitly managed by user using CLI/PS scripts.
+If you *cannot* use the aforementioned option, the action can automatically add and remove a [SQL server firewall rule](https://docs.microsoft.com/azure/sql-database/sql-database-server-level-firewall-rule) specific to the GitHub Action runner's IP address. Without the firewall rule, the runner cannot communicate with Azure SQL Database. Read more about this in the [connection](CONNECTION.md) guide.
 
 
-Azure SQL Action for GitHub is supported for the Azure public cloud as well as Azure government clouds ('AzureUSGovernment' or 'AzureChinaCloud'). Before running this action, login to the respective Azure Cloud  using [Azure Login](https://github.com/Azure/login) by setting appropriate value for the `environment` parameter.
+#### Azure Credentials for Login (quickstart)
 
-#### Azure Credentials for Login
-
-If you need to configure Azure Credentials to automatically manage firewall rules, you need to create a Service Principal, and store the related credentials into a GitHub Secret so that it can be used by the Azure Login actions to authenticate and authorize any subsequent request.
+**To enable the action to automatically add/remove a firewall rule, add an [`Azure/login`](https://github.com/Azure/login) step before the `sql-action` step.** Also, the service principal used in the Azure login action needs to have elevated permissions, i.e. membership in SQL Security Manager RBAC role, or a similarly high permission in the database to create the firewall rule. Read more about this and other authentication methods in the [connection](CONNECTION.md) guide.
 
 Paste the output of the below [az cli](https://docs.microsoft.com/cli/azure/?view=azure-cli-latest) command as the value of secret variable, for example `AZURE_CREDENTIALS`.
 
@@ -186,7 +169,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: azure/sql-action@v2
+    - uses: azure/sql-action@v2.1
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './Database.sqlproj'
@@ -239,7 +222,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: azure/sql-action@v2
+    - uses: azure/sql-action@v2.1
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './PreviousDatabase.dacpac'
@@ -251,14 +234,5 @@ jobs:
 
 ## ✏️ Contributing
 
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a
-Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
+For more information on contributing to this project, please see [Contributing](CONTRIBUTING.md).
 
-When you submit a pull request, a CLA bot will automatically determine whether you need to provide
-a CLA and decorate the PR appropriately (e.g. status check, comment). Simply follow the instructions
-provided by the bot. You will only need to do this once across all repos using our CLA.
-
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
-contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
