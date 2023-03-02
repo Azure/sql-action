@@ -3,6 +3,8 @@
 
 import * as core from '@actions/core';
 import * as tc from '@actions/tool-cache';
+import * as path from 'path';
+import uuidV4 from 'uuid/v4';
 
 export const sqlcmdToolName = 'go-sqlcmd';
 export const sqlcmdVersion = '0.12.0';
@@ -36,7 +38,8 @@ export default class Setup {
                 return await tc.extractTar(downloadPath, undefined, 'xj');
     
             case 'win32':
-                downloadPath = await tc.downloadTool(`https://github.com/microsoft/go-sqlcmd/releases/download/v${sqlcmdVersion}/sqlcmd-v${sqlcmdVersion}-windows-x64.zip`);
+                const dest = path.join(process.env['RUNNER_TEMP'] || '', uuidV4()+'.zip');
+                downloadPath = await tc.downloadTool(`https://github.com/microsoft/go-sqlcmd/releases/download/v${sqlcmdVersion}/sqlcmd-v${sqlcmdVersion}-windows-x64.zip`, dest);
                 return await tc.extractZip(downloadPath);
     
             default:
