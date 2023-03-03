@@ -38,6 +38,8 @@ export default class Setup {
                 return await tc.extractTar(downloadPath, undefined, 'xj');
     
             case 'win32':
+                // forcing a .zip extension on the downloaded item due to inconsistent windows behavior in unzipping files with no extension
+                // upstream issue: https://github.com/actions/toolkit/issues/1179
                 const dest = path.join(process.env['RUNNER_TEMP'] || '', uuidV4()+'.zip');
                 downloadPath = await tc.downloadTool(`https://github.com/microsoft/go-sqlcmd/releases/download/v${sqlcmdVersion}/sqlcmd-v${sqlcmdVersion}-windows-x64.zip`, dest);
                 return await tc.extractZip(downloadPath);
