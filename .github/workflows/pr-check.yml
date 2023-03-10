@@ -9,6 +9,9 @@ on:
     paths:
       - '.github/workflows/pr-check.yml'
 
+permissions:
+  id-token: write # This is needed for Azure login with OIDC
+
 jobs:
   deploy:
     environment: Automation test # this environment requires approval before running the action
@@ -45,7 +48,9 @@ jobs:
     - name: Azure Login
       uses: azure/login@v1
       with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
     # Deploy a DACPAC with only a table to server
     - name: Test DACPAC Action
