@@ -9,6 +9,9 @@ on:
     paths:
       - '.github/workflows/pr-check.yml'
 
+permissions:
+  id-token: write # This is needed for Azure login with OIDC
+
 jobs:
   deploy:
     environment: Automation test # this environment requires approval before running the action
