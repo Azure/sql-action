@@ -1,43 +1,41 @@
 # Azure SQL Deploy
 
-This repository contains the sql-action GitHub Action for deploying changes to Azure SQL or SQL Server in a dacpac, SQL scripts, or an SDK-style SQL project. With the Azure SQL Action for GitHub, you can automate your workflow to deploy updates to Azure SQL or SQL Server.
+Azure SQL Deploy is a GitHub Action designed to simplify the deployment of changes to Azure SQL or SQL Server databases using DACPACs, SQL scripts, or SDK-style SQL projects. With Azure SQL Deploy, users can automate workflows to streamline database updates for both Azure SQL and SQL Server.
 
+Start today with a [free Azure account](https://azure.com/free/open-source)!
 
-
-Get started today with a [free Azure account](https://azure.com/free/open-source)!
-
-
-Looking to develop with SQL for free, locally and offline, before deploying with GitHub?  Check out the [Azure SQL local emulator](https://aka.ms/azuredbemulator) and [SQL Server Developer Edition](https://www.microsoft.com/sql-server/sql-server-downloads)!
-
+If you prefer to develop with SQL locally and offline before deploying with GitHub, consider using the [Azure SQL local emulator](https://aka.ms/azuredbemulator) and [SQL Server Developer Edition](https://www.microsoft.com/sql-server/sql-server-downloads).
 
 ## 🚀 Usage
-The definition of this GitHub Action is in [action.yml](https://github.com/Azure/sql-action/blob/master/action.yml).  Learn more in the [user guide](#📓-user-guide).
+
+To integrate this GitHub Action, specify it in your workflow YAML file as depicted below. For more comprehensive insights, refer to the [user guide](#📓-user-guide).
 
 ```yaml
-- uses: azure/sql-action@v2.2
+- name: Deploy to Azure SQL
+  uses: Azure/sql-action@v2.2
   with:
-    # required, connection string incl the database and user authentication information
+    # Required: Connection string including database and user authentication information
     connection-string:
-
-    # required, path to either a .sql, .dacpac, or .sqlproj file
+    
+    # Required: Path to either a .sql, .dacpac, or .sqlproj file
     path:
-
-    # optional when using a .sql script, required otherwise
-    # sqlpackage action on the .dacpac or .sqlproj file, supported options are: Publish, Script, DeployReport, DriftReport
+    
+    # Optional when using a .sql script, mandatory otherwise
+    # Supported actions on the .dacpac or .sqlproj file: Publish, Script, DeployReport, DriftReport
     action:
-
-    # optional additional sqlpackage or go-sqlcmd arguments
+    
+    # Optional additional SQL package or go-sqlcmd arguments
     arguments:
-
-    # optional additional dotnet build options when building a database project file
+    
+    # Optional additional .NET build options when building a database project file
     build-arguments:
 ```
 
 ## 🎨 Samples
 
-### Build and deploy a SQL project
+### Build and Deploy a SQL Project
 
-> **Note:** The database project must use the [Microsoft.Build.Sql](https://www.nuget.org/packages/microsoft.build.sql/) SDK.
+> **Note:** The database project must incorporate the [Microsoft.Build.Sql](https://www.nuget.org/packages/microsoft.build.sql/) SDK.
 
 ```yaml
 # .github/workflows/sql-deploy.yml
@@ -57,7 +55,7 @@ jobs:
         arguments: '/p:DropObjectsNotInSource=true'   # Optional properties and parameters for SqlPackage Publish
 ```
 
-### Deploy SQL scripts to an Azure SQL Database with a temporary firewall rule
+### Deploy SQL Scripts to an Azure SQL Database with a Temporary Firewall Rule
 
 ```yaml
 # .github/workflows/sql-deploy.yml
@@ -77,7 +75,7 @@ jobs:
         path: './sqlscripts/*.sql'
 ```
 
-### Deploy a DACPAC to an Azure SQL database with Allow Azure Services access enabled
+### Deploy a DACPAC to an Azure SQL Database with Allow Azure Services Access Enabled
 
 ```yaml
 # .github/workflows/sql-deploy.yml
@@ -101,40 +99,39 @@ jobs:
 
 ### Authentication and Connection String
 
-The v1.x version of sql-action supports SQL authentication only in the connection string. Starting in v2, AAD Password, AAD Service Principal, and AAD Default authentications are also supported.  **Read more about implementing sql-action with different authentication methods in the [connection](CONNECTION.md) guide.**
+The v1.x version of sql-action supports SQL authentication only in the connection string. Starting in v2, AAD Password, AAD Service Principal, and AAD Default authentications are also supported. **Learn more about implementing sql-action with various authentication methods in the [connection](CONNECTION.md) guide.**
 
 ### Arguments
 
-sql-action supports passing arguments to SqlPackage, go-sqlcmd, and dotnet build.
-- **SqlPackage**: SqlPackage publish properties are passed to the SqlPackage utility from the `arguments` property. More information on these properties is available in the [SqlPackage publish](https://docs.microsoft.com/sql/tools/sqlpackage/sqlpackage-publish#properties-specific-to-the-publish-action) documentation. SqlPackage [parameters](https://docs.microsoft.com/sql/tools/sqlpackage/sqlpackage-publish#parameters-for-the-publish-action) that do not impact the source or target setting are also valid, including `/Profile:` for a publish profile, `/DeployReportPath:` for a deployment report, and `/Variables:` to set SQLCMD variable values.
-- **go-sqlcmd**: go-sqlcmd parameters are passed to the go-sqlcmd utility from the `arguments` property. This enables SQLCMD variables `-v` to be passed  to scripts as seen in the [sqlcmd documentation](https://docs.microsoft.com/sql/tools/sqlcmd-utility#syntax).
-- **dotnet build**: dotnet build options are passed to the SQL project build step from the `build-arguments` property. More information on options is available in the [dotnet build documentation](https://docs.microsoft.com/dotnet/core/tools/dotnet-build#options).
+sql-action enables passing arguments to SqlPackage, go-sqlcmd, and dotnet build.
+- **SqlPackage**: SqlPackage publish properties are conveyed to the SqlPackage utility from the `arguments` property. Additional details on these properties can be found in the [SqlPackage publish](https://docs.microsoft.com/sql/tools/sqlpackage/sqlpackage-publish#properties-specific-to-the-publish-action) documentation. SqlPackage [parameters](https://docs.microsoft.com/sql/tools/sqlpackage/sqlpackage-publish#parameters-for-the-publish-action) that do not affect the source or target setting are also acceptable, including `/Profile:` for a publish profile, `/DeployReportPath:` for a deployment report, and `/Variables:` to set SQLCMD variable values.
+- **go-sqlcmd**: go-sqlcmd parameters are conveyed to the go-sqlcmd utility from the `arguments` property. This enables SQLCMD variables `-v` to be passed to scripts as described in the [sqlcmd documentation](https://docs.microsoft.com/sql/tools/sqlcmd-utility#syntax).
+- **dotnet build**: dotnet build options are conveyed to the SQL project build step from the `build-arguments` property. Additional details on options can be found in the [dotnet build documentation](https://docs.microsoft.com/dotnet/core/tools/dotnet-build#options).
 
 ### Environments
 
-sql-action is supported on both Windows and Linux environments.  The [default images](https://github.com/actions/virtual-environments) include the prerequisites:
-
+sql-action is compatible with both Windows and Linux environments. The [default images](https://github.com/actions/virtual-environments) are equipped with the prerequisites:
 - sqlpackage (for sqlproj or dacpac deployment)
 - dotnet (for sqlproj build)
 
 ### Firewall Rules/Access
 
-If you *can* use the option [Allow Azure Services and resources to access this server](https://docs.microsoft.com/en-us/azure/azure-sql/database/firewall-configure#connections-from-inside-azure), you are all set and you don't need to to anything else to allow GitHub Action to connect to your Azure SQL database.
+If leveraging the option [Allow Azure Services and resources to access this server](https://docs.microsoft.com/en-us/azure/azure-sql/database/firewall-configure#connections-from-inside-azure) is feasible, no additional actions are required to enable GitHub Action to connect to your Azure SQL database.
 
-If you *cannot* use the aforementioned option, the action can automatically add and remove a [SQL server firewall rule](https://docs.microsoft.com/azure/sql-database/sql-database-server-level-firewall-rule) specific to the GitHub Action runner's IP address. Without the firewall rule, the runner cannot communicate with Azure SQL Database. Read more about this in the [connection](CONNECTION.md) guide.
+If the aforementioned option is not viable, the action can autonomously add and remove a [SQL server firewall rule](https://docs.microsoft.com/azure/sql-database/sql-database-server-level-firewall-rule) specific to the GitHub Action runner's IP address. Without this firewall rule, the runner is unable to communicate with the Azure SQL Database. Further information is available in the [connection](CONNECTION.md) guide.
 
 
-#### Azure Credentials for Login (quickstart)
+#### Azure Credentials for Login (Quickstart)
 
-**To enable the action to automatically add/remove a firewall rule, add an [`Azure/login`](https://github.com/Azure/login) step before the `sql-action` step.** Also, the service principal used in the Azure login action needs to have elevated permissions, i.e. membership in SQL Security Manager RBAC role, or a similarly high permission in the database to create the firewall rule. Read more about this and other authentication methods in the [connection](CONNECTION.md) guide.
+**To empower the action to autonomously add/remove a firewall rule, incorporate an [`Azure/login`](https://github.com/Azure/login) step before the `sql-action` step.** Additionally, the service principal utilized in the Azure login action should possess elevated permissions, e.g. membership in the SQL Security Manager RBAC role, or a similarly high permission in the database to create the firewall rule. Explore more about this and other authentication methods in the [connection](CONNECTION.md) guide.
 
-Paste the output of the below [az cli](https://docs.microsoft.com/cli/azure/?view=azure-cli-latest) command as the value of secret variable, for example `AZURE_CREDENTIALS`.
+Execute the following [az cli](https://docs.microsoft.com/cli/azure/?view=azure-cli-latest) command and paste the output as the value of the secret variable, for example, `AZURE_CREDENTIALS`.
 
 ```bash
 az ad sp create-for-rbac --role contributor --sdk-auth --name "sqldeployserviceprincipal" \
   --scopes /subscriptions/{subscription-id}/resourceGroups/{resource-group}
 ```
-Replace {subscription-id}, {resource-group} with the subscription ID and resource group of the Azure SQL server
+Substitute {subscription-id}, {resource-group} with the subscription ID and resource group of the Azure SQL server.
 
 The command should output a JSON object similar to this:
 
@@ -150,8 +147,7 @@ The command should output a JSON object similar to this:
 
 ### Secrets
 
-All the above examples use `{{secrets.AZURE_SQL}}` syntax for sensitive information, where content such as connection strings are stored in GitHub secrets. To create [secrets](https://help.github.com/en/github/automating-your-workflow-with-github-actions/virtual-environments-for-github-actions#creating-and-using-secrets-encrypted-variables) in GitHub, navigate within your repository to **Settings** and then **Secrets**. Be careful to check the connection string which you copy from Azure SQL as the connection string has this **Password={your_password}** and you will need to supply the correct password for your connection string.
-
+In all the provided examples, the `{{secrets.AZURE_SQL}}` syntax is used for sensitive information, where content such as connection strings is stored in GitHub secrets. To create [secrets](https://help.github.com/en/github/automating-your-workflow-with-github-actions/virtual-environments-for-github-actions#creating-and-using-secrets-encrypted-variables) in GitHub, navigate within your repository to **Settings** and then **Secrets**. When copying the connection string from Azure SQL, verify it as the connection string contains **Password={your_password}**, and you will need to supply the correct password for your connection string.
 
 
 ## 📦 End-to-End Examples
@@ -159,7 +155,7 @@ All the above examples use `{{secrets.AZURE_SQL}}` syntax for sensitive informat
 ### Create Azure SQL Database + SQL Projects
 
 1. Follow the tutorial [Azure SQL Quickstart to create a single database](https://docs.microsoft.com/azure/azure-sql/database/single-database-create-quickstart?tabs=azure-portal#create-a-single-database)
-2. Copy the below template and paste the contents in `.github/workflows/` in your project repository as `sql-workflow.yml`.
+2. Copy the template below and paste the contents in `.github/workflows/` in your project repository as `sql-workflow.yml`.
 ```yaml
 # .github/workflows/sql-workflow.yml
 on: [push]
@@ -175,8 +171,8 @@ jobs:
         path: './Database.sqlproj'
         action: 'publish'
 ```
-3. Place the connection string from the Azure Portal in GitHub secrets as `AZURE_SQL_CONNECTION_STRING`. Connection string format is: `Server=<server.database.windows.net>;User ID=<user>;Password=<password>;Initial Catalog=<database>`.
-4. Copy the below SQL project template and paste the content in your project repository as `Database.sqlproj`.
+3. Store the connection string from the Azure Portal in GitHub secrets as `AZURE_SQL_CONNECTION_STRING`. The connection string format is: `Server=<server.database.windows.net>;User ID=<user>;Password=<password>;Initial Catalog=<database>`.
+4. Copy the SQL project template below and paste the content in your project repository as `Database.sqlproj`.
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build">
@@ -188,7 +184,7 @@ jobs:
   </PropertyGroup>
 </Project>
 ```
-5. Place any additional SQL object definitions in the project folder or in subfolders.  An example table to get you started is:
+5. Place any additional SQL object definitions in the project folder or in subfolders. Here is an example table to get you started:
 ```sql
 CREATE TABLE [dbo].[Product](
 	[ProductID] [int] IDENTITY(1,1) PRIMARY KEY NOT NULL,
@@ -204,15 +200,15 @@ CREATE TABLE [dbo].[Product](
 	[ModifiedDate] [datetime] NOT NULL
 )
 ```
-6. Commit and push your project to GitHub repository, you should see a new GitHub Action initiated in **Actions** tab.
-7. For further use of SQL projects in VS Code and Azure Data Studio, check out [http://aka.ms/azuredatastudio-sqlprojects](http://aka.ms/azuredatastudio-sqlprojects) for more information.
+6. Commit and push your project to the GitHub repository; you should then see a new GitHub Action initiated in the **Actions** tab.
+7. For further exploration of SQL projects in VS Code and Azure Data Studio, refer to [http://aka.ms/azuredatastudio-sqlprojects](http://aka.ms/azuredatastudio-sqlprojects).
 
 
 ### Create Azure SQL Database + Deploy Existing Schema (dacpac)
 
-1. Create a dacpac from an existing SQL database with either [SSMS](https://docs.microsoft.com/sql/relational-databases/data-tier-applications/extract-a-dac-from-a-database), [Azure Data Studio](https://docs.microsoft.com/sql/azure-data-studio/extensions/sql-server-dacpac-extension) or [SqlPackage CLI](https://docs.microsoft.com/sql/tools/sqlpackage/sqlpackage-extract).  Place the dacpac file at the root of your repository.
+1. Create a dacpac from an existing SQL database using either [SSMS](https://docs.microsoft.com/sql/relational-databases/data-tier-applications/extract-a-dac-from-a-database), [Azure Data Studio](https://docs.microsoft.com/sql/azure-data-studio/extensions/sql-server-dacpac-extension) or [SqlPackage CLI](https://docs.microsoft.com/sql/tools/sqlpackage/sqlpackage-extract). Place the dacpac file at the root of your repository.
 2. Follow the tutorial [Azure SQL Quickstart to create a single database](https://docs.microsoft.com/azure/azure-sql/database/single-database-create-quickstart?tabs=azure-portal#create-a-single-database)
-3. Copy the below template and paste the contents in `.github/workflows/` in your project repository as `sql-workflow.yml`, changing the dacpac file name as appropriate.
+3. Copy the template below and paste the contents in `.github/workflows/’ in your project repository as `sql-workflow.yml`, modifying the dacpac file name as necessary.
 ```yaml
 # .github/workflows/sql-workflow.yml
 on: [push]
@@ -228,11 +224,10 @@ jobs:
         path: './PreviousDatabase.dacpac'
         action: 'publish'
 ```
-4. Place the connection string from the Azure Portal in GitHub secrets as `AZURE_SQL_CONNECTION_STRING`. Connection string format is: `Server=<server.database.windows.net>;User ID=<user>;Password=<password>;Initial Catalog=<database>`.
-5. Commit and push your project to GitHub repository, you should see a new GitHub Action initiated in **Actions** tab.
+4. Store the connection string from the Azure Portal in GitHub secrets as `AZURE_SQL_CONNECTION_STRING`. The connection string format is: `Server=<server.database.windows.net>;User ID=<user>;Password=<password>;Initial Catalog=<database>`.
+5. Commit and push your project to the GitHub repository; you should then see a new GitHub Action initiated in the **Actions** tab.
 
 
 ## ✏️ Contributing
 
 For more information on contributing to this project, please see [Contributing](CONTRIBUTING.md).
-
