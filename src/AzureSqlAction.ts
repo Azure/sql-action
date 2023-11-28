@@ -19,6 +19,7 @@ export interface IActionInputs {
     connectionConfig: SqlConnectionConfig;
     filePath: string;
     additionalArguments?: string;
+    useManagedInstance?: boolean;
 }
 
 export interface IDacpacActionInputs extends IActionInputs {

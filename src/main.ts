@@ -24,12 +24,14 @@ export default async function run() {
         const inputs = getInputs();
         const azureSqlAction = new AzureSqlAction(inputs);
         
-        const runnerIPAddress = await SqlUtils.detectIPAddress(inputs.connectionConfig);
-        if (runnerIPAddress) {
-            let azureResourceAuthorizer = await AuthorizerFactory.getAuthorizer();
-            let azureSqlResourceManager = await AzureSqlResourceManager.getResourceManager(inputs.connectionConfig.Config.server, azureResourceAuthorizer);
-            firewallManager = new FirewallManager(azureSqlResourceManager);
-            await firewallManager.addFirewallRule(runnerIPAddress);
+        if (!inputs.useManagedInstance) {
+            const runnerIPAddress = await SqlUtils.detectIPAddress(inputs.connectionConfig);
+            if (runnerIPAddress) {
+                let azureResourceAuthorizer = await AuthorizerFactory.getAuthorizer();
+                let azureSqlResourceManager = await AzureSqlResourceManager.getResourceManager(inputs.connectionConfig.Config.server, azureResourceAuthorizer);
+                firewallManager = new FirewallManager(azureSqlResourceManager);
+                await firewallManager.addFirewallRule(runnerIPAddress);
+            }
         }
         await azureSqlAction.execute();
     }
@@ -64,6 +66,7 @@ function getInputs(): IActionInputs {
 
     // Optional inputs
     const action = core.getInput('action');
+    const useManagedInstance = core.getInput('use-managed-instance') === 'true';
 
     switch (path.extname(filePath).toLowerCase()) {
         case Constants.sqlFileExtension:
@@ -71,6 +74,7 @@ function getInputs(): IActionInputs {
                 actionType: ActionType.SqlAction,
                 connectionConfig: connectionConfig,
                 filePath: filePath,
+                useManagedInstance: useManagedInstance,
                 additionalArguments: core.getInput('arguments') || undefined
             };
 
@@ -83,6 +87,7 @@ function getInputs(): IActionInputs {
                 actionType: ActionType.DacpacAction,
                 connectionConfig: connectionConfig,
                 filePath: filePath,
+                useManagedInstance: useManagedInstance,
                 sqlpackageAction: AzureSqlActionHelper.getSqlpackageActionTypeFromString(action),
                 additionalArguments: core.getInput('arguments') || undefined
             } as IDacpacActionInputs;
@@ -96,6 +101,7 @@ function getInputs(): IActionInputs {
                 actionType: ActionType.BuildAndPublish,
                 connectionConfig: connectionConfig,
                 filePath: filePath,
+                useManagedInstance: useManagedInstance,
                 buildArguments: core.getInput('build-arguments') || undefined,
                 sqlpackageAction: AzureSqlActionHelper.getSqlpackageActionTypeFromString(action),
                 additionalArguments: core.getInput('arguments') || undefined
