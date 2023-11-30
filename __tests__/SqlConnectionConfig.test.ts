@@ -112,13 +112,13 @@ describe('SqlConnectionConfig tests', () => {
     });
 
     describe('parse server name in connection strings', () => {
-        // all server names will be 'test1.database.windows.net'
+        // servernames are optionally combined with tcp prefix, port number, and servername formats
         const connectionStrings = [
             [`Server=test1.database.windows.net;Database=testdb;User Id=user;Password=placeholder;Authentication=SQLPassword`, 'test1.database.windows.net', '', 'Validates server name without prefix'],
             [`Server=tcp:test1.database.windows.net;Database=testdb;User Id=user;Password=placeholder;Authentication=SQLPassword`, 'test1.database.windows.net', '', 'Validates server name with tcp prefix'],
             [`Server=tcp:test1.database.windows.net,1433;Database=testdb;User Id=user;Password=placeholder;Authentication=SQLPassword`, 'test1.database.windows.net', '1433', 'Validates server name with tcp prefix and port'],
-            [`Server=test1.database.windows.net,1433;Database=testdb;User Id=user;Password=placeholder;Authentication=SQLPassword`, 'test1.database.windows.net', '1433', 'Validates server name with no prefix and port'],
-            [`Server=test1.database.windows.net,3342;Database=testdb;User Id=user;Password=placeholder;Authentication=SQLPassword`, 'test1.database.windows.net', '3342', 'Validates server name with no prefix and port'],
+            [`Server=database.windows.net,1433;Database=testdb;User Id=user;Password=placeholder;Authentication=SQLPassword`, 'database.windows.net', '1433', 'Validates server name with no prefix and port'],
+            [`Server=test2.20ee0ae768cc.database.windows.net,3342;Database=testdb;User Id=user;Password=placeholder;Authentication=SQLPassword`, 'test2.20ee0ae768cc.database.windows.net', '3342', 'Validates server name with no prefix and port'],
             ];
             
             it.each(connectionStrings)('should parse server name successfully', (connectionStringInput, expectedServerName, expectedPortNumber) => {
