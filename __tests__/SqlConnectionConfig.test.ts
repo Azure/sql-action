@@ -114,16 +114,18 @@ describe('SqlConnectionConfig tests', () => {
     describe('parse server name in connection strings', () => {
         // all server names will be 'test1.database.windows.net'
         const connectionStrings = [
-            [`Server=test1.database.windows.net;Database=testdb;User Id=user;Password=placeholder;Authentication=SQLPassword`, 'test1.database.windows.net', 'Validates server name without prefix'],
-            [`Server=tcp:test1.database.windows.net;Database=testdb;User Id=user;Password=placeholder;Authentication=SQLPassword`, 'test1.database.windows.net', 'Validates server name with tcp prefix'],
-            [`Server=tcp:test1.database.windows.net,1433;Database=testdb;User Id=user;Password=placeholder;Authentication=SQLPassword`, 'test1.database.windows.net', 'Validates server name with tcp prefix and port'],
-            [`Server=test1.database.windows.net,1433;Database=testdb;User Id=user;Password=placeholder;Authentication=SQLPassword`, 'test1.database.windows.net', 'Validates server name with no prefix and port'],
+            [`Server=test1.database.windows.net;Database=testdb;User Id=user;Password=placeholder;Authentication=SQLPassword`, 'test1.database.windows.net', '', 'Validates server name without prefix'],
+            [`Server=tcp:test1.database.windows.net;Database=testdb;User Id=user;Password=placeholder;Authentication=SQLPassword`, 'test1.database.windows.net', '', 'Validates server name with tcp prefix'],
+            [`Server=tcp:test1.database.windows.net,1433;Database=testdb;User Id=user;Password=placeholder;Authentication=SQLPassword`, 'test1.database.windows.net', '1433', 'Validates server name with tcp prefix and port'],
+            [`Server=test1.database.windows.net,1433;Database=testdb;User Id=user;Password=placeholder;Authentication=SQLPassword`, 'test1.database.windows.net', '1433', 'Validates server name with no prefix and port'],
+            [`Server=test1.database.windows.net,3342;Database=testdb;User Id=user;Password=placeholder;Authentication=SQLPassword`, 'test1.database.windows.net', '3342', 'Validates server name with no prefix and port'],
             ];
             
-            it.each(connectionStrings)('should parse server name successfully', (connectionStringInput, expectedServerName) => {
+            it.each(connectionStrings)('should parse server name successfully', (connectionStringInput, expectedServerName, expectedPortNumber) => {
                 const config = new SqlConnectionConfig(connectionStringInput);
         
                 expect(config.Config.server).toMatch(expectedServerName);
+                expect(config.Config.port?.toString()).toMatch(expectedPortNumber);
                 expect(config.Config.database).toMatch('testdb');
                 expect(config.ConnectionString).toMatch(connectionStringInput);
             });
