@@ -80,8 +80,8 @@ export default class SqlUtils {
             };
         }
         catch (error) {
-            core.debug(`${error.message}`);
-            core.debug(`SqlCmd stderr: ${sqlCmdError}`);
+            console.log(`${error.message}`);
+            console.log(`SqlCmd stderr: ${sqlCmdError}`);
             return {
                 success: false,
                 errorMessage: sqlCmdError,
@@ -123,7 +123,7 @@ export default class SqlUtils {
                 throw new Error(`Platform ${process.platform} is not supported.`);
         }
 
-        let sqlcmdCall = `"${sqlCmdPath}" -S ${connectionConfig.server} -d ${connectionConfig.database}`;
+        let sqlcmdCall = `"${sqlCmdPath}" -S ${connectionConfig.server},${connectionConfig.port ?? 1433} -d ${connectionConfig.database}`;
 
         // Determine the correct sqlcmd arguments based on the auth type in connectionConfig
         const authentication = connectionConfig['authentication'];
