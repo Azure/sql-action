@@ -14,7 +14,7 @@ Looking to develop with SQL for free, locally and offline, before deploying with
 The definition of this GitHub Action is in [action.yml](https://github.com/Azure/sql-action/blob/master/action.yml).  Learn more in the [user guide](#📓-user-guide).
 
 ```yaml
-- uses: azure/sql-action@v2.1
+- uses: azure/sql-action@v2.2
   with:
     # required, connection string incl the database and user authentication information
     connection-string:
@@ -48,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: azure/sql-action@v2.1
+    - uses: azure/sql-action@v2.2
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './Database.sqlproj'
@@ -71,7 +71,7 @@ jobs:
     - uses: azure/login@v1                            # Azure login required to add a temporary firewall rule
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
-    - uses: azure/sql-action@v2.1
+    - uses: azure/sql-action@v2.2
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './sqlscripts/*.sql'
@@ -88,7 +88,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: azure/sql-action@v2.1
+    - uses: azure/sql-action@v2.2
       with:
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './Database.dacpac'
@@ -169,7 +169,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: azure/sql-action@v2.1
+    - uses: azure/sql-action@v2.2
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './Database.sqlproj'
@@ -222,7 +222,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: azure/sql-action@v2.1
+    - uses: azure/sql-action@v2.2
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './PreviousDatabase.dacpac'
