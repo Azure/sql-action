@@ -9,13 +9,16 @@ jobs:
     - name: Check out
       uses: actions/checkout@v3
 
+    - name: Copy the committed main.js file
+      run: mv lib/main.js /tmp
+
     - name: Validate build
       run: |
         npm install
         npm run build
 
     - name: Check if main.js has differences
-      run: git diff --exit-code lib/main.js
+      run: git diff --ignore-all-space --exit-code lib/main.js /tmp/main.js
       id: diff
 
     # If main.js was different than expected, upload the actual version
@@ -24,4 +27,4 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: main.js
-        path: lib/index.js
+        path: lib/main.js
