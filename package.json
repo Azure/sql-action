@@ -23,7 +23,7 @@
     "@actions/core": "^1.2.6",
     "@actions/exec": "^1.0.1",
     "@actions/tool-cache": "^2.0.1",
-    "azure-actions-webclient": "^1.0.3",
+    "azure-actions-webclient": "^1.1.1",
     "glob": "^7.2.0",
     "mssql": "^8.1.0",
     "uuid": "^3.3.2",
