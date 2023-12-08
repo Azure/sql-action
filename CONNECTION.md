@@ -26,11 +26,24 @@ Azure SQL Action for GitHub is supported for the Azure public cloud as well as A
 - If the Azure/login action is not included, then the sql action would fail with a firewall exception and appropriate messaging.
 - Alternatively, if enough permissions are not granted on the service principal or login action is not included, then the firewall rules have to be explicitly managed by user using CLI/PS scripts.
 
-## Azure SQL Managed Instance and SQL Server
+## Azure SQL Managed Instance
 
-GitHub sql-action requires that prior to running the action against Azure SQL Managed Instance or SQL Server, the workflow must have network access to the SQL instance. For network architectures where public access is not available, [self-hosted runners](https://docs.github.com/actions/hosting-your-own-runners/about-self-hosted-runners) can be leveraged.
+GitHub sql-action requires that prior to running the action against Azure SQL Managed Instance, the workflow must have network access to the SQL instance. An overview of Azure SQL Managed Instance [networking](https://learn.microsoft.com/azure/azure-sql/managed-instance/connectivity-architecture-overview#high-level-connectivity-architecture) is available to assist in identifying the appropriate network access for your environment.
 
-An overview of Azure SQL Managed Instance [networking](https://learn.microsoft.com/azure/azure-sql/managed-instance/connectivity-architecture-overview#high-level-connectivity-architecture) is available to assist in identifying the appropriate network access.
+Note that the public endpoint for Azure SQL Managed Instance utilizes a non-standard port (`Server=<mi_name>.public.<dns_zone>.database.windows.net,3342;Initial Catalog=<database>;...`), which should be included in the connection string. Azure SQL Managed Instance Public Endpoint requires enabling specific traffic in the network security group, detailed in the [public endpoint documentation](https://learn.microsoft.com/azure/azure-sql/managed-instance/public-endpoint-configure).
+
+For network architectures where public access is not available, [self-hosted runners](https://docs.github.com/actions/hosting-your-own-runners/about-self-hosted-runners) can be leveraged to connect to the private endpoints.
+
+> [!IMPORTANT]
+> A failure to connect to the Azure SQL Managed Instance will result in the action attempting to add a firewall rule as if the endpoint with Azure SQL Database, which will fail.  The action will then fail with an error message indicating that the firewall rule could not be added.  If the included error message does not provide enough context for you to further troubleshoot your connectivity, rerun the workflow with [debug logs enabled](https://docs.github.com/actions/managing-workflow-runs/enabling-debug-logging#enabling-runner-diagnostic-logging) to get more detailed logging.
+
+
+## SQL Server
+
+GitHub sql-action requires that prior to running the action against SQL Server, the workflow must have network access to the SQL instance. For network architectures where public access is not available, [self-hosted runners](https://docs.github.com/actions/hosting-your-own-runners/about-self-hosted-runners) can be leveraged.  The SQL Server instance may be hosted in Azure, other public clouds, or on-premises and connect to this action.
+
+> [!IMPORTANT]
+> A failure to connect to the Azure SQL Managed Instance will result in the action attempting to add a firewall rule as if the endpoint with Azure SQL Database, which will fail.  The action will then fail with an error message indicating that the firewall rule could not be added.  If the included error message does not provide enough context for you to further troubleshoot your connectivity, rerun the workflow with [debug logs enabled](https://docs.github.com/actions/managing-workflow-runs/enabling-debug-logging#enabling-runner-diagnostic-logging) to get more detailed logging.
 
 # 🔑 Authentication
 
