@@ -16,7 +16,8 @@ jobs:
   deploy:
     environment: Automation test # this environment requires approval before running the action
     runs-on: ${{ matrix.os }}
-    permissions: read-all
+    permissions:
+      id-token: write
     continue-on-error: true
     strategy:
       matrix:
