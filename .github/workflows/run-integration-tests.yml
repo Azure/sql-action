@@ -3,6 +3,7 @@ jobs:
   trigger-integration-tests:
     name: Trigger Integration Tests
     runs-on: ubuntu-latest
+    permissions: read-all
     steps:
       - name: Trigger test run
         run: |

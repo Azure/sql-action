@@ -5,6 +5,7 @@ jobs:
   check-lib:
     name: Check main.js
     runs-on: ubuntu-latest
+    permissions: read-all
     steps:
     - name: Check out
       uses: actions/checkout@v3
