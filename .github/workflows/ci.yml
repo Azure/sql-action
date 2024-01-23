@@ -4,7 +4,6 @@ jobs:
   build_test_job:
     name: 'Build and test job'
     runs-on: ${{ matrix.os }}
-    permissions: read-all
     strategy:
         matrix:
           os: [windows-latest, ubuntu-latest]
