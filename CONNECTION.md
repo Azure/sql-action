@@ -75,13 +75,13 @@ Additional information on creating a service principal and connecting GitHub to 
 - https://learn.microsoft.com/azure/developer/github/connect-from-azure#use-the-azure-login-action-with-a-service-principal-secret
 
 
-The below [az cli](https://docs.microsoft.com/cli/azure/?view=azure-cli-latest) command creates a service principal with the name `sqldeployserviceprincipal` and the contributor role scoped to the resource group of the Azure SQL Database.
+The below [az cli](https://docs.microsoft.com/cli/azure/?view=azure-cli-latest) command creates a service principal with the name `sqldeployserviceprincipal` and the "SQL Server Contributor" role scoped to the resource group of the Azure SQL Database.
 
 ```bash
-az ad sp create-for-rbac --role contributor --sdk-auth --name "sqldeployserviceprincipal" \
-  --scopes /subscriptions/{subscription-id}/resourceGroups/{resource-group}
+az ad sp create-for-rbac --role "SQL Server Contributor" --sdk-auth --name "sqldeployserviceprincipal" \
+  --scopes /subscriptions/<subscription-id>/resourceGroups/<resource-group>
 ```
-Replace {subscription-id}, {resource-group} with the subscription ID and resource group of the Azure SQL Database.
+Replace `<subscription-id>`, `<resource-group>` with the subscription ID and resource group of the Azure SQL Database.
 
 The command should output a JSON object similar to this:
 
@@ -101,6 +101,33 @@ The output of the command contains the fields `clientId`, `clientSecret`, `subsc
   - uses: Azure/login@v1
     with:
       creds: '{"clientId":"${{ secrets.CLIENT_ID }}","clientSecret":"${{ secrets.CLIENT_SECRET }}","subscriptionId":"${{ secrets.SUBSCRIPTION_ID }}","tenantId":"${{ secrets.TENANT_ID }}"}'
+```
+
+#### Security hardening
+Instead of using the built-in role "[SQL Server Contributor](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#sql-server-contributor)", the use of a [custom role](https://learn.microsoft.com/en-us/azure/role-based-access-control/custom-roles) can futher restrict the permissions of the service principal used to update the firewall rules.
+
+Custom role definition:
+```
+{
+    "properties": {
+        "roleName": "SQL Server Firewall Rules Contributor",
+        "description": "Custom role to control Azure SQL Server firewall rules",
+        "assignableScopes": [
+            "<scope>"
+        ],
+        "permissions": [
+            {
+                "actions": [
+                    "Microsoft.Sql/servers/firewallRules/write",
+                    "Microsoft.Sql/servers/firewallRules/delete"
+                ],
+                "notActions": [],
+                "dataActions": [],
+                "notDataActions": []
+            }
+        ]
+    }
+}
 ```
 
 ### Add the service principal to Azure SQL
