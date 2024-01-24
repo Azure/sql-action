@@ -9,6 +9,12 @@ jobs:
     - name: Check out
       uses: actions/checkout@v3
 
+    - name: Setup Node 16
+      uses: actions/setup-node@v3
+      with:
+        node-version: 16.x
+        cache: npm
+
     - name: Copy the committed main.js file
       run: mv lib/main.js /tmp
 
@@ -18,7 +24,7 @@ jobs:
         npm run build
 
     - name: Check if main.js has differences
-      run: git diff --ignore-all-space --exit-code lib/main.js /tmp/main.js
+      run: git diff --ignore-all-space --exit-code --name-only lib/main.js /tmp/main.js
       id: diff
 
     # If main.js was different than expected, upload the actual version
