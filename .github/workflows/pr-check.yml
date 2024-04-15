@@ -5,8 +5,6 @@ name: pr-check
 
 on:
   pull_request_target:
-    paths-ignore:
-      - '.github/workflows/pr-check.yml'
   pull_request:
     paths:
       - '.github/workflows/pr-check.yml'
