@@ -32,6 +32,8 @@ jobs:
             connection_string_secret: AAD_PASSWORD_CONNECTION_STRING_NO_DATABASE
           - auth_type: service_principal
             connection_string_secret: SERVICE_PRINCIPAL_CONNECTION_STRING_NO_DATABASE
+          - auth_type: aad_default
+            connection_string_secret: AAD_DEFAULT_CONNECTION_STRING_NO_DATABASE
 
     env:
       TEST_DB: 'SqlActionTest-${{ matrix.os }}-${{ matrix.auth_type }}'
