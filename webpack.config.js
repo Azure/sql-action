@@ -20,8 +20,5 @@ module.exports = {
                 loader: "ts-loader"
             }
         ]
-    },
-    optimization: {
-        concatenateModules: false
     }
 };
