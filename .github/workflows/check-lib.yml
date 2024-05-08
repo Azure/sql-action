@@ -9,17 +9,24 @@ jobs:
     - name: Check out
       uses: actions/checkout@v3
 
-    - name: Copy the committed main.js file
-      run: mv lib/main.js /tmp
-
     - name: Validate build
       run: |
         npm install
         npm run build
 
     - name: Check if main.js has differences
-      run: git diff --ignore-all-space --exit-code lib/main.js /tmp/main.js
       id: diff
+      run: |
+        if [ ! -d lib/ ]; then
+          echo "Expected lib/ directory does not exist.  See status below:"
+          ls -la ./
+          exit 1
+        fi
+        if [ "$(git diff --ignore-space-at-eol --text lib/ | wc -l)" -gt "0" ]; then
+          echo "Detected uncommitted changes after build. See status below:"
+          git diff --ignore-space-at-eol --text lib/
+          exit 1
+        fi
 
     # If main.js was different than expected, upload the actual version
     - name: Upload actual main.js
