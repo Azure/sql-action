@@ -45,5 +45,5 @@ jobs:
       id: upload
       uses: actions/upload-artifact@v4
       with:
-        name: dist
+        name: lib
         path: lib/

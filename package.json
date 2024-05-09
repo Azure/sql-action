@@ -5,7 +5,7 @@
   "description": "Azure Sql action",
   "main": "lib/index.js",
   "scripts": {
-    "build": "ncc build ./src/main.ts -o lib --source-map --license LICENSE.txt --minify",
+    "build": "ncc build ./src/main.ts -o lib --source-map --license LICENSE.txt",
     "test": "jest"
   },
   "repository": {
