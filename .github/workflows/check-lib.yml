@@ -1,9 +1,17 @@
-# This workflow verifies lib/main.js has latest changes from src/*.ts
+# In TypeScript actions, `lib/` is a special directory. When you reference
+# an action with the `uses:` property, `lib/index.js` is the code that will be
+# run. For this project, the `lib/index.js` file is transpiled from other
+# source files. This workflow ensures the `lib/` directory contains the
+# expected transpiled code.
+#
+# If this workflow is run from a feature branch, it will act as an additional CI
+# check and fail if the checked-in `lib/` directory does not match what is
+# expected from the build.
 on: pull_request
 
 jobs:
   check-lib:
-    name: Check main.js
+    name: Check index.js
     runs-on: ubuntu-latest
     steps:
     - name: Check out
@@ -14,7 +22,9 @@ jobs:
         npm install
         npm run build
 
-    - name: Check if main.js has differences
+    # This will fail the workflow if the `lib/` directory is different than
+    # expected.
+    - name: Compare Directories
       id: diff
       run: |
         if [ ! -d lib/ ]; then
@@ -28,10 +38,12 @@ jobs:
           exit 1
         fi
 
-    # If main.js was different than expected, upload the actual version
-    - name: Upload actual main.js
-      if: ${{ failure() && steps.diff.conclusion == 'failure' }}
-      uses: actions/upload-artifact@v3
+    # If `lib/` was different than expected, upload the expected version as a
+    # workflow artifact.
+    - if: ${{ failure() && steps.diff.outcome == 'failure' }}
+      name: Upload Artifact
+      id: upload
+      uses: actions/upload-artifact@v4
       with:
-        name: main.js
-        path: lib/main.js
+        name: dist
+        path: lib/

@@ -1,4 +1,4 @@
-// This file is run before main.js to setup the tools that the action depends on
+// This file is run before index.js to setup the tools that the action depends on
 // https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions#runspre
 
 import * as core from '@actions/core';

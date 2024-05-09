@@ -2,7 +2,7 @@
     "tool": "Credential Scanner",
     "suppressions": [
         {
-            "file": "lib/main.js",
+            "file": "lib/index.js",
             "_justification": "Build output"
         }
     ]
