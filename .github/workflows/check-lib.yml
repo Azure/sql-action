@@ -43,8 +43,8 @@ jobs:
     steps:
     - name: Check main.js
       env:
-        diff_ubuntu: ${{ needs.check-lib.outputs.output-ubuntu }}
-        diff_windows: ${{ needs.check-lib.outputs.output-windows }}
+        diff_ubuntu: ${{ needs.check-lib.outputs.output_ubuntu }}
+        diff_windows: ${{ needs.check-lib.outputs.output_windows }}
       run: |
         echo "diff_ubuntu: $diff_ubuntu"
         echo "diff_windows: $diff_windows"
