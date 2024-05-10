@@ -48,7 +48,7 @@ jobs:
       run: |
         echo "diff_ubuntu: $diff_ubuntu"
         echo "diff_windows: $diff_windows"
-        if [ "$diff_ubuntu" -gt "0" ] && [ "$diff_windows" -gt "0" ]; then
+        if [ $diff_ubuntu -gt 0 ] && [ $diff_windows -gt 0 ]; then
           echo "main.js has differences on both Ubuntu and Windows. Check the build artifacts for details."
           exit 1
         fi
