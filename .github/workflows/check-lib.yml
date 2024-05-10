@@ -9,8 +9,8 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-latest]
     outputs:
-      output-ubuntu: ${{ steps.diff-ubuntu.outputs.diff }}
-      output-windows: ${{ steps.diff-windows.outputs.diff }}
+      output_ubuntu: ${{ steps.diff-ubuntu.outputs.diff }}
+      output_windows: ${{ steps.diff-windows.outputs.diff }}
     steps:
     - name: Check out
       uses: actions/checkout@v4
