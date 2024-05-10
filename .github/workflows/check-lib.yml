@@ -46,9 +46,9 @@ jobs:
         diff_ubuntu: ${{ needs.check-lib.outputs.output-ubuntu }}
         diff_windows: ${{ needs.check-lib.outputs.output-windows }}
       run: |
-        echo "diff_ubuntu: $diff-ubuntu"
-        echo "diff_windows: $diff-windows"
-        if [ $diff_ubuntu -gt 0 ] && [ $diff_windows -gt 0 ]; then
+        echo "diff_ubuntu: $diff_ubuntu"
+        echo "diff_windows: $diff_windows"
+        if [ "$diff_ubuntu" -gt "0" ] && [ "$diff_windows" -gt "0" ]; then
           echo "main.js has differences on both Ubuntu and Windows. Check the build artifacts for details."
           exit 1
         fi
