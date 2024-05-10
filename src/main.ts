@@ -24,13 +24,13 @@ export default async function run() {
         const inputs = getInputs();
         const azureSqlAction = new AzureSqlAction(inputs);
         
-        const runnerIPAddress = await SqlUtils.detectIPAddress(inputs.connectionConfig);
-        if (runnerIPAddress) {
-            let azureResourceAuthorizer = await AuthorizerFactory.getAuthorizer();
-            let azureSqlResourceManager = await AzureSqlResourceManager.getResourceManager(inputs.connectionConfig.Config.server, azureResourceAuthorizer);
-            firewallManager = new FirewallManager(azureSqlResourceManager);
-            await firewallManager.addFirewallRule(runnerIPAddress);
-        }
+        // const runnerIPAddress = await SqlUtils.detectIPAddress(inputs.connectionConfig);
+        // if (runnerIPAddress) {
+        //     let azureResourceAuthorizer = await AuthorizerFactory.getAuthorizer();
+        //     let azureSqlResourceManager = await AzureSqlResourceManager.getResourceManager(inputs.connectionConfig.Config.server, azureResourceAuthorizer);
+        //     firewallManager = new FirewallManager(azureSqlResourceManager);
+        //     await firewallManager.addFirewallRule(runnerIPAddress);
+        // }
         await azureSqlAction.execute();
     }
     catch (error) {
