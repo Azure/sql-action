@@ -8,9 +8,6 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest]
-    outputs:
-      output_ubuntu: ${{ steps.diff-ubuntu.outputs.diff }}
-      output_windows: ${{ steps.diff-windows.outputs.diff }}
     steps:
     - name: Check out
       uses: actions/checkout@v4
@@ -20,18 +17,13 @@ jobs:
         npm install
         npm run build
 
-    - id: diff-ubuntu
-      name: Check if main.js has differences
-      if: matrix.os == 'ubuntu-latest'
-      run: echo "diff=$(git diff --ignore-space-at-eol --text lib/main.js | wc -l)" >> $GITHUB_ENV
-
-    - id: diff-windows
-      name: Check if main.js has differences
-      if: matrix.os == 'windows-latest'
+    - name: Check if main.js has differences
       run: echo "diff=$(git diff --ignore-space-at-eol --text lib/main.js | wc -l)" >> $env:GITHUB_ENV
 
+    # If main.js was different than expected, upload the actual version
     - name: Upload actual main.js
-      uses: actions/upload-artifact@v3
+      if: ${{ env.diff > 0}}
+      uses: actions/upload-artifact@v4
       with:
         name: main.js-${{ matrix.os }}
         path: lib/main.js
@@ -41,14 +33,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: check-lib
     steps:
-    - name: Check main.js
-      env:
-        diff_ubuntu: ${{ needs.check-lib.outputs.output_ubuntu }}
-        diff_windows: ${{ needs.check-lib.outputs.output_windows }}
+    - name: Download artifact
+      uses: actions/download-artifact@v4
+    
+    - name: Check if both artifacts exist
       run: |
-        echo "diff_ubuntu: $diff_ubuntu"
-        echo "diff_windows: $diff_windows"
-        if [ $diff_ubuntu -gt 0 ] && [ $diff_windows -gt 0 ]; then
-          echo "main.js has differences on both Ubuntu and Windows. Check the build artifacts for details."
+        ls -R
+        if [ -d "main.js-windows-latest" ] && [ -d "main.js-ubuntu-latest" ]; then
+          echo "main.js difference detected. Please check the artifacts for more details."
           exit 1
         fi
