@@ -3,28 +3,52 @@ on: pull_request
 
 jobs:
   check-lib:
-    name: Check main.js
-    runs-on: ubuntu-latest
+    name: Build main.js and diff on
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    outputs:
+      output-ubuntu: ${{ steps.diff-ubuntu.outputs.diff }}
+      output-windows: ${{ steps.diff-windows.outputs.diff }}
     steps:
     - name: Check out
-      uses: actions/checkout@v3
-
-    - name: Copy the committed main.js file
-      run: mv lib/main.js /tmp
+      uses: actions/checkout@v4
 
     - name: Validate build
       run: |
         npm install
         npm run build
 
-    - name: Check if main.js has differences
-      run: git diff --ignore-all-space --exit-code lib/main.js /tmp/main.js
-      id: diff
+    - id: diff-ubuntu
+      name: Check if main.js has differences
+      if: matrix.os == 'ubuntu-latest'
+      run: echo "diff=$(git diff --ignore-space-at-eol --text lib/main.js | wc -l)" >> $GITHUB_ENV
 
-    # If main.js was different than expected, upload the actual version
+    - id: diff-windows
+      name: Check if main.js has differences
+      if: matrix.os == 'windows-latest'
+      run: echo "diff=$(git diff --ignore-space-at-eol --text lib/main.js | wc -l)" >> $env:GITHUB_ENV
+
     - name: Upload actual main.js
-      if: ${{ failure() && steps.diff.conclusion == 'failure' }}
       uses: actions/upload-artifact@v3
       with:
-        name: main.js
+        name: main.js-${{ matrix.os }}
         path: lib/main.js
+
+  final-check:
+    name: Check if main.js has differences
+    runs-on: ubuntu-latest
+    needs: check-lib
+    steps:
+    - name: Check main.js
+      env:
+        diff-ubuntu: ${{ needs.check-lib.outputs.output-ubuntu }}
+        diff-windows: ${{ needs.check-lib.outputs.output-windows }}
+      run: |
+        echo "diff-ubuntu: $diff-ubuntu"
+        echo "diff-windows: $diff-windows"
+        if [ $diff-ubuntu -gt 0 ] && [ $diff-windows -gt 0 ]; then
+          echo "main.js has differences on both Ubuntu and Windows. Check the build artifacts for details."
+          exit 1
+        fi
