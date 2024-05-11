@@ -18,7 +18,7 @@ jobs:
         npm run build
 
     - name: Check if main.js has differences
-      run: echo "diff=$(git diff --ignore-space-at-eol --text lib/main.js | wc -l)" >> $env:GITHUB_ENV
+      run: echo "diff=$(git diff --ignore-space-at-eol --text lib/main.js | wc -l)" >> $GITHUB_ENV
 
     # If main.js was different than expected, upload the actual version
     - name: Upload actual main.js
