@@ -18,7 +18,12 @@ jobs:
         npm run build
 
     - name: Check if main.js has differences
+      if: matrix.os != 'windows-latest'
       run: echo "diff=$(git diff --ignore-space-at-eol --text lib/main.js | wc -l)" >> $GITHUB_ENV
+      
+    - name: Check if main.js has differences
+      if: matrix.os == 'windows-latest'
+      run: echo "diff=$(git diff --ignore-space-at-eol --text lib/main.js | wc -l)" >> $env:GITHUB_ENV
 
     # If main.js was different than expected, upload the actual version
     - name: Upload actual main.js
