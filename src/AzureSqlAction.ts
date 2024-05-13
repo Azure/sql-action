@@ -23,10 +23,10 @@ export interface IActionInputs {
 
 export interface IDacpacActionInputs extends IActionInputs {
     sqlpackageAction: SqlPackageAction;
+    sqlpackagePath?: string;
 }
 
-export interface IBuildAndPublishInputs extends IActionInputs {
-    sqlpackageAction: SqlPackageAction;
+export interface IBuildAndPublishInputs extends IDacpacActionInputs {
     buildArguments?: string;
 }
 
@@ -62,7 +62,8 @@ export default class AzureSqlAction {
                 connectionConfig: buildAndPublishInputs.connectionConfig,
                 filePath: dacpacPath,
                 additionalArguments: buildAndPublishInputs.additionalArguments,
-                sqlpackageAction: buildAndPublishInputs.sqlpackageAction
+                sqlpackageAction: buildAndPublishInputs.sqlpackageAction,
+                sqlpackagePath: buildAndPublishInputs.sqlpackagePath
             } as IDacpacActionInputs;
             await this._executeDacpacAction(publishInputs);
         }
@@ -73,7 +74,7 @@ export default class AzureSqlAction {
 
     private async _executeDacpacAction(inputs: IDacpacActionInputs) {
         core.debug('Begin executing sqlpackage');
-        let sqlPackagePath = await AzureSqlActionHelper.getSqlPackagePath();
+        let sqlPackagePath = await AzureSqlActionHelper.getSqlPackagePath(inputs);
         let sqlPackageArgs = this._getSqlPackageArguments(inputs);
 
         await exec.exec(`"${sqlPackagePath}" ${sqlPackageArgs}`);

@@ -13,6 +13,9 @@ inputs:
   arguments:
     description: 'In case of .dacpac or .sqlproj file types, additional sqlpackage arguments that will be applied. In case of .sql file type, additional go-sqlcmd argument that will be applied.'
     required: false
+  sqlpackage-path:
+    description: 'Specify a SqlPackage executable location to override the default locations.'
+    required: false
   build-arguments:
     description: 'In case of a .sqlproj file, additional arguments that will be applied to dotnet build when building the database project.'
     required: false
