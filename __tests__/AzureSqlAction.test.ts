@@ -54,6 +54,16 @@ describe('AzureSqlAction tests', () => {
         expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
     });
 
+    it('throws if SqlPackage.exe fails to be found at user-specified location', async () => {
+        let inputs = getInputs(ActionType.DacpacAction) as IDacpacActionInputs;
+        let action = new AzureSqlAction(inputs);
+
+        let getSqlPackagePathSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlPackagePath').mockRejectedValue(1);
+
+        expect(await action.execute().catch(() => null)).rejects;
+        expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
+    });
+
     describe('sql script action tests for different auth types', () => {
         // Format: [test case description, connection string, expected sqlcmd arguments]
         const testCases = [
