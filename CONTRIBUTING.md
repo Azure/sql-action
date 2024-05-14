@@ -16,7 +16,7 @@ provided by the bot. You will only need to do this once across all repos using o
 
 ## Setup
 
-1. Install [Node.JS](https://nodejs.org/) (version 16 or higher)
+1. Install [Node.JS](https://nodejs.org/) (version 20 or higher)
 2. Run `npm install` to install dependencies
 
 ### Tests
