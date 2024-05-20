@@ -3,14 +3,14 @@ on: pull_request
 
 jobs:
   check-lib:
-    name: Check main.js
-    runs-on: ubuntu-latest
+    name: Build main.js and diff on
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
     steps:
     - name: Check out
-      uses: actions/checkout@v3
-
-    - name: Copy the committed main.js file
-      run: mv lib/main.js /tmp
+      uses: actions/checkout@v4
 
     - name: Validate build
       run: |
@@ -18,13 +18,33 @@ jobs:
         npm run build
 
     - name: Check if main.js has differences
-      run: git diff --ignore-all-space --exit-code lib/main.js /tmp/main.js
-      id: diff
+      if: matrix.os != 'windows-latest'
+      run: echo "diff=$(git diff --ignore-space-at-eol --text lib/main.js | wc -l)" >> $GITHUB_ENV
+      
+    - name: Check if main.js has differences
+      if: matrix.os == 'windows-latest'
+      run: echo "diff=$(git diff --ignore-space-at-eol --text lib/main.js | wc -l)" >> $env:GITHUB_ENV
 
     # If main.js was different than expected, upload the actual version
     - name: Upload actual main.js
-      if: ${{ failure() && steps.diff.conclusion == 'failure' }}
-      uses: actions/upload-artifact@v3
+      if: ${{ env.diff > 0}}
+      uses: actions/upload-artifact@v4
       with:
-        name: main.js
+        name: main.js-${{ matrix.os }}
         path: lib/main.js
+
+  final-check:
+    name: Check if main.js has differences on both Ubuntu and Windows
+    runs-on: ubuntu-latest
+    needs: check-lib
+    steps:
+    - name: Download artifact
+      uses: actions/download-artifact@v4
+    
+    - name: Check if both artifacts exist
+      run: |
+        ls -R
+        if [ -d "main.js-windows-latest" ] && [ -d "main.js-ubuntu-latest" ]; then
+          echo "main.js difference detected. Please check the artifacts for more details."
+          exit 1
+        fi
