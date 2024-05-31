@@ -16,6 +16,9 @@ inputs:
   build-arguments:
     description: 'In case of a .sqlproj file, additional arguments that will be applied to dotnet build when building the database project.'
     required: false
+  client-id:
+    description: 'The client ID of the service principal used to authenticate with Azure SQL Database. Required if using Active Directory Password authentication.'
+    required: false
 runs:
   using: 'node20'
   main: 'lib/main.js'

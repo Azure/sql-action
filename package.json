@@ -25,7 +25,7 @@
     "@actions/tool-cache": "^2.0.1",
     "azure-actions-webclient": "^1.0.3",
     "glob": "^10.3.12",
-    "mssql": "^8.1.0",
+    "mssql": "^9.3.0",
     "uuid": "^3.3.2",
     "winreg": "^1.2.4"
   },

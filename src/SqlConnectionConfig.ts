@@ -141,7 +141,8 @@ export default class SqlConnectionConfig {
                     "options": {
                       // User and password should have been parsed already  
                       "userName": this._connectionConfig.user,
-                      "password": this._connectionConfig.password
+                      "password": this._connectionConfig.password,
+                      "clientId": core.getInput('clientId') || '7f98cb04-cd1e-40df-9140-3bf7e2cea4db'
                     }
                 }
                 break;

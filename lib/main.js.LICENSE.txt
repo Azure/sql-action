@@ -1,14 +1,23 @@
-/*!
- * mime-db
- * Copyright(c) 2014 Jonathan Ong
- * MIT Licensed
+/*
+ * @copyright (c) 2015-present, Philipp Thürwächter, Pattrick Hüper & js-joda contributors
+ * @license BSD-3-Clause (see LICENSE in the root directory of this source tree)
  */
 
-/*!
- * mime-types
- * Copyright(c) 2014 Jonathan Ong
- * Copyright(c) 2015 Douglas Christopher Wilson
- * MIT Licensed
+/*
+ * @copyright (c) 2016, Philipp Thürwächter & Pattrick Hüper
+ * @copyright (c) 2007-present, Stephen Colebourne & Michael Nascimento Santos
+ * @license BSD-3-Clause (see LICENSE in the root directory of this source tree)
+ */
+
+/*
+ * @copyright (c) 2016, Philipp Thürwächter & Pattrick Hüper
+ * @license BSD-3-Clause (see LICENSE in the root directory of this source tree)
+ */
+
+/*
+ * @copyright (c) 2016, Philipp Thürwächter, Pattrick Hüper
+ * @copyright (c) 2007-present, Stephen Colebourne & Michael Nascimento Santos
+ * @license BSD-3-Clause (see LICENSE in the root directory of this source tree)
  */
 
 /*! *****************************************************************************
@@ -26,9 +35,9 @@ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 ***************************************************************************** */
 
-/*! @azure/msal-common v4.5.1 2021-08-02 */
+/*! @azure/msal-common v13.3.1 2023-10-27 */
 
-/*! @azure/msal-common v6.3.0 2022-05-02 */
+/*! @azure/msal-common v7.6.0 2022-10-10 */
 
 /*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> */
 
@@ -43,10 +52,20 @@ PERFORMANCE OF THIS SOFTWARE.
  * @license BSD-3-Clause (see LICENSE in the root directory of this source tree)
  */
 
+/**
+ * [js-md4]{@link https://github.com/emn178/js-md4}
+ *
+ * @namespace md4
+ * @version 0.3.2
+ * @author Yi-Cyuan Chen [emn178@gmail.com]
+ * @copyright Yi-Cyuan Chen 2015-2027
+ * @license MIT
+ */
+
 //! @copyright (c) 2007-present, Stephen Colebourne & Michael Nascimento Santos
 
 //! @copyright (c) 2015-present, Philipp Thürwächter, Pattrick Hüper & js-joda contributors
 
 //! @license BSD-3-Clause (see LICENSE in the root directory of this source tree)
 
-//! @version @js-joda/core - 4.3.1
+//! @version @js-joda/core - 5.6.2
