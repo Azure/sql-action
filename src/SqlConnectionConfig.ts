@@ -97,6 +97,9 @@ export default class SqlConnectionConfig {
                 if (!auth.options?.password) {
                     throw new Error(`Invalid connection string. Please ensure 'Password' is provided in the connection string.`);
                 }
+                // if (!core.getInput('client-id')) {
+                //     throw new Error(`client-id is required for Azure Active Directory Password authentication. Please provide a valid client ID.`);
+                // }
                 break;
             }
             case 'azure-active-directory-service-principal-secret': {
@@ -142,7 +145,7 @@ export default class SqlConnectionConfig {
                       // User and password should have been parsed already  
                       "userName": this._connectionConfig.user,
                       "password": this._connectionConfig.password,
-                      "clientId": core.getInput('clientId') || '7f98cb04-cd1e-40df-9140-3bf7e2cea4db'
+                      "clientId": core.getInput('client-id')
                     }
                 }
                 break;
