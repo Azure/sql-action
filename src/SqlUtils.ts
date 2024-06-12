@@ -1,8 +1,7 @@
 import * as core from "@actions/core";
 import * as exec from '@actions/exec';
-import { config } from "mssql";
 import Constants from "./Constants";
-import SqlConnectionConfig from "./SqlConnectionConfig";
+import SqlConnectionConfig, { SqlConnectionString } from "./SqlConnectionConfig";
 
 export interface ConnectionResult {
     /** True if connection succeeds, false otherwise */
@@ -53,16 +52,16 @@ export default class SqlUtils {
      * @returns A ConnectionResult object indicating success/failure, the connection on success, or the error on failure.
      */
     private static async tryConnection(config: SqlConnectionConfig, useMaster?: boolean): Promise<ConnectionResult> {
-        // Clone the connection config so we can change the database without modifying the original
-        const connectionConfig = JSON.parse(JSON.stringify(config.Config)) as config;
+        // Clone the connection string so we can change the database without modifying the original
+        const connectionString = JSON.parse(JSON.stringify(config.ParsedConnectionString)) as SqlConnectionString;
         if (useMaster) {
-            connectionConfig.database = "master";
+            connectionString.database = "master";
         }
         
         let sqlCmdError = '';
         try {
-            core.debug(`Validating if client has access to '${connectionConfig.database}' on '${connectionConfig.server}'.`);
-            let sqlCmdCall = this.buildSqlCmdCallWithConnectionInfo(connectionConfig);
+            core.debug(`Validating if client has access to '${connectionString.database}' on '${connectionString.server}'.`);
+            let sqlCmdCall = this.buildSqlCmdCallWithConnectionInfo(connectionString);
             sqlCmdCall += ` -Q "SELECT 'Validating connection from GitHub SQL Action'"`;
             await exec.exec(sqlCmdCall, [], {
                 silent: true,
@@ -108,7 +107,7 @@ export default class SqlUtils {
      * @param connectionConfig The connection settings to be used for this sqlcmd call.
      * @returns A partial sqlcmd command with connection and authentication settings.
      */
-    public static buildSqlCmdCallWithConnectionInfo(connectionConfig: config): string {
+    public static buildSqlCmdCallWithConnectionInfo(connectionConfig: SqlConnectionString): string {
         // sqlcmd should be added to PATH already, we just need to see if need to add ".exe" for Windows
         let sqlCmdPath: string;
         switch (process.platform) {
@@ -125,31 +124,31 @@ export default class SqlUtils {
 
         let sqlcmdCall = `"${sqlCmdPath}" -S ${connectionConfig.server},${connectionConfig.port ?? 1433} -d ${connectionConfig.database}`;
 
-        // Determine the correct sqlcmd arguments based on the auth type in connectionConfig
-        const authentication = connectionConfig['authentication'];
-        switch (authentication?.type) {
+        // Determine the correct sqlcmd arguments based on the auth type
+        switch (connectionConfig.authentication) {
             case undefined:
+            case 'sqlpassword':
                 // No authentication type defaults SQL login
-                sqlcmdCall += ` -U "${connectionConfig.user}"`;
+                sqlcmdCall += ` -U "${connectionConfig.userId}"`;
                 core.exportVariable(Constants.sqlcmdPasswordEnvVarName, connectionConfig.password);
                 break;
 
-            case 'azure-active-directory-default':
+            case 'activedirectorydefault':
                 sqlcmdCall += ` --authentication-method=ActiveDirectoryDefault`;
                 break;
 
-            case 'azure-active-directory-password':
-                sqlcmdCall += ` --authentication-method=ActiveDirectoryPassword -U "${authentication.options.userName}"`;
-                core.exportVariable(Constants.sqlcmdPasswordEnvVarName, authentication.options.password);
+            case 'activedirectorypassword':
+                sqlcmdCall += ` --authentication-method=ActiveDirectoryPassword -U "${connectionConfig.userId}"`;
+                core.exportVariable(Constants.sqlcmdPasswordEnvVarName, connectionConfig.password);
                 break;
 
-            case 'azure-active-directory-service-principal-secret':
-                sqlcmdCall += ` --authentication-method=ActiveDirectoryServicePrincipal -U "${connectionConfig.user}"`;
-                core.exportVariable(Constants.sqlcmdPasswordEnvVarName, authentication.options.clientSecret);
+            case 'activedirectoryserviceprincipal':
+                sqlcmdCall += ` --authentication-method=ActiveDirectoryServicePrincipal -U "${connectionConfig.userId}"`;
+                core.exportVariable(Constants.sqlcmdPasswordEnvVarName, connectionConfig.password);
                 break;
 
             default:
-                throw new Error(`Authentication type ${authentication.type} is not supported.`);
+                throw new Error(`Authentication type ${connectionConfig.authentication} is not supported.`);
         }
 
         return sqlcmdCall;

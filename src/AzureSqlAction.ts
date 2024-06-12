@@ -84,7 +84,7 @@ export default class AzureSqlAction {
     private async _executeSqlFile(inputs: IActionInputs) {
         core.debug('Begin executing sql script');
 
-        let sqlcmdCall = SqlUtils.buildSqlCmdCallWithConnectionInfo(inputs.connectionConfig.Config);
+        let sqlcmdCall = SqlUtils.buildSqlCmdCallWithConnectionInfo(inputs.connectionConfig.ParsedConnectionString);
         sqlcmdCall += ` -i "${inputs.filePath}"`;
         if (!!inputs.additionalArguments) {
             sqlcmdCall += ` ${inputs.additionalArguments}`;

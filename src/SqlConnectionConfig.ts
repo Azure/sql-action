@@ -1,31 +1,35 @@
 import * as core from '@actions/core';
-import { config, ConnectionPool } from "mssql";
 import Constants from './Constants';
 
-/**
- * Wrapper class for the mssql.config object.
- */
+export interface SqlConnectionString {
+    server: string;
+    port: number | undefined;
+    database: string;
+    userId: string | undefined;
+    password: string | undefined;
+    authentication: string | undefined;
+}
+
 export default class SqlConnectionConfig {
-    private _connectionConfig: config;
+    private _parsedConnectionString: SqlConnectionString;    
     private _connectionString: string;
 
     constructor(connectionString: string) {
         this._validateConnectionString(connectionString);
 
         this._connectionString = connectionString;
-        this._connectionConfig = ConnectionPool.parseConnectionString(connectionString);
+        this._parsedConnectionString = this._parseConnectionString(connectionString);
 
         this._maskSecrets();
-        this._setAuthentication();
         this._validateconfig();
-    }
-
-    public get Config(): config {
-        return this._connectionConfig;
     }
 
     public get ConnectionString(): string {
         return this._connectionString;
+    }
+    
+    public get ParsedConnectionString(): SqlConnectionString {
+        return this._parsedConnectionString;
     }
 
     /**
@@ -60,154 +64,123 @@ export default class SqlConnectionConfig {
      */
     private _maskSecrets(): void {
         // User ID could be client ID in some authentication types
-        if (this._connectionConfig.user) {
-            core.setSecret(this._connectionConfig.user);
+        if (this._parsedConnectionString.userId) {
+            core.setSecret(this._parsedConnectionString.userId);
         }
 
-        if (this._connectionConfig.password) {
-            core.setSecret(this._connectionConfig.password);
+        if (this._parsedConnectionString.password) {
+            core.setSecret(this._parsedConnectionString.password);
         }
     }
 
+    private _parseConnectionString(connectionString: string): SqlConnectionString {
+        const result = connectionString.matchAll(Constants.connectionStringParserRegex);
+        let parsedConnectionString: SqlConnectionString = {} as any;
+
+        for (const match of result) {
+            if (match.groups) {
+                let key = match.groups.key.trim();
+                let val = match.groups.val.trim();
+
+                /**
+                 * If the first character of val is a single/double quote and there are two consecutive single/double quotes in between, 
+                 * convert the consecutive single/double quote characters into one single/double quote character respectively (Point no. 4 above)
+                */
+                
+                if (val[0] === "'") {
+                    val = val.slice(1, -1);
+                    val = val.replace(/''/g, "'");
+
+                }
+                else if (val[0] === '"') {
+                    val = val.slice(1, -1);
+                    val = val.replace(/""/g, '"');
+                }
+                
+                // Different parts of connection string: https://learn.microsoft.com/dotnet/api/microsoft.data.sqlclient.sqlconnection.connectionstring
+                switch(key.toLowerCase()) {
+                    case 'user id':
+                    case 'uid': 
+                    case 'user': {
+                        parsedConnectionString.userId = val;
+                        break;
+                    }
+                    case 'password':
+                    case 'pwd': {
+                        parsedConnectionString.password = val;
+                        break;
+                    }
+                    case 'initial catalog':
+                    case 'database': {
+                        parsedConnectionString.database = val;
+                        break;
+                    }
+                    case 'data source':
+                    case 'server': 
+                    case 'address':
+                    case 'addr':
+                    case 'network address': {
+                        if (val.includes(',')) {
+                            const parts = val.split(',');
+                            parsedConnectionString.server = parts[0].trim();
+                            parsedConnectionString.port = parseInt(parts[1].trim());
+                        } else {
+                            parsedConnectionString.server = val;
+                        }
+                        break;
+                    }
+                    case 'authentication': {
+                        // We'll store authentication in lower case and spaces removed
+                        parsedConnectionString.authentication = val.replace(/\s/g, '').toLowerCase();
+                        break;
+                    }
+                }
+            }
+        }
+
+        return parsedConnectionString;
+    }
+
     private _validateconfig(): void {
-        if (!this._connectionConfig.server) {
+        if (!this._parsedConnectionString.server) {
             throw new Error(`Invalid connection string. Please ensure 'Server' or 'Data Source' is provided in the connection string.`);
         }
 
-        if (!this._connectionConfig.database) {
+        if (!this._parsedConnectionString.database) {
             throw new Error(`Invalid connection string. Please ensure 'Database' or 'Initial Catalog' is provided in the connection string.`);
         }
 
-        const auth = this._connectionConfig['authentication'];
-        switch (auth?.type) {
-            case undefined: {
+        switch (this._parsedConnectionString.authentication) {
+            case undefined: 
+            case 'sqlpassword': {
                 // SQL password
-                if (!this._connectionConfig.user) {
+                if (!this._parsedConnectionString.userId) {
                     throw new Error(`Invalid connection string. Please ensure 'User' or 'User ID' is provided in the connection string.`);
                 }
-                if (!this._connectionConfig.password) {
+                if (!this._parsedConnectionString.password) {
                     throw new Error(`Invalid connection string. Please ensure 'Password' is provided in the connection string.`);
                 }
                 break;
             }
-            case 'azure-active-directory-password': {
-                if (!auth.options?.userName) {
+            case 'activedirectorypassword': {
+                if (!this._parsedConnectionString.userId) {
                     throw new Error(`Invalid connection string. Please ensure 'User' or 'User ID' is provided in the connection string.`);
                 }
-                if (!auth.options?.password) {
+                if (!this._parsedConnectionString.password) {
                     throw new Error(`Invalid connection string. Please ensure 'Password' is provided in the connection string.`);
                 }
-                // if (!core.getInput('client-id')) {
-                //     throw new Error(`client-id is required for Azure Active Directory Password authentication. Please provide a valid client ID.`);
-                // }
                 break;
             }
-            case 'azure-active-directory-service-principal-secret': {
-                if (!auth.options?.clientId) {
+            case 'activedirectoryserviceprincipal': {
+                // User ID is client ID and password is secret
+                if (!this._parsedConnectionString.userId) {
                     throw new Error(`Invalid connection string. Please ensure client ID is provided in the 'User' or 'User ID' field of the connection string.`);
                 }
-                if (!auth.options?.clientSecret) {
+                if (!this._parsedConnectionString.password) {
                     throw new Error(`Invalid connection string. Please ensure client secret is provided in the 'Password' field of the connection string.`);
                 }
                 break;
             }
         }
-    }
-
-    /**
-     * Sets the authentication option in the mssql config object based on the connection string.
-     * node-mssql currently ignores authentication when parsing the connection string: https://github.com/tediousjs/node-mssql/issues/1400
-     * Assumes _connectionConfig has already been set, sets authentication to _connectionConfig directly
-     */
-    private _setAuthentication(): void {
-
-        // Parsing logic from SqlConnectionStringBuilder._parseConnectionString https://github.com/Azure/sql-action/blob/7e69fdc44aba3f05fd02a6a4190841020d9ca6f7/src/SqlConnectionStringBuilder.ts#L70-L128
-        const result = Array.from(this._connectionString.matchAll(Constants.connectionStringParserRegex));
-
-        // TODO: Change this to Array.from().find() now that we're only looking for authentication
-        const authentication = this._findInConnectionString(result, 'authentication');
-        if (!authentication) {
-            // No authentication set in connection string
-            return;
-        }
-
-        // Possible auth types from connection string: https://docs.microsoft.com/sql/connect/ado-net/sql/azure-active-directory-authentication
-        // Auth definitions from tedious driver: http://tediousjs.github.io/tedious/api-connection.html
-        switch (authentication.replace(/\s/g, '').toLowerCase()) {
-            case 'sqlpassword': {
-                // default: use user and password
-                break;
-            }
-            case 'activedirectorypassword': {
-                this._connectionConfig['authentication'] = {
-                    "type": 'azure-active-directory-password',
-                    "options": {
-                      // User and password should have been parsed already  
-                      "userName": this._connectionConfig.user,
-                      "password": this._connectionConfig.password,
-                      "clientId": core.getInput('client-id')
-                    }
-                }
-                break;
-            }
-            case 'activedirectorydefault': {
-                this._connectionConfig['authentication'] = {
-                    type: 'azure-active-directory-default'
-                }
-                break;
-            }
-            case 'activedirectoryserviceprincipal': {
-                this._connectionConfig['authentication'] = {
-                    type: 'azure-active-directory-service-principal-secret',
-                    options: {
-                      // From connection string, client ID == user ID and secret == password
-                      // https://docs.microsoft.com/sql/connect/ado-net/sql/azure-active-directory-authentication#using-active-directory-service-principal-authentication
-                      "clientId": this._connectionConfig.user,
-                      "clientSecret": this._connectionConfig.password
-                    }
-                }
-                break;
-            }
-            default: {
-                throw new Error(`Authentication type '${authentication}' is not supported.`);
-            }
-        }
-    }
-
-    /**
-     * Looks for the given key in the already parsed connection string, returns its value or undefined if not found.
-     * Also processes the value to remove enclosing quotation marks. (Ex: quotes on "Active Directory Password" will be removed)
-     * @param matches The connection string as a Regex Match array
-     * @param findKey The key to look for in the connection string
-     */
-    private _findInConnectionString(matches: RegExpMatchArray[], findKey: string): string | undefined {
-        for (const match of matches) {
-            if (match.groups) {
-                // Replace any white space in the key (Ex: User ID -> UserID)
-                const key = match.groups.key.replace(/\s/g, '');
-                findKey = findKey.replace(/\s/g, '');
-
-                if (key.toLowerCase() === findKey.toLowerCase()) {
-                    let val = match.groups.val;
-
-                    /**
-                     * If the first character of val is a single/double quote and there are two consecutive single/double quotes in between, 
-                     * convert the consecutive single/double quote characters into one single/double quote character respectively (Point no. 4 above)
-                    */
-                    if (val[0] === "'") {
-                        val = val.slice(1, -1);
-                        val = val.replace(/''/g, "'");
-                    }
-                    else if (val[0] === '"') {
-                        val = val.slice(1, -1);
-                        val = val.replace(/""/g, '"');
-                    }
-
-                    return val;
-                }
-            }
-        }
-
-        return undefined;
     }
 }
