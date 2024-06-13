@@ -30,7 +30,11 @@ PERFORMANCE OF THIS SOFTWARE.
 
 /*! @azure/msal-common v6.3.0 2022-05-02 */
 
+/*! formdata-polyfill. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
+
 /*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> */
+
+/*! ws. MIT License. Einar Otto Stangvik <einaros@gmail.com> */
 
 /**
  * @copyright (c) 2016, Philipp Thürwächter & Pattrick Hüper
