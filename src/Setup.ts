@@ -43,7 +43,7 @@ export default class Setup {
      * @returns The version number or undefined if the version could not be parsed or HTTP request failed.
      */
     public static async extractVersionFromLatestRelease(releaseUrl: string): Promise<string | undefined> {
-        const http = new HttpClient('Azure/sql-action');
+        const http = new HttpClient('Azure/sql-action', undefined, { allowRedirects: false });
         const response = await http.head(releaseUrl);
         // Should be redirected to something like https://github.com/microsoft/go-sqlcmd/releases/tag/v1.6.0
         const location = response.message.headers.location;

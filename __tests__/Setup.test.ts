@@ -11,7 +11,7 @@ describe('Setup.ts tests', () => {
     })
 
     it('sets up sqlcmd correctly', async() => {
-        const headSpy = jest.spyOn(HttpClient.prototype, 'head');
+        const extractVersionSpy = jest.spyOn(Setup, 'extractVersionFromLatestRelease').mockResolvedValue('1.1.1');
         const cacheLookupSpy = jest.spyOn(tc, 'find').mockReturnValue('');
         const downloadToolSpy = jest.spyOn(tc, 'downloadTool').mockResolvedValue('');
         const extractTarSpy = jest.spyOn(tc, 'extractTar').mockResolvedValue('');
@@ -21,7 +21,7 @@ describe('Setup.ts tests', () => {
 
         await Setup.setupSqlcmd();
 
-        expect(headSpy).toHaveBeenCalled();
+        expect(extractVersionSpy).toHaveBeenCalled();
         expect(cacheLookupSpy).toHaveBeenCalled();
         expect(downloadToolSpy).toHaveBeenCalled();
         if (process.platform === 'win32') {
