@@ -13,7 +13,7 @@ const IS_LINUX = process.platform === 'linux';
 export default class AzureSqlActionHelper {
     
     public static async getSqlPackagePath(inputs: IDacpacActionInputs): Promise<string> {
-        if (inputs.sqlpackagePath) {
+        if (!!inputs.sqlpackagePath) {
             if (!fs.existsSync(inputs.sqlpackagePath)) {
                 throw new Error(`SqlPackage not found at provided path: ${inputs.sqlpackagePath}`);
             }

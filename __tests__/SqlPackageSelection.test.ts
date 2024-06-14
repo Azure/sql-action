@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as semver from 'semver';
 import AzureSqlActionHelper from "../src/AzureSqlActionHelper";
 import AzureSqlAction, { IBuildAndPublishInputs, IDacpacActionInputs, ActionType, SqlPackageAction, IActionInputs } from "../src/AzureSqlAction";
-import { getInputsWithCustomSqlPackageAction } from './AzureSqlAction.test';
+import { getInputs } from './AzureSqlAction.test';
 
 jest.mock('fs');
 
@@ -44,17 +44,37 @@ describe('AzureSqlActionHelper tests', () => {
     });
 
 
-    // ensures the sqlpackagepath input overrides the version check
+    // // ensures the sqlpackagepath input overrides the version check
     describe('sqlpackagepath input should override version check', () => {
         const sqlpackagepaths = ['//custom/path/to/sqlpackage', 'c:/Program Files/Sqlpackage/sqlpackage'];
         it.each(sqlpackagepaths)('should return sqlpackagepath if provided', (path) => {
-            let inputs = getInputsWithCustomSqlPackageAction(ActionType.DacpacAction, SqlPackageAction['Publish'], '') as IDacpacActionInputs;
+            let inputs = getInputs(ActionType.DacpacAction) as IDacpacActionInputs;
             inputs.sqlpackagePath = path;
-           
+
             jest.spyOn(fs, "existsSync").mockReturnValue(true);
             let sqlpackagePath = AzureSqlActionHelper.getSqlPackagePath(inputs);
 
             expect(sqlpackagePath).toEqual(path);
+        });
+
+        it('should not check for sqlpackagepath if no value is provided', () => {
+            let inputs = getInputs(ActionType.DacpacAction) as IDacpacActionInputs;
+            inputs.sqlpackagePath = undefined;
+
+            let fileExistsSpy = jest.spyOn(fs, "existsSync");
+            let sqlpackagePath = AzureSqlActionHelper.getSqlPackagePath(inputs);
+
+            expect(fileExistsSpy).not.toHaveBeenCalled();
+        });
+
+        it('throws if SqlPackage.exe fails to be found at user-specified location', async () => {
+            let inputs = getInputs(ActionType.DacpacAction) as IDacpacActionInputs;
+            let action = new AzureSqlAction(inputs);
+
+            let getSqlPackagePathSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlPackagePath').mockRejectedValue(1);
+
+            expect(await action.execute().catch(() => null)).rejects;
+            expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
         });
     });
 

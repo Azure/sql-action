@@ -54,16 +54,6 @@ describe('AzureSqlAction tests', () => {
         expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('throws if SqlPackage.exe fails to be found at user-specified location', async () => {
-        let inputs = getInputs(ActionType.DacpacAction) as IDacpacActionInputs;
-        let action = new AzureSqlAction(inputs);
-
-        let getSqlPackagePathSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlPackagePath').mockRejectedValue(1);
-
-        expect(await action.execute().catch(() => null)).rejects;
-        expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
-    });
-
     describe('sql script action tests for different auth types', () => {
         // Format: [test case description, connection string, expected sqlcmd arguments]
         const testCases = [
@@ -200,7 +190,7 @@ describe('AzureSqlAction tests', () => {
  * @param connectionString The custom connection string to be used for the test. If not specified, a default one using SQL login will be used.
  * @returns An ActionInputs objects based on the given action type.
  */
-function getInputs(actionType: ActionType, connectionString: string = ''): IActionInputs {
+export function getInputs(actionType: ActionType, connectionString: string = ''): IActionInputs {
 
     const defaultConnectionString = 'Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder';
     const config = connectionString ? new SqlConnectionConfig(connectionString) : new SqlConnectionConfig(defaultConnectionString);
@@ -242,7 +232,7 @@ function getInputs(actionType: ActionType, connectionString: string = ''): IActi
  * @param additionalArguments Additional arguments for this action type.
  * @returns An ActionInputs objects based on the given action type.
  */
-export function getInputsWithCustomSqlPackageAction(actionType: ActionType, sqlpackageAction: SqlPackageAction, additionalArguments: string = ''): IActionInputs {
+function getInputsWithCustomSqlPackageAction(actionType: ActionType, sqlpackageAction: SqlPackageAction, additionalArguments: string = ''): IActionInputs {
     const defaultConnectionConfig = new SqlConnectionConfig('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder');
 
     switch(actionType) {
