@@ -47,22 +47,22 @@ describe('AzureSqlActionHelper tests', () => {
     // // ensures the sqlpackagepath input overrides the version check
     describe('sqlpackagepath input should override version check', () => {
         const sqlpackagepaths = ['//custom/path/to/sqlpackage', 'c:/Program Files/Sqlpackage/sqlpackage'];
-        it.each(sqlpackagepaths)('should return sqlpackagepath if provided', (path) => {
+        it.each(sqlpackagepaths)('should return sqlpackagepath if provided', async (path) => {
             let inputs = getInputs(ActionType.DacpacAction) as IDacpacActionInputs;
             inputs.sqlpackagePath = path;
 
             jest.spyOn(fs, "existsSync").mockReturnValue(true);
-            let sqlpackagePath = AzureSqlActionHelper.getSqlPackagePath(inputs);
+            let sqlpackagePath = await AzureSqlActionHelper.getSqlPackagePath(inputs);
 
             expect(sqlpackagePath).toEqual(path);
         });
 
-        it('should not check for sqlpackagepath if no value is provided', () => {
+        it('should not check for sqlpackagepath if no value is provided', async () => {
             let inputs = getInputs(ActionType.DacpacAction) as IDacpacActionInputs;
             inputs.sqlpackagePath = undefined;
 
             let fileExistsSpy = jest.spyOn(fs, "existsSync");
-            let sqlpackagePath = AzureSqlActionHelper.getSqlPackagePath(inputs);
+            let sqlpackagePath = await AzureSqlActionHelper.getSqlPackagePath(inputs);
 
             expect(fileExistsSpy).not.toHaveBeenCalled();
         });
