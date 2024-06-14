@@ -11,7 +11,7 @@ jest.mock('fs');
 
 describe('AzureSqlAction tests', () => {
     afterEach(() => {
-       jest.restoreAllMocks();
+        jest.restoreAllMocks();
     });
 
     describe('validate sqlpackage calls for DacpacAction', () => {
@@ -242,7 +242,7 @@ function getInputs(actionType: ActionType, connectionString: string = ''): IActi
  * @param additionalArguments Additional arguments for this action type.
  * @returns An ActionInputs objects based on the given action type.
  */
-function getInputsWithCustomSqlPackageAction(actionType: ActionType, sqlpackageAction: SqlPackageAction, additionalArguments: string = ''): IActionInputs {
+export function getInputsWithCustomSqlPackageAction(actionType: ActionType, sqlpackageAction: SqlPackageAction, additionalArguments: string = ''): IActionInputs {
     const defaultConnectionConfig = new SqlConnectionConfig('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder');
 
     switch(actionType) {
