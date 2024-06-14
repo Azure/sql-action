@@ -45,26 +45,41 @@ describe('AzureSqlActionHelper tests', () => {
 
 
     // // ensures the sqlpackagepath input overrides the version check
-    describe('sqlpackagepath input should override version check', () => {
+    describe('sqlpackagepath input options', () => {
         const sqlpackagepaths = ['//custom/path/to/sqlpackage', 'c:/Program Files/Sqlpackage/sqlpackage'];
         it.each(sqlpackagepaths)('should return sqlpackagepath if provided', async (path) => {
             let inputs = getInputs(ActionType.DacpacAction) as IDacpacActionInputs;
             inputs.sqlpackagePath = path;
 
-            jest.spyOn(fs, "existsSync").mockReturnValue(true);
+            let fileExistsSpy = jest.spyOn(fs, "existsSync");
+            fileExistsSpy.mockReturnValue(true);
             let sqlpackagePath = await AzureSqlActionHelper.getSqlPackagePath(inputs);
-
+            
+            expect(fileExistsSpy).toHaveBeenCalledWith(inputs.sqlpackagePath);
             expect(sqlpackagePath).toEqual(path);
         });
 
         it('should not check for sqlpackagepath if no value is provided', async () => {
+            const IS_WINDOWS = process.platform === 'win32';
+            const IS_LINUX = process.platform === 'linux';
+
             let inputs = getInputs(ActionType.DacpacAction) as IDacpacActionInputs;
             inputs.sqlpackagePath = undefined;
 
             let fileExistsSpy = jest.spyOn(fs, "existsSync");
             let sqlpackagePath = await AzureSqlActionHelper.getSqlPackagePath(inputs);
 
-            expect(fileExistsSpy).not.toHaveBeenCalled();
+            expect(fileExistsSpy).not.toHaveBeenCalledWith(inputs.sqlpackagePath);
+
+            if (IS_WINDOWS) {
+                expect(fileExistsSpy).toHaveBeenCalledTimes(3);
+            }
+            else if (IS_LINUX) {
+                expect(fileExistsSpy).toHaveBeenCalledTimes(1);
+            }
+            else { // macos
+                expect(fileExistsSpy).not.toHaveBeenCalled();
+            }
         });
 
         it('throws if SqlPackage.exe fails to be found at user-specified location', async () => {
