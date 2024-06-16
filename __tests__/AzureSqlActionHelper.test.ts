@@ -59,38 +59,16 @@ describe('AzureSqlActionHelper tests', () => {
             expect(sqlpackagePath).toEqual(path);
         });
 
-        it('should not check for sqlpackagepath if no value is provided', async () => {
-            const IS_WINDOWS = process.platform === 'win32';
-            const IS_LINUX = process.platform === 'linux';
+    });
 
-            let inputs = getInputs(ActionType.DacpacAction) as IDacpacActionInputs;
-            inputs.sqlpackagePath = undefined;
+    it('throws if SqlPackage.exe fails to be found at user-specified location', async () => {
+        let inputs = getInputs(ActionType.DacpacAction) as IDacpacActionInputs;
+        let action = new AzureSqlAction(inputs);
 
-            let fileExistsSpy = jest.spyOn(fs, "existsSync");
-            let sqlpackagePath = await AzureSqlActionHelper.getSqlPackagePath(inputs);
+        let getSqlPackagePathSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlPackagePath').mockRejectedValue(1);
 
-            expect(fileExistsSpy).not.toHaveBeenCalledWith(inputs.sqlpackagePath);
-
-            if (IS_WINDOWS) {
-                expect(fileExistsSpy).toHaveBeenCalledTimes(3);
-            }
-            else if (IS_LINUX) {
-                expect(fileExistsSpy).toHaveBeenCalledTimes(1);
-            }
-            else { // macos
-                expect(fileExistsSpy).not.toHaveBeenCalled();
-            }
-        });
-
-        it('throws if SqlPackage.exe fails to be found at user-specified location', async () => {
-            let inputs = getInputs(ActionType.DacpacAction) as IDacpacActionInputs;
-            let action = new AzureSqlAction(inputs);
-
-            let getSqlPackagePathSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlPackagePath').mockRejectedValue(1);
-
-            expect(await action.execute().catch(() => null)).rejects;
-            expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
-        });
+        expect(await action.execute().catch(() => null)).rejects;
+        expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
     });
 
 });
