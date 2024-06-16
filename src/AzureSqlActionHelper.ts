@@ -136,7 +136,7 @@ export default class AzureSqlActionHelper {
     private static async _getSqlPackageExecutablePath(): Promise<string> {
         core.debug('Getting location of SqlPackage');
 
-        let sqlPackagePathInstalledWithDotnetTool = await this._getSqlPackageInstalledDotnetTool();
+        let sqlPackagePathInstalledWithDotnetTool = await this._getSqlPackageExeInstalledDotnetTool();
         core.debug(`SqlPackage (installed with dotnet tool) found at location: ${sqlPackagePathInstalledWithDotnetTool[0]}, version ${sqlPackagePathInstalledWithDotnetTool[1]}`);
 
         let sqlPackagePathInstalledWithSSMS = await this._getSqlPackageInstalledWithSSMS();
@@ -197,9 +197,9 @@ export default class AzureSqlActionHelper {
         return version;
     }
 
-    private static async _getSqlPackageInstalledDotnetTool(): Promise<[string, semver.SemVer]> {
+    private static async _getSqlPackageExeInstalledDotnetTool(): Promise<[string, semver.SemVer]> {
         let globalDotnetToolsPath = path.join(process.env['USERPROFILE'] as string, '.dotnet', 'tools');
-        let sqlPackagePath = path.join(globalDotnetToolsPath, 'sqlpackage');
+        let sqlPackagePath = path.join(globalDotnetToolsPath, 'SqlPackage.exe');
         if (fs.existsSync(sqlPackagePath)) {
             core.debug(`SqlPackage (installed with dotnet tool) found at location: ${sqlPackagePath}`);
             let sqlpackageVersion = await this._getSqlPackageExecutableVersion(sqlPackagePath);
