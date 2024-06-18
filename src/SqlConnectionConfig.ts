@@ -1,24 +1,16 @@
 import * as core from '@actions/core';
+import { parseSqlConnectionString } from '@tediousjs/connection-string';
 import Constants from './Constants';
 
-export interface SqlConnectionString {
-    server: string;
-    port: number | undefined;
-    database: string;
-    userId: string | undefined;
-    password: string | undefined;
-    authentication: string | undefined;
-}
-
 export default class SqlConnectionConfig {
-    private _parsedConnectionString: SqlConnectionString;    
+    private _parsedConnectionString: Record<string, string | number | boolean>;
     private _connectionString: string;
 
     constructor(connectionString: string) {
         this._validateConnectionString(connectionString);
 
         this._connectionString = connectionString;
-        this._parsedConnectionString = this._parseConnectionString(connectionString);
+        this._parsedConnectionString = parseSqlConnectionString(connectionString, true, true);
 
         this._maskSecrets();
         this._validateconfig();
@@ -27,9 +19,37 @@ export default class SqlConnectionConfig {
     public get ConnectionString(): string {
         return this._connectionString;
     }
-    
-    public get ParsedConnectionString(): SqlConnectionString {
-        return this._parsedConnectionString;
+
+    /**
+     * Returns the server name and port number separated by a comma. If the port number is not provided in the connection string, it defaults to 1433.
+     */
+    public get Server(): string {
+        const server = this._parsedConnectionString['data source'] as string;
+        if (!server || server.includes(',')) {
+            return server;
+        } else {
+            return `${server},1433`;
+        }
+    }
+
+    public get Database(): string {
+        return this._parsedConnectionString['initial catalog'] as string;
+    }
+
+    public get UserId(): string | undefined {
+        return this._parsedConnectionString['user id'] as string | undefined;
+    }
+
+    public get Password(): string | undefined {
+        return this._parsedConnectionString['password'] as string | undefined;
+    }
+
+    /**
+     * Returns the authentication type used in the connection string, with spaces removed and in lower case.
+     */
+    public get FormattedAuthentication(): string | undefined {
+        const auth = this._parsedConnectionString['authentication'] as string | undefined;
+        return auth?.replace(/\s/g, '').toLowerCase();
     }
 
     /**
@@ -64,119 +84,51 @@ export default class SqlConnectionConfig {
      */
     private _maskSecrets(): void {
         // User ID could be client ID in some authentication types
-        if (this._parsedConnectionString.userId) {
-            core.setSecret(this._parsedConnectionString.userId);
+        if (this.UserId) {
+            core.setSecret(this.UserId);
         }
 
-        if (this._parsedConnectionString.password) {
-            core.setSecret(this._parsedConnectionString.password);
+        if (this.Password) {
+            core.setSecret(this.Password);
         }
-    }
-
-    private _parseConnectionString(connectionString: string): SqlConnectionString {
-        const result = connectionString.matchAll(Constants.connectionStringParserRegex);
-        let parsedConnectionString: SqlConnectionString = {} as any;
-
-        for (const match of result) {
-            if (match.groups) {
-                let key = match.groups.key.trim();
-                let val = match.groups.val.trim();
-
-                /**
-                 * If the first character of val is a single/double quote and there are two consecutive single/double quotes in between, 
-                 * convert the consecutive single/double quote characters into one single/double quote character respectively (Point no. 4 above)
-                */
-                
-                if (val[0] === "'") {
-                    val = val.slice(1, -1);
-                    val = val.replace(/''/g, "'");
-
-                }
-                else if (val[0] === '"') {
-                    val = val.slice(1, -1);
-                    val = val.replace(/""/g, '"');
-                }
-                
-                // Different parts of connection string: https://learn.microsoft.com/dotnet/api/microsoft.data.sqlclient.sqlconnection.connectionstring
-                switch(key.toLowerCase()) {
-                    case 'user id':
-                    case 'uid': 
-                    case 'user': {
-                        parsedConnectionString.userId = val;
-                        break;
-                    }
-                    case 'password':
-                    case 'pwd': {
-                        parsedConnectionString.password = val;
-                        break;
-                    }
-                    case 'initial catalog':
-                    case 'database': {
-                        parsedConnectionString.database = val;
-                        break;
-                    }
-                    case 'data source':
-                    case 'server': 
-                    case 'address':
-                    case 'addr':
-                    case 'network address': {
-                        if (val.includes(',')) {
-                            const parts = val.split(',');
-                            parsedConnectionString.server = parts[0].trim();
-                            parsedConnectionString.port = parseInt(parts[1].trim());
-                        } else {
-                            parsedConnectionString.server = val;
-                        }
-                        break;
-                    }
-                    case 'authentication': {
-                        // We'll store authentication in lower case and spaces removed
-                        parsedConnectionString.authentication = val.replace(/\s/g, '').toLowerCase();
-                        break;
-                    }
-                }
-            }
-        }
-
-        return parsedConnectionString;
     }
 
     private _validateconfig(): void {
-        if (!this._parsedConnectionString.server) {
+        if (!this.Server) {
             throw new Error(`Invalid connection string. Please ensure 'Server' or 'Data Source' is provided in the connection string.`);
         }
 
-        if (!this._parsedConnectionString.database) {
+        if (!this.Database) {
             throw new Error(`Invalid connection string. Please ensure 'Database' or 'Initial Catalog' is provided in the connection string.`);
         }
 
-        switch (this._parsedConnectionString.authentication) {
-            case undefined: 
+        switch (this.FormattedAuthentication) {
+            case undefined:
             case 'sqlpassword': {
                 // SQL password
-                if (!this._parsedConnectionString.userId) {
+                if (!this.UserId) {
                     throw new Error(`Invalid connection string. Please ensure 'User' or 'User ID' is provided in the connection string.`);
                 }
-                if (!this._parsedConnectionString.password) {
+                if (!this.Password) {
                     throw new Error(`Invalid connection string. Please ensure 'Password' is provided in the connection string.`);
                 }
                 break;
             }
             case 'activedirectorypassword': {
-                if (!this._parsedConnectionString.userId) {
+                if (!this.UserId) {
                     throw new Error(`Invalid connection string. Please ensure 'User' or 'User ID' is provided in the connection string.`);
                 }
-                if (!this._parsedConnectionString.password) {
+                if (!this.Password) {
                     throw new Error(`Invalid connection string. Please ensure 'Password' is provided in the connection string.`);
                 }
                 break;
             }
             case 'activedirectoryserviceprincipal': {
                 // User ID is client ID and password is secret
-                if (!this._parsedConnectionString.userId) {
+                if (!this.UserId) {
                     throw new Error(`Invalid connection string. Please ensure client ID is provided in the 'User' or 'User ID' field of the connection string.`);
                 }
-                if (!this._parsedConnectionString.password) {
+                if (!this.Password) {
                     throw new Error(`Invalid connection string. Please ensure client secret is provided in the 'Password' field of the connection string.`);
                 }
                 break;

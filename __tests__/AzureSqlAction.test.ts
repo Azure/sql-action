@@ -77,7 +77,7 @@ describe('AzureSqlAction tests', () => {
             expect(execSpy).toHaveBeenCalledWith(`"${sqlcmdExe}" ${expectedSqlCmdCall}`);
 
             // Except for AAD default, password/client secret should be set as SqlCmdPassword environment variable
-            if (inputs.connectionConfig.ParsedConnectionString.authentication !== 'activedirectorydefault') {
+            if (inputs.connectionConfig.FormattedAuthentication !== 'activedirectorydefault') {
                 expect(exportVariableSpy).toHaveBeenCalledTimes(1);
                 expect(exportVariableSpy).toHaveBeenCalledWith(Constants.sqlcmdPasswordEnvVarName, "placeholder");
             }
