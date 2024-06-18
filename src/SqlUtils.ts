@@ -123,7 +123,7 @@ export default class SqlUtils {
             database = connectionConfig.Database;
         }
 
-        let sqlcmdCall = `"${sqlCmdPath}" -S ${connectionConfig.Server} -d ${database}`;
+        let sqlcmdCall = `"${sqlCmdPath}" -S ${connectionConfig.Server},${connectionConfig.Port ?? 1433} -d ${database}`;
 
         // Determine the correct sqlcmd arguments based on the auth type
         switch (connectionConfig.FormattedAuthentication) {

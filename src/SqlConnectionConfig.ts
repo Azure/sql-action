@@ -20,16 +20,20 @@ export default class SqlConnectionConfig {
         return this._connectionString;
     }
 
-    /**
-     * Returns the server name and port number separated by a comma. If the port number is not provided in the connection string, it defaults to 1433.
-     */
     public get Server(): string {
         const server = this._parsedConnectionString['data source'] as string;
-        if (!server || server.includes(',')) {
-            return server;
-        } else {
-            return `${server},1433`;
+        if (server?.includes(',')) {
+            return server.split(',')[0].trim();
         }
+        return server;
+    }
+
+    public get Port(): number | undefined {
+        const server = this._parsedConnectionString['data source'] as string;
+        if (server && server.includes(',')) {
+            return parseInt(server.split(',')[1].trim());
+        }
+        return undefined;
     }
 
     public get Database(): string {
