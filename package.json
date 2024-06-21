@@ -23,16 +23,15 @@
     "@actions/core": "^1.2.6",
     "@actions/exec": "^1.0.1",
     "@actions/tool-cache": "^2.0.1",
+    "@tediousjs/connection-string": "^0.5.0",
     "azure-actions-webclient": "^1.0.3",
     "glob": "^10.3.12",
-    "mssql": "^8.1.0",
     "uuid": "^3.3.2",
     "winreg": "^1.2.4"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
     "@types/jest": "^24.0.13",
-    "@types/mssql": "^8.0.0",
     "@types/node": "^12.0.4",
     "@types/uuid": "^3.4.4",
     "@types/winreg": "^1.2.30",
