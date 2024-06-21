@@ -27,7 +27,7 @@ export default async function run() {
         const runnerIPAddress = await SqlUtils.detectIPAddress(inputs.connectionConfig);
         if (runnerIPAddress) {
             let azureResourceAuthorizer = await AuthorizerFactory.getAuthorizer();
-            let azureSqlResourceManager = await AzureSqlResourceManager.getResourceManager(inputs.connectionConfig.Config.server, azureResourceAuthorizer);
+            let azureSqlResourceManager = await AzureSqlResourceManager.getResourceManager(inputs.connectionConfig.Server, azureResourceAuthorizer);
             firewallManager = new FirewallManager(azureSqlResourceManager);
             await firewallManager.addFirewallRule(runnerIPAddress);
         }

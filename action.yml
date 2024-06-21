@@ -17,5 +17,5 @@ inputs:
     description: 'In case of a .sqlproj file, additional arguments that will be applied to dotnet build when building the database project.'
     required: false
 runs:
-  using: 'node12'
+  using: 'node20'
   main: 'lib/main.js'

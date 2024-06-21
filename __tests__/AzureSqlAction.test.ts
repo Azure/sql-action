@@ -15,6 +15,7 @@ describe('AzureSqlAction tests', () => {
     describe('validate sqlpackage calls for DacpacAction', () => {
         const inputs = [
             ['Publish', '/TargetTimeout:20'],
+            ['Publish', '/p:DropObjectsNotInSource=true /p:BlockOnPossibleDataLoss=false /v:RELEASEVERSION="1.0.0"'],
             ['Script', '/DeployScriptPath:script.sql'],
             ['DriftReport', '/OutputPath:report.xml'],
             ['DeployReport', '/OutputPath:report.xml']
@@ -31,7 +32,12 @@ describe('AzureSqlAction tests', () => {
     
             expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
             expect(execSpy).toHaveBeenCalledTimes(1);
-            expect(execSpy).toHaveBeenCalledWith(`"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${inputs.filePath}" ${sqlpackageArgs}`);
+
+            if (actionName == 'DriftReport') {
+                expect(execSpy).toHaveBeenCalledWith(`"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" ${sqlpackageArgs}`);
+            } else {
+                expect(execSpy).toHaveBeenCalledWith(`"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${inputs.filePath}" ${sqlpackageArgs}`);
+            }
         });
     });
 
@@ -49,10 +55,10 @@ describe('AzureSqlAction tests', () => {
     describe('sql script action tests for different auth types', () => {
         // Format: [test case description, connection string, expected sqlcmd arguments]
         const testCases = [
-            ['SQL login', 'Server=testServer.database.windows.net;Database=testDB;User Id=testUser;Password=placeholder', '-S testServer.database.windows.net -d testDB -U "testUser" -i "./TestFile.sql" -t 20'],
-            ['AAD password', 'Server=testServer.database.windows.net;Database=testDB;Authentication=Active Directory Password;User Id=testAADUser;Password=placeholder', '-S testServer.database.windows.net -d testDB --authentication-method=ActiveDirectoryPassword -U "testAADUser" -i "./TestFile.sql" -t 20'],
-            ['AAD service principal', 'Server=testServer.database.windows.net;Database=testDB;Authentication=Active Directory Service Principal;User Id=appId;Password=placeholder', '-S testServer.database.windows.net -d testDB --authentication-method=ActiveDirectoryServicePrincipal -U "appId" -i "./TestFile.sql" -t 20'],
-            ['AAD default', 'Server=testServer.database.windows.net;Database=testDB;Authentication=Active Directory Default;', '-S testServer.database.windows.net -d testDB --authentication-method=ActiveDirectoryDefault -i "./TestFile.sql" -t 20']
+            ['SQL login', 'Server=testServer.database.windows.net;Database=testDB;User Id=testUser;Password=placeholder', '-S testServer.database.windows.net,1433 -d testDB -U "testUser" -i "./TestFile.sql" -t 20'],
+            ['AAD password', 'Server=testServer.database.windows.net;Database=testDB;Authentication=Active Directory Password;User Id=testAADUser;Password=placeholder', '-S testServer.database.windows.net,1433 -d testDB --authentication-method=ActiveDirectoryPassword -U "testAADUser" -i "./TestFile.sql" -t 20'],
+            ['AAD service principal', 'Server=testServer.database.windows.net;Database=testDB;Authentication=Active Directory Service Principal;User Id=appId;Password=placeholder', '-S testServer.database.windows.net,1433 -d testDB --authentication-method=ActiveDirectoryServicePrincipal -U "appId" -i "./TestFile.sql" -t 20'],
+            ['AAD default', 'Server=testServer.database.windows.net;Database=testDB;Authentication=Active Directory Default;', '-S testServer.database.windows.net,1433 -d testDB --authentication-method=ActiveDirectoryDefault -i "./TestFile.sql" -t 20']
         ];
 
         it.each(testCases)('%s', async (testCase, connectionString, expectedSqlCmdCall) => {
@@ -69,13 +75,35 @@ describe('AzureSqlAction tests', () => {
             expect(execSpy).toHaveBeenCalledWith(`"${sqlcmdExe}" ${expectedSqlCmdCall}`);
 
             // Except for AAD default, password/client secret should be set as SqlCmdPassword environment variable
-            if (inputs.connectionConfig.Config['authentication']?.type !== 'azure-active-directory-default') {
+            if (inputs.connectionConfig.FormattedAuthentication !== 'activedirectorydefault') {
                 expect(exportVariableSpy).toHaveBeenCalledTimes(1);
                 expect(exportVariableSpy).toHaveBeenCalledWith(Constants.sqlcmdPasswordEnvVarName, "placeholder");
             }
             else {
                 expect(exportVariableSpy).not.toHaveBeenCalled();
             }
+        })
+    });
+
+    describe('sql script action tests for different port numbers', () => {
+        // Format: [test case description, connection string, expected sqlcmd arguments]
+        const testCases = [
+            ['Default port', 'Server=testServer.database.windows.net;Database=testDB;User Id=testUser;Password=placeholder', '-S testServer.database.windows.net,1433 -d testDB -U "testUser" -i "./TestFile.sql" -t 20'],
+            ['Custom port', 'Server=testServer.database.windows.net,1234;Database=testDB;User Id=testUser;Password=placeholder', '-S testServer.database.windows.net,1234 -d testDB -U "testUser" -i "./TestFile.sql" -t 20']
+            ];
+            
+        it.each(testCases)('%s', async (testCase, connectionString, expectedSqlCmdCall) => {
+            const inputs = getInputs(ActionType.SqlAction, connectionString) as IActionInputs;
+            const action = new AzureSqlAction(inputs);
+            const sqlcmdExe = process.platform === 'win32' ? 'sqlcmd.exe' : 'sqlcmd';
+    
+            const execSpy = jest.spyOn(exec, 'exec').mockResolvedValue(0);
+            const exportVariableSpy = jest.spyOn(core, 'exportVariable').mockReturnValue();
+    
+            await action.execute();
+    
+            expect(execSpy).toHaveBeenCalledTimes(1);
+            expect(execSpy).toHaveBeenCalledWith(`"${sqlcmdExe}" ${expectedSqlCmdCall}`);
         })
     });
 
@@ -113,7 +141,11 @@ describe('AzureSqlAction tests', () => {
             expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
             expect(execSpy).toHaveBeenCalledTimes(2);
             expect(execSpy).toHaveBeenNthCalledWith(1, `dotnet build "./TestProject.sqlproj" -p:NetCoreBuild=true --verbose --test "test value"`);
-            expect(execSpy).toHaveBeenNthCalledWith(2, `"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${expectedDacpac}" ${sqlpackageArgs}`);
+            if (actionName === 'DriftReport') {
+                expect(execSpy).toHaveBeenNthCalledWith(2, `"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" ${sqlpackageArgs}`);
+            } else {
+                expect(execSpy).toHaveBeenNthCalledWith(2, `"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${expectedDacpac}" ${sqlpackageArgs}`);
+            }
         });
     });
 
