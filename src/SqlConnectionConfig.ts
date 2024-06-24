@@ -4,20 +4,16 @@ import Constants from './Constants';
 
 export default class SqlConnectionConfig {
     private _parsedConnectionString: Record<string, string | number | boolean>;
-    private _connectionString: string;
+    private _rawConnectionString: string;
 
     constructor(connectionString: string) {
         this._validateConnectionString(connectionString);
 
-        this._connectionString = connectionString;
+        this._rawConnectionString = connectionString;
         this._parsedConnectionString = parseSqlConnectionString(connectionString, true, true);
 
         this._maskSecrets();
         this._validateconfig();
-    }
-
-    public get ConnectionString(): string {
-        return this._connectionString;
     }
 
     public get Server(): string {
@@ -54,6 +50,31 @@ export default class SqlConnectionConfig {
     public get FormattedAuthentication(): string | undefined {
         const auth = this._parsedConnectionString['authentication'] as string | undefined;
         return auth?.replace(/\s/g, '').toLowerCase();
+    }
+
+    /**
+     * Returns the connection string escaped by double quotes.
+     */
+    public get EscapedConnectionString() : string {
+        let result = '';
+
+        // Isolate all the key value pairs from the raw connection string
+        const matches = Array.from(this._rawConnectionString.matchAll(Constants.connectionStringParserRegex));
+        for (const match of matches) {
+            if (match.groups) {
+                const key = match.groups.key.trim();
+                let val = match.groups.val.trim();
+
+                // If the value is enclosed in double quotes, escape the double quotes
+                if (val.startsWith('"') && val.endsWith('"')) {
+                    val = '\"' + val.slice(1, -1) + '\"';
+                }
+
+                result += `${key}=${val};`;
+            }
+        }
+
+        return result;
     }
 
     /**

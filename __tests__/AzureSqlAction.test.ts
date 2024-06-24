@@ -34,9 +34,9 @@ describe('AzureSqlAction tests', () => {
             expect(execSpy).toHaveBeenCalledTimes(1);
 
             if (actionName == 'DriftReport') {
-                expect(execSpy).toHaveBeenCalledWith(`"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" ${sqlpackageArgs}`);
+                expect(execSpy).toHaveBeenCalledWith(`"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.EscapedConnectionString}" ${sqlpackageArgs}`);
             } else {
-                expect(execSpy).toHaveBeenCalledWith(`"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${inputs.filePath}" ${sqlpackageArgs}`);
+                expect(execSpy).toHaveBeenCalledWith(`"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.EscapedConnectionString}" /SourceFile:"${inputs.filePath}" ${sqlpackageArgs}`);
             }
         });
     });
@@ -142,9 +142,9 @@ describe('AzureSqlAction tests', () => {
             expect(execSpy).toHaveBeenCalledTimes(2);
             expect(execSpy).toHaveBeenNthCalledWith(1, `dotnet build "./TestProject.sqlproj" -p:NetCoreBuild=true --verbose --test "test value"`);
             if (actionName === 'DriftReport') {
-                expect(execSpy).toHaveBeenNthCalledWith(2, `"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" ${sqlpackageArgs}`);
+                expect(execSpy).toHaveBeenNthCalledWith(2, `"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.EscapedConnectionString}" ${sqlpackageArgs}`);
             } else {
-                expect(execSpy).toHaveBeenNthCalledWith(2, `"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${expectedDacpac}" ${sqlpackageArgs}`);
+                expect(execSpy).toHaveBeenNthCalledWith(2, `"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.EscapedConnectionString}" /SourceFile:"${expectedDacpac}" ${sqlpackageArgs}`);
             }
         });
     });
@@ -179,6 +179,30 @@ describe('AzureSqlAction tests', () => {
         expect(parseCommandArgumentsSpy).toHaveBeenCalledTimes(1);
         expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);  // Verify build succeeds and calls into Publish
         expect(execSpy).toHaveBeenCalledTimes(2);
+    });
+});
+
+describe('validate connection string authentication escaping in sqlpackage commands', () => {
+    const inputs = [
+        ['Basic connection string', 'Server=testServer;Database=testDB;Authentication=Active Directory Password;User Id=testUser;Password=placeholder', 'Server=testServer;Database=testDB;Authentication=Active Directory Password;User Id=testUser;Password=placeholder;'],
+        ['Authentication at the end', 'Server=testServer;Database=testDB;User Id=testUser;Password=placeholder;Authentication=Active Directory Password', 'Server=testServer;Database=testDB;User Id=testUser;Password=placeholder;Authentication=Active Directory Password;'],
+        ['Authentication with double quotes', 'Server=testServer;Database=testDB;Authentication="Active Directory Password";User Id=testUser;Password=placeholder', 'Server=testServer;Database=testDB;Authentication=\"Active Directory Password\";User Id=testUser;Password=placeholder;'],
+        ['Authentication with double quotes at the end', 'Server=testServer;Database=testDB;User Id=testUser;Password=placeholder;Authentication="Active Directory Password"', 'Server=testServer;Database=testDB;User Id=testUser;Password=placeholder;Authentication=\"Active Directory Password\";'],
+        ['Authentication with single quotes', 'Server=testServer;Database=testDB;Authentication=\'Active Directory Password\';User Id=testUser;Password=placeholder', 'Server=testServer;Database=testDB;Authentication=\'Active Directory Password\';User Id=testUser;Password=placeholder;'],
+        ['Authentication with single quotes at the end', 'Server=testServer;Database=testDB;User Id=testUser;Password=placeholder;Authentication=\'Active Directory Password\'', 'Server=testServer;Database=testDB;User Id=testUser;Password=placeholder;Authentication=\'Active Directory Password\';'],
+    ];
+
+    it.each(inputs)('%s', async (testName, inputConnectionString, escapedConnectionString) => {
+        let inputs = getInputs(ActionType.DacpacAction, inputConnectionString) as IDacpacActionInputs;
+        let action = new AzureSqlAction(inputs);
+
+        let getSqlPackagePathSpy = jest.spyOn(AzureSqlActionHelper, 'getSqlPackagePath').mockResolvedValue('SqlPackage.exe');
+        let execSpy = jest.spyOn(exec, 'exec').mockResolvedValue(0);
+
+        await action.execute();
+
+        expect(getSqlPackagePathSpy).toHaveBeenCalled();
+        expect(execSpy).toHaveBeenCalledWith(`"SqlPackage.exe" /Action:Publish /TargetConnectionString:"${escapedConnectionString}" /SourceFile:"./TestPackage.dacpac" /TargetTimeout:20`);
     });
 });
 
