@@ -31,6 +31,9 @@ The definition of this GitHub Action is in [action.yml](https://github.com/Azure
 
     # optional additional dotnet build options when building a database project file
     build-arguments:
+
+    # optional, set this to skip checking if the runner has access to the server. Default is false.
+    skip-firewall-check:
 ```
 
 ## 🎨 Samples
