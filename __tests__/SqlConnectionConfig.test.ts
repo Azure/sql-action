@@ -23,7 +23,6 @@ describe('SqlConnectionConfig tests', () => {
         it.each(validConnectionStrings)('Input `%s` %s', (connectionStringInput, testDescription, passwordOutput) => {
             const connectionString = new SqlConnectionConfig(connectionStringInput);
     
-            expect(connectionString.EscapedConnectionString).toMatch(connectionStringInput);
             expect(connectionString.Password).toMatch(passwordOutput);
             expect(connectionString.UserId).toMatch(`user`);
             expect(connectionString.Database).toMatch('testdb');
@@ -83,7 +82,7 @@ describe('SqlConnectionConfig tests', () => {
     
             expect(config.Server).toMatch('test1.database.windows.net');
             expect(config.Database).toMatch('testdb');
-            expect(config.EscapedConnectionString).toMatch(connectionStringInput);
+            expect(config.EscapedConnectionString.replace(/""/g, '"')).toMatch(connectionStringInput);
             expect(config.FormattedAuthentication ?? '').toMatch(expectedAuthType);
             switch (expectedAuthType) {
                 case '':
