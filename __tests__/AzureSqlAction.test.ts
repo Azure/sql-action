@@ -182,7 +182,7 @@ describe('AzureSqlAction tests', () => {
     });
 });
 
-describe('validate connection string authentication escaping in sqlpackage commands', () => {
+describe('validate connection string escaping in sqlpackage commands', () => {
     const inputs = [
         ['Basic connection string', 'Server=testServer;Database=testDB;Authentication=Active Directory Password;User Id=testUser;Password=placeholder', 'Server=testServer;Database=testDB;Authentication=Active Directory Password;User Id=testUser;Password=placeholder;'],
         ['Authentication at the end', 'Server=testServer;Database=testDB;User Id=testUser;Password=placeholder;Authentication=Active Directory Password', 'Server=testServer;Database=testDB;User Id=testUser;Password=placeholder;Authentication=Active Directory Password;'],
@@ -190,6 +190,10 @@ describe('validate connection string authentication escaping in sqlpackage comma
         ['Authentication with double quotes at the end', 'Server=testServer;Database=testDB;User Id=testUser;Password=placeholder;Authentication="Active Directory Password"', 'Server=testServer;Database=testDB;User Id=testUser;Password=placeholder;Authentication=\"\"Active Directory Password\"\";'],
         ['Authentication with single quotes', 'Server=testServer;Database=testDB;Authentication=\'Active Directory Password\';User Id=testUser;Password=placeholder', 'Server=testServer;Database=testDB;Authentication=\'Active Directory Password\';User Id=testUser;Password=placeholder;'],
         ['Authentication with single quotes at the end', 'Server=testServer;Database=testDB;User Id=testUser;Password=placeholder;Authentication=\'Active Directory Password\'', 'Server=testServer;Database=testDB;User Id=testUser;Password=placeholder;Authentication=\'Active Directory Password\';'],
+        ['Password enclosed with double quotes', `Server=test1.database.windows.net;User Id=user;Password="placeholder'=placeholder''c;123";Initial catalog=testdb`, `Server=test1.database.windows.net;User Id=user;Password=""placeholder'=placeholder''c;123"";Initial catalog=testdb;`],
+        ['Password enclosed with single quotes', `Server=test1.database.windows.net;User Id=user;Password='placeholder;1""2"placeholder=33';Initial catalog=testdb`, `Server=test1.database.windows.net;User Id=user;Password='placeholder;1""2"placeholder=33';Initial catalog=testdb;`],
+        ['Password with double quotes enclosed with double quotes', `Server=test1.database.windows.net;User Id=user;Password="placeholder;1""2""placeholder(012j^72''placeholder;')'=33";Initial catalog=testdb`, `Server=test1.database.windows.net;User Id=user;Password=""placeholder;1""2""placeholder(012j^72''placeholder;')'=33"";Initial catalog=testdb;`],
+        ['Password with single quotes enclosed with single quotes', `Server=test1.database.windows.net;User Id=user;Password='placeholder""c;1''2''"''placeholder("0""12j^72''placeholder;'')''=33';Initial catalog=testdb`, `Server=test1.database.windows.net;User Id=user;Password='placeholder""c;1''2''"''placeholder("0""12j^72''placeholder;'')''=33';Initial catalog=testdb;`],
     ];
 
     it.each(inputs)('%s', async (testName, inputConnectionString, escapedConnectionString) => {
