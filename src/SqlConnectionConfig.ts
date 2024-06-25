@@ -67,7 +67,7 @@ export default class SqlConnectionConfig {
 
                 // If the value is enclosed in double quotes, escape the double quotes
                 if (val.startsWith('"') && val.endsWith('"')) {
-                    val = '\"' + val.slice(1, -1) + '\"';
+                    val = '""' + val.slice(1, -1) + '""';
                 }
 
                 result += `${key}=${val};`;
