@@ -198,4 +198,48 @@ describe('main.ts tests', () => {
             expect(setFailedSpy).toHaveBeenCalledWith(`Action ${actionName} is invalid. Supported action types are: Publish, Script, DriftReport, or DeployReport.`);
         });
     });
+
+    describe('validate firewall rule check depending on skip-firewall-check value', () => {
+        const inputs = [
+            [ 'skip-firewall-check is false, firewall rule should be checked', false, true ],
+            [ 'skip-firewall-check is true, firewall rule should not be checked', true, false]
+        ];
+
+        it.each(inputs)('%s', async (testName, skipFirewallCheckValue, firewallRuleCheckRan) => {
+            const resolveFilePathSpy = jest.spyOn(AzureSqlActionHelper, 'resolveFilePath').mockReturnValue('./TestSqlFile.sql');
+            const getInputSpy = jest.spyOn(core, 'getInput').mockImplementation((name, options) => {
+                switch (name) {
+                    case 'connection-string': return 'Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder;';
+                    case 'path': return './TestSqlFile.sql';
+                    case 'arguments': return '-v FakeSqlcmdArgument';
+                    default: return '';
+                }
+            });
+            const getBooleanInputSpy = jest.spyOn(core, 'getBooleanInput').mockImplementation((name, options) => {
+                switch (name) {
+                    case 'skip-firewall-check': return Boolean(skipFirewallCheckValue);
+                    default: return false;
+                }
+            });
+            const detectIPAddressSpy = jest.spyOn(SqlUtils, 'detectIPAddress').mockResolvedValue('');
+            const executeSpy = jest.spyOn(AzureSqlAction.prototype, 'execute').mockResolvedValue();
+            const removeFirewallRuleSpy = jest.spyOn(FirewallManager.prototype, 'removeFirewallRule');
+    
+            await run();
+    
+            expect(AzureSqlAction).toHaveBeenCalled();
+            expect(getInputSpy).toHaveBeenCalledTimes(4);
+            expect(getBooleanInputSpy).toHaveBeenCalled();
+            expect(resolveFilePathSpy).toHaveBeenCalled();
+            expect(executeSpy).toHaveBeenCalled();
+    
+            if (Boolean(firewallRuleCheckRan)) {
+                expect(detectIPAddressSpy).toHaveBeenCalled();
+            } else {
+                expect(detectIPAddressSpy).not.toHaveBeenCalled();
+            }
+            expect(removeFirewallRuleSpy).not.toHaveBeenCalled();
+
+        });
+    });
 })
