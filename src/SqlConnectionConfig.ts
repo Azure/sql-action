@@ -59,6 +59,7 @@ export default class SqlConnectionConfig {
         let result = '';
 
         // Isolate all the key value pairs from the raw connection string
+        // Using the raw connection string instead of the parsed one to keep it as close to the original as possible
         const matches = Array.from(this._rawConnectionString.matchAll(Constants.connectionStringParserRegex));
         for (const match of matches) {
             if (match.groups) {
