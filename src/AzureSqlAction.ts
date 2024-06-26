@@ -19,6 +19,7 @@ export interface IActionInputs {
     connectionConfig: SqlConnectionConfig;
     filePath: string;
     additionalArguments?: string;
+    skipFirewallCheck: boolean;
 }
 
 export interface IDacpacActionInputs extends IActionInputs {
