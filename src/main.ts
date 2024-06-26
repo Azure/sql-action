@@ -24,13 +24,17 @@ export default async function run() {
         const inputs = getInputs();
         const azureSqlAction = new AzureSqlAction(inputs);
         
-        const runnerIPAddress = await SqlUtils.detectIPAddress(inputs.connectionConfig);
-        if (runnerIPAddress) {
-            let azureResourceAuthorizer = await AuthorizerFactory.getAuthorizer();
-            let azureSqlResourceManager = await AzureSqlResourceManager.getResourceManager(inputs.connectionConfig.Server, azureResourceAuthorizer);
-            firewallManager = new FirewallManager(azureSqlResourceManager);
-            await firewallManager.addFirewallRule(runnerIPAddress);
+        // Unless skip-firewall-check is set to true, check if the runner's IP address is allowed to connect to the server
+        if (inputs.skipFirewallCheck !== true) {
+            const runnerIPAddress = await SqlUtils.detectIPAddress(inputs.connectionConfig);
+            if (runnerIPAddress) {
+                let azureResourceAuthorizer = await AuthorizerFactory.getAuthorizer();
+                let azureSqlResourceManager = await AzureSqlResourceManager.getResourceManager(inputs.connectionConfig.Server, azureResourceAuthorizer);
+                firewallManager = new FirewallManager(azureSqlResourceManager);
+                await firewallManager.addFirewallRule(runnerIPAddress);
+            }
         }
+
         await azureSqlAction.execute();
     }
     catch (error) {
@@ -71,7 +75,8 @@ function getInputs(): IActionInputs {
                 actionType: ActionType.SqlAction,
                 connectionConfig: connectionConfig,
                 filePath: filePath,
-                additionalArguments: core.getInput('arguments') || undefined
+                additionalArguments: core.getInput('arguments') || undefined,
+                skipFirewallCheck: core.getBooleanInput('skip-firewall-check')
             };
 
         case Constants.dacpacExtension:
@@ -84,7 +89,8 @@ function getInputs(): IActionInputs {
                 connectionConfig: connectionConfig,
                 filePath: filePath,
                 sqlpackageAction: AzureSqlActionHelper.getSqlpackageActionTypeFromString(action),
-                additionalArguments: core.getInput('arguments') || undefined
+                additionalArguments: core.getInput('arguments') || undefined,
+                skipFirewallCheck: core.getBooleanInput('skip-firewall-check')
             } as IDacpacActionInputs;
 
         case Constants.sqlprojExtension:
@@ -98,10 +104,9 @@ function getInputs(): IActionInputs {
                 filePath: filePath,
                 buildArguments: core.getInput('build-arguments') || undefined,
                 sqlpackageAction: AzureSqlActionHelper.getSqlpackageActionTypeFromString(action),
-                additionalArguments: core.getInput('arguments') || undefined
+                additionalArguments: core.getInput('arguments') || undefined,
+                skipFirewallCheck: core.getBooleanInput('skip-firewall-check')
             } as IBuildAndPublishInputs;
-
-            break;
 
         default:
             throw new Error(`Invalid file type provided as input ${filePath}. File must be a .sql, .dacpac, or .sqlproj file.`)
