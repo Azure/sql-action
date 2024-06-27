@@ -7,7 +7,7 @@ import * as path from 'path';
 import uuidV4 from 'uuid/v4';
 
 export const sqlcmdToolName = 'go-sqlcmd';
-export const sqlcmdVersion = '1.0.0';
+export const sqlcmdVersion = '1.7.0';
 
 export default class Setup {
     
