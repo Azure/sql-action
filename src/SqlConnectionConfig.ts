@@ -1,31 +1,81 @@
 import * as core from '@actions/core';
-import { config, ConnectionPool } from "mssql";
+import { parseSqlConnectionString } from '@tediousjs/connection-string';
 import Constants from './Constants';
 
-/**
- * Wrapper class for the mssql.config object.
- */
 export default class SqlConnectionConfig {
-    private _connectionConfig: config;
-    private _connectionString: string;
+    private _parsedConnectionString: Record<string, string | number | boolean>;
+    private _rawConnectionString: string;
 
     constructor(connectionString: string) {
         this._validateConnectionString(connectionString);
 
-        this._connectionString = connectionString;
-        this._connectionConfig = ConnectionPool.parseConnectionString(connectionString);
+        this._rawConnectionString = connectionString;
+        this._parsedConnectionString = parseSqlConnectionString(connectionString, true, true);
 
         this._maskSecrets();
-        this._setAuthentication();
         this._validateconfig();
     }
 
-    public get Config(): config {
-        return this._connectionConfig;
+    public get Server(): string {
+        const server = this._parsedConnectionString['data source'] as string;
+        if (server?.includes(',')) {
+            return server.split(',')[0].trim();
+        }
+        return server;
     }
 
-    public get ConnectionString(): string {
-        return this._connectionString;
+    public get Port(): number | undefined {
+        const server = this._parsedConnectionString['data source'] as string;
+        if (server && server.includes(',')) {
+            return parseInt(server.split(',')[1].trim());
+        }
+        return undefined;
+    }
+
+    public get Database(): string {
+        return this._parsedConnectionString['initial catalog'] as string;
+    }
+
+    public get UserId(): string | undefined {
+        return this._parsedConnectionString['user id'] as string | undefined;
+    }
+
+    public get Password(): string | undefined {
+        return this._parsedConnectionString['password'] as string | undefined;
+    }
+
+    /**
+     * Returns the authentication type used in the connection string, with spaces removed and in lower case.
+     */
+    public get FormattedAuthentication(): string | undefined {
+        const auth = this._parsedConnectionString['authentication'] as string | undefined;
+        return auth?.replace(/\s/g, '').toLowerCase();
+    }
+
+    /**
+     * Returns the connection string escaped by double quotes.
+     */
+    public get EscapedConnectionString() : string {
+        let result = '';
+
+        // Isolate all the key value pairs from the raw connection string
+        // Using the raw connection string instead of the parsed one to keep it as close to the original as possible
+        const matches = Array.from(this._rawConnectionString.matchAll(Constants.connectionStringParserRegex));
+        for (const match of matches) {
+            if (match.groups) {
+                const key = match.groups.key.trim();
+                let val = match.groups.val.trim();
+
+                // If the value is enclosed in double quotes, escape the double quotes
+                if (val.startsWith('"') && val.endsWith('"')) {
+                    val = '""' + val.slice(1, -1) + '""';
+                }
+
+                result += `${key}=${val};`;
+            }
+        }
+
+        return result;
     }
 
     /**
@@ -60,150 +110,55 @@ export default class SqlConnectionConfig {
      */
     private _maskSecrets(): void {
         // User ID could be client ID in some authentication types
-        if (this._connectionConfig.user) {
-            core.setSecret(this._connectionConfig.user);
+        if (this.UserId) {
+            core.setSecret(this.UserId);
         }
 
-        if (this._connectionConfig.password) {
-            core.setSecret(this._connectionConfig.password);
+        if (this.Password) {
+            core.setSecret(this.Password);
         }
     }
 
     private _validateconfig(): void {
-        if (!this._connectionConfig.server) {
+        if (!this.Server) {
             throw new Error(`Invalid connection string. Please ensure 'Server' or 'Data Source' is provided in the connection string.`);
         }
 
-        if (!this._connectionConfig.database) {
+        if (!this.Database) {
             throw new Error(`Invalid connection string. Please ensure 'Database' or 'Initial Catalog' is provided in the connection string.`);
         }
 
-        const auth = this._connectionConfig['authentication'];
-        switch (auth?.type) {
-            case undefined: {
+        switch (this.FormattedAuthentication) {
+            case undefined:
+            case 'sqlpassword': {
                 // SQL password
-                if (!this._connectionConfig.user) {
+                if (!this.UserId) {
                     throw new Error(`Invalid connection string. Please ensure 'User' or 'User ID' is provided in the connection string.`);
                 }
-                if (!this._connectionConfig.password) {
+                if (!this.Password) {
                     throw new Error(`Invalid connection string. Please ensure 'Password' is provided in the connection string.`);
                 }
                 break;
             }
-            case 'azure-active-directory-password': {
-                if (!auth.options?.userName) {
+            case 'activedirectorypassword': {
+                if (!this.UserId) {
                     throw new Error(`Invalid connection string. Please ensure 'User' or 'User ID' is provided in the connection string.`);
                 }
-                if (!auth.options?.password) {
+                if (!this.Password) {
                     throw new Error(`Invalid connection string. Please ensure 'Password' is provided in the connection string.`);
                 }
                 break;
             }
-            case 'azure-active-directory-service-principal-secret': {
-                if (!auth.options?.clientId) {
+            case 'activedirectoryserviceprincipal': {
+                // User ID is client ID and password is secret
+                if (!this.UserId) {
                     throw new Error(`Invalid connection string. Please ensure client ID is provided in the 'User' or 'User ID' field of the connection string.`);
                 }
-                if (!auth.options?.clientSecret) {
+                if (!this.Password) {
                     throw new Error(`Invalid connection string. Please ensure client secret is provided in the 'Password' field of the connection string.`);
                 }
                 break;
             }
         }
-    }
-
-    /**
-     * Sets the authentication option in the mssql config object based on the connection string.
-     * node-mssql currently ignores authentication when parsing the connection string: https://github.com/tediousjs/node-mssql/issues/1400
-     * Assumes _connectionConfig has already been set, sets authentication to _connectionConfig directly
-     */
-    private _setAuthentication(): void {
-
-        // Parsing logic from SqlConnectionStringBuilder._parseConnectionString https://github.com/Azure/sql-action/blob/7e69fdc44aba3f05fd02a6a4190841020d9ca6f7/src/SqlConnectionStringBuilder.ts#L70-L128
-        const result = Array.from(this._connectionString.matchAll(Constants.connectionStringParserRegex));
-
-        // TODO: Change this to Array.from().find() now that we're only looking for authentication
-        const authentication = this._findInConnectionString(result, 'authentication');
-        if (!authentication) {
-            // No authentication set in connection string
-            return;
-        }
-
-        // Possible auth types from connection string: https://docs.microsoft.com/sql/connect/ado-net/sql/azure-active-directory-authentication
-        // Auth definitions from tedious driver: http://tediousjs.github.io/tedious/api-connection.html
-        switch (authentication.replace(/\s/g, '').toLowerCase()) {
-            case 'sqlpassword': {
-                // default: use user and password
-                break;
-            }
-            case 'activedirectorypassword': {
-                this._connectionConfig['authentication'] = {
-                    "type": 'azure-active-directory-password',
-                    "options": {
-                      // User and password should have been parsed already  
-                      "userName": this._connectionConfig.user,
-                      "password": this._connectionConfig.password
-                    }
-                }
-                break;
-            }
-            case 'activedirectorydefault': {
-                this._connectionConfig['authentication'] = {
-                    type: 'azure-active-directory-default'
-                }
-                break;
-            }
-            case 'activedirectoryserviceprincipal': {
-                this._connectionConfig['authentication'] = {
-                    type: 'azure-active-directory-service-principal-secret',
-                    options: {
-                      // From connection string, client ID == user ID and secret == password
-                      // https://docs.microsoft.com/sql/connect/ado-net/sql/azure-active-directory-authentication#using-active-directory-service-principal-authentication
-                      "clientId": this._connectionConfig.user,
-                      "clientSecret": this._connectionConfig.password
-                    }
-                }
-                break;
-            }
-            default: {
-                throw new Error(`Authentication type '${authentication}' is not supported.`);
-            }
-        }
-    }
-
-    /**
-     * Looks for the given key in the already parsed connection string, returns its value or undefined if not found.
-     * Also processes the value to remove enclosing quotation marks. (Ex: quotes on "Active Directory Password" will be removed)
-     * @param matches The connection string as a Regex Match array
-     * @param findKey The key to look for in the connection string
-     */
-    private _findInConnectionString(matches: RegExpMatchArray[], findKey: string): string | undefined {
-        for (const match of matches) {
-            if (match.groups) {
-                // Replace any white space in the key (Ex: User ID -> UserID)
-                const key = match.groups.key.replace(/\s/g, '');
-                findKey = findKey.replace(/\s/g, '');
-
-                if (key.toLowerCase() === findKey.toLowerCase()) {
-                    let val = match.groups.val;
-
-                    /**
-                     * If the first character of val is a single/double quote and there are two consecutive single/double quotes in between, 
-                     * convert the consecutive single/double quote characters into one single/double quote character respectively (Point no. 4 above)
-                    */
-                    if (val[0] === "'") {
-                        val = val.slice(1, -1);
-                        val = val.replace(/''/g, "'");
-                    }
-                    else if (val[0] === '"') {
-                        val = val.slice(1, -1);
-                        val = val.replace(/""/g, '"');
-                    }
-
-                    return val;
-                }
-            }
-        }
-
-        return undefined;
     }
 }

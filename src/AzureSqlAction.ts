@@ -19,6 +19,7 @@ export interface IActionInputs {
     connectionConfig: SqlConnectionConfig;
     filePath: string;
     additionalArguments?: string;
+    skipFirewallCheck: boolean;
 }
 
 export interface IDacpacActionInputs extends IActionInputs {
@@ -85,7 +86,7 @@ export default class AzureSqlAction {
     private async _executeSqlFile(inputs: IActionInputs) {
         core.debug('Begin executing sql script');
 
-        let sqlcmdCall = SqlUtils.buildSqlCmdCallWithConnectionInfo(inputs.connectionConfig.Config);
+        let sqlcmdCall = SqlUtils.buildSqlCmdCallWithConnectionInfo(inputs.connectionConfig);
         sqlcmdCall += ` -i "${inputs.filePath}"`;
         if (!!inputs.additionalArguments) {
             sqlcmdCall += ` ${inputs.additionalArguments}`;
@@ -128,10 +129,10 @@ export default class AzureSqlAction {
             case SqlPackageAction.Publish: 
             case SqlPackageAction.Script:
             case SqlPackageAction.DeployReport:
-                args += `/Action:${SqlPackageAction[inputs.sqlpackageAction]} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}" /SourceFile:"${inputs.filePath}"`;
+                args += `/Action:${SqlPackageAction[inputs.sqlpackageAction]} /TargetConnectionString:"${inputs.connectionConfig.EscapedConnectionString}" /SourceFile:"${inputs.filePath}"`;
                 break;
             case SqlPackageAction.DriftReport:
-                args += `/Action:${SqlPackageAction[inputs.sqlpackageAction]} /TargetConnectionString:"${inputs.connectionConfig.ConnectionString}"`;
+                args += `/Action:${SqlPackageAction[inputs.sqlpackageAction]} /TargetConnectionString:"${inputs.connectionConfig.EscapedConnectionString}"`;
                 break;
 
             default:

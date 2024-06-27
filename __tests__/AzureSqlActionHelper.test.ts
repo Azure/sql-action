@@ -4,7 +4,12 @@ import AzureSqlActionHelper from "../src/AzureSqlActionHelper";
 import AzureSqlAction, { IBuildAndPublishInputs, IDacpacActionInputs, ActionType, SqlPackageAction, IActionInputs } from "../src/AzureSqlAction";
 import { getInputs } from './AzureSqlAction.test';
 
-jest.mock('fs');
+jest.mock('fs', () => {
+    return {
+        __esModule: true,
+        ...jest.requireActual('fs')
+    };
+});
 
 describe('AzureSqlActionHelper tests', () => {
     afterEach(() => {
@@ -51,14 +56,12 @@ describe('AzureSqlActionHelper tests', () => {
             let inputs = getInputs(ActionType.DacpacAction) as IDacpacActionInputs;
             inputs.sqlpackagePath = path;
 
-            let fileExistsSpy = jest.spyOn(fs, "existsSync");
-            fileExistsSpy.mockReturnValue(true);
+            let fileExistsSpy = jest.spyOn(fs, 'existsSync').mockReturnValue(true);
             let sqlpackagePath = await AzureSqlActionHelper.getSqlPackagePath(inputs);
             
             expect(fileExistsSpy).toHaveBeenCalledWith(inputs.sqlpackagePath);
             expect(sqlpackagePath).toEqual(path);
         });
-
     });
 
     it('throws if SqlPackage.exe fails to be found at user-specified location', async () => {

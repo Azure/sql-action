@@ -19,6 +19,10 @@ inputs:
   build-arguments:
     description: 'In case of a .sqlproj file, additional arguments that will be applied to dotnet build when building the database project.'
     required: false
+  skip-firewall-check:
+    description: 'Skip the firewall check when connecting to the Azure SQL Server.'
+    required: false
+    default: false
 runs:
   using: 'node20'
   main: 'lib/main.js'
