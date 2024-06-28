@@ -144,34 +144,34 @@ export default class AzureSqlActionHelper {
         let sqlPackageVersions: ISqlPackageInstall[] = [];
 
         let sqlPackagePathInstalledWithDotnetTool = await this._getSqlPackageExeInstalledDotnetTool();
-        if (sqlPackagePathInstalledWithDotnetTool === this._emptySqlPackageInstall()) {
+        if (sqlPackagePathInstalledWithDotnetTool === undefined || sqlPackagePathInstalledWithDotnetTool.sqlPackagePath === '') {
             core.debug('SqlPackage installed with dotnet tool not found on machine.');
         } else {
             sqlPackageVersions.push(sqlPackagePathInstalledWithDotnetTool);
         }
 
         let sqlPackagePathInstalledWithSSMS = await this._getSqlPackageInstalledWithSSMS();
-        if (sqlPackagePathInstalledWithSSMS === this._emptySqlPackageInstall()) {
+        if (sqlPackagePathInstalledWithSSMS === undefined || sqlPackagePathInstalledWithSSMS.sqlPackagePath === '') {
             core.debug('SqlPackage installed with SSMS not found on machine.');
         } else {
             sqlPackageVersions.push(sqlPackagePathInstalledWithSSMS);
         }
 
         let sqlPackagePathInstalledWithDacMsi = await this._getSqlPackageInstalledWithDacMsi();
-        if (sqlPackagePathInstalledWithDacMsi === this._emptySqlPackageInstall()) {
+        if (sqlPackagePathInstalledWithDacMsi === undefined || sqlPackagePathInstalledWithDacMsi.sqlPackagePath === '') {
             core.debug('SqlPackage installed with DacFramework MSI not found on machine.');
         } else {
             sqlPackageVersions.push(sqlPackagePathInstalledWithDacMsi);
         }
 
         let sqlPackagePathInstalledWithSSDT = await this._getSqlPackageInstalledWithSSDT();
-        if (sqlPackagePathInstalledWithSSDT === this._emptySqlPackageInstall()) {
+        if (sqlPackagePathInstalledWithSSDT === undefined || sqlPackagePathInstalledWithSSDT.sqlPackagePath === '') {
             core.debug('SqlPackage installed with SSDT not found on machine.');
         } else {
             sqlPackageVersions.push(sqlPackagePathInstalledWithSSDT);
         }
 
-        core.debug("Array size ${sqlPackageVersions.length}"); // TODO remove
+        core.debug(`Array size ${sqlPackageVersions.length}`); // TODO remove
 
         // sort the versions in ascending order, remove max version from the end
         sqlPackageVersions.sort((sqlPackage1, sqlPackage2) => {
@@ -181,7 +181,7 @@ export default class AzureSqlActionHelper {
         core.debug(sqlPackageVersions.map((sqlPackage) => `SqlPackage version ${sqlPackage.sqlPackageVersion} found at location: ${sqlPackage.sqlPackagePath}`).join('\n')); // TODO remove
         let maximumVersion = sqlPackageVersions.pop();
 
-        if (maximumVersion === undefined ) { // || maximumVersion.sqlPackagePath === ''
+        if (maximumVersion === undefined || maximumVersion.sqlPackagePath === '') {
             throw new Error('Unable to find the location of SqlPackage');
         }
 
