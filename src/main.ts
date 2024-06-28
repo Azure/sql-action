@@ -90,6 +90,7 @@ function getInputs(): IActionInputs {
                 connectionConfig: connectionConfig,
                 filePath: filePath,
                 sqlpackageAction: AzureSqlActionHelper.getSqlpackageActionTypeFromString(action),
+                sqlpackagePath: core.getInput('sqlpackage-path') || undefined,
                 additionalArguments: core.getInput('arguments') || undefined,
                 skipFirewallCheck: core.getBooleanInput('skip-firewall-check')
             } as IDacpacActionInputs;
@@ -105,6 +106,7 @@ function getInputs(): IActionInputs {
                 filePath: filePath,
                 buildArguments: core.getInput('build-arguments') || undefined,
                 sqlpackageAction: AzureSqlActionHelper.getSqlpackageActionTypeFromString(action),
+                sqlpackagePath: core.getInput('sqlpackage-path') || undefined,
                 additionalArguments: core.getInput('arguments') || undefined,
                 skipFirewallCheck: core.getBooleanInput('skip-firewall-check')
             } as IBuildAndPublishInputs;

@@ -9,7 +9,7 @@ import Constants from '../src/Constants';
 
 describe('AzureSqlAction tests', () => {
     afterEach(() => {
-       jest.restoreAllMocks();
+        jest.restoreAllMocks();
     });
 
     describe('validate sqlpackage calls for DacpacAction', () => {
@@ -216,7 +216,7 @@ describe('validate connection string escaping in sqlpackage commands', () => {
  * @param connectionString The custom connection string to be used for the test. If not specified, a default one using SQL login will be used.
  * @returns An ActionInputs objects based on the given action type.
  */
-function getInputs(actionType: ActionType, connectionString: string = ''): IActionInputs {
+export function getInputs(actionType: ActionType, connectionString: string = ''): IActionInputs {
 
     const defaultConnectionString = 'Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder';
     const config = connectionString ? new SqlConnectionConfig(connectionString) : new SqlConnectionConfig(defaultConnectionString);

@@ -57,7 +57,7 @@ describe('main.ts tests', () => {
 
         expect(detectIPAddressSpy).toHaveBeenCalled();
         expect(getAuthorizerSpy).not.toHaveBeenCalled();
-        expect(getInputSpy).toHaveBeenCalledTimes(5);
+        expect(getInputSpy).toHaveBeenCalledTimes(6);
         expect(resolveFilePathSpy).toHaveBeenCalled();
         expect(addFirewallRuleSpy).not.toHaveBeenCalled();
         expect(actionExecuteSpy).toHaveBeenCalled();
@@ -101,14 +101,60 @@ describe('main.ts tests', () => {
 
         expect(detectIPAddressSpy).toHaveBeenCalled();
         expect(getAuthorizerSpy).not.toHaveBeenCalled();
-        expect(getInputSpy).toHaveBeenCalledTimes(4);
+        expect(getInputSpy).toHaveBeenCalledTimes(5);
         expect(resolveFilePathSpy).toHaveBeenCalled();
         expect(addFirewallRuleSpy).not.toHaveBeenCalled();
         expect(actionExecuteSpy).toHaveBeenCalled();
         expect(removeFirewallRuleSpy).not.toHaveBeenCalled();
         expect(setFailedSpy).not.toHaveBeenCalled();
     })
- 
+
+    it('gets inputs and executes dacpac action with optional sqlpackage path', async () => {
+        let resolveFilePathSpy = jest.spyOn(AzureSqlActionHelper, 'resolveFilePath').mockReturnValue('./TestDacpacPackage.dacpac');
+        let getInputSpy = jest.spyOn(core, 'getInput').mockImplementation((name, options) => {
+            switch(name) {
+                case 'connection-string': return 'Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder;';
+                case 'path': return './TestDacpacPackage.dacpac';
+                case 'action': return 'script';
+                case 'arguments': return '/p:FakeSqlpackageArgument';
+                case 'sqlpackage-path': return '/path/to/sqlpackage';
+            }
+
+            return '';
+        });
+        
+        let getAuthorizerSpy = jest.spyOn(AuthorizerFactory, 'getAuthorizer');
+        let addFirewallRuleSpy = jest.spyOn(FirewallManager.prototype, 'addFirewallRule');
+        let actionExecuteSpy = jest.spyOn(AzureSqlAction.prototype, 'execute');
+        let removeFirewallRuleSpy = jest.spyOn(FirewallManager.prototype, 'removeFirewallRule');
+        let setFailedSpy = jest.spyOn(core, 'setFailed');
+        let detectIPAddressSpy = SqlUtils.detectIPAddress = jest.fn().mockImplementationOnce(() => {
+            return "";
+        });
+
+        await run();
+
+        expect(AzureSqlAction).toHaveBeenCalled();
+        expect(AzureSqlAction).toHaveBeenCalledWith(
+            expect.objectContaining({
+                actionType: ActionType.DacpacAction,
+                filePath: './TestDacpacPackage.dacpac',
+                sqlpackageAction: SqlPackageAction.Script,
+                additionalArguments: '/p:FakeSqlpackageArgument',
+                sqlpackagePath: '/path/to/sqlpackage'
+            } as IDacpacActionInputs)
+        );
+
+        expect(detectIPAddressSpy).toHaveBeenCalled();
+        expect(getAuthorizerSpy).not.toHaveBeenCalled();
+        expect(getInputSpy).toHaveBeenCalledTimes(5);
+        expect(resolveFilePathSpy).toHaveBeenCalled();
+        expect(addFirewallRuleSpy).not.toHaveBeenCalled();
+        expect(actionExecuteSpy).toHaveBeenCalled();
+        expect(removeFirewallRuleSpy).not.toHaveBeenCalled();
+        expect(setFailedSpy).not.toHaveBeenCalled();
+    })
+
     it('gets inputs and executes sql action', async () => {
         let resolveFilePathSpy = jest.spyOn(AzureSqlActionHelper, 'resolveFilePath').mockReturnValue('./TestSqlFile.sql');
         let getInputSpy = jest.spyOn(core, 'getInput').mockImplementation((name, options) => {

@@ -44,7 +44,7 @@ describe('FirewallManager tests', () => {
         });
     });
 
-    it('does not add firewall rule if client has access to MySql server', async () => {
+    it('does not add firewall rule if client has access to SQL server', async () => {
         let addFirewallRuleSpy = jest.spyOn(azureSqlResourceManager, 'addFirewallRule').mockResolvedValue({ name: 'FirewallRuleName' } as any);
         let removeFirewallRuleSpy = jest.spyOn(azureSqlResourceManager, 'removeFirewallRule');
         await firewallManager.addFirewallRule('');
