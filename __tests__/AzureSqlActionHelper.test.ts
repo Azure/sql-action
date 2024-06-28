@@ -49,7 +49,7 @@ describe('AzureSqlActionHelper tests', () => {
     });
 
 
-    // // ensures the sqlpackagepath input overrides the version check
+    // ensures the sqlpackagepath input overrides the version check
     describe('sqlpackagepath input options', () => {
         const sqlpackagepaths = ['//custom/path/to/sqlpackage', 'c:/Program Files/Sqlpackage/sqlpackage'];
         it.each(sqlpackagepaths)('should return sqlpackagepath if provided', async (path) => {

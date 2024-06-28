@@ -9,6 +9,12 @@ import { SqlPackageAction, IDacpacActionInputs } from './AzureSqlAction';
 
 const IS_WINDOWS = process.platform === 'win32';
 const IS_LINUX = process.platform === 'linux';
+const dotnetLinuxPath = '~/.dotnet/tools/sqlpackage';
+
+interface ISqlPackageInstall {
+    sqlPackagePath: string;
+    sqlPackageVersion: semver.SemVer;
+}
 
 export default class AzureSqlActionHelper {
     
@@ -127,53 +133,57 @@ export default class AzureSqlActionHelper {
     /**
      * SqlPackage.exe can be installed in four ways:
      *  0. as a global dotnet tool
-     *  1. SQL Server Management Studio (SSMS) used to install it to in location C:/Program Files/Microsoft SQL Server/{SqlVersopn}/DAC/bin/SqlPackage.exe' (REMOVE in the future)
-     *  2. the Dac Framework MSI installs it in location C:/Program Files/Microsoft SQL Server/{SqlVersopn}/DAC/bin/SqlPackage.exe'
+     *  1. SQL Server Management Studio (SSMS) used to install it to in location C:/Program Files/Microsoft SQL Server/{SqlVersion}/DAC/bin/SqlPackage.exe' (REMOVE in the future)
+     *  2. the Dac Framework MSI installs it in location C:/Program Files/Microsoft SQL Server/{SqlVersion}/DAC/bin/SqlPackage.exe'
      *  3. SSDT (SQL Server Data Tools) installs it in location VS Install Directory/Common7/IDE/Extensions/Microsoft/SQLDB/DAC/{SqlVersion}
      * 
      *  This method finds the location of SqlPackage.exe from both the location and return the highest version of SqlPackage.exe
      */
     private static async _getSqlPackageExecutablePath(): Promise<string> {
         core.debug('Getting location of SqlPackage');
+        let sqlPackageVersions: ISqlPackageInstall[] = [];
 
         let sqlPackagePathInstalledWithDotnetTool = await this._getSqlPackageExeInstalledDotnetTool();
-        core.debug(`SqlPackage (installed with dotnet tool) found at location: ${sqlPackagePathInstalledWithDotnetTool[0]}, version ${sqlPackagePathInstalledWithDotnetTool[1]}`);
+        if (sqlPackagePathInstalledWithDotnetTool === this._emptySqlPackageInstall()) {
+            core.debug('SqlPackage installed with dotnet tool not found on machine.');
+        } else {
+            sqlPackageVersions.push(sqlPackagePathInstalledWithDotnetTool);
+        }
 
         let sqlPackagePathInstalledWithSSMS = await this._getSqlPackageInstalledWithSSMS();
-        core.debug(`SqlPackage (installed with SSMS) found at location: ${sqlPackagePathInstalledWithSSMS[0]}, version ${sqlPackagePathInstalledWithSSMS[1]}`);
+        if (sqlPackagePathInstalledWithSSMS === this._emptySqlPackageInstall()) {
+            core.debug('SqlPackage installed with SSMS not found on machine.');
+        } else {
+            sqlPackageVersions.push(sqlPackagePathInstalledWithSSMS);
+        }
 
         let sqlPackagePathInstalledWithDacMsi = await this._getSqlPackageInstalledWithDacMsi();
-        core.debug(`SqlPackage (installed with DacFramework) found at location: ${sqlPackagePathInstalledWithDacMsi[0]}, version ${sqlPackagePathInstalledWithDacMsi[1]}`);
-
-        let sqlPackagePatInstalledWithSSDT = await this._getSqlPackageInstalledWithSSDT();
-        core.debug(`SqlPackage (installed with SSDT) found at location: ${sqlPackagePatInstalledWithSSDT[0]}, version ${sqlPackagePatInstalledWithSSDT[1]}`);
-
-
-        // sort the versions in descending order and return the first path
-        let sqlPackageVersions = [sqlPackagePathInstalledWithDotnetTool[1], sqlPackagePathInstalledWithSSMS[1], sqlPackagePathInstalledWithDacMsi[1], sqlPackagePatInstalledWithSSDT[1]];
-        semver.rsort(sqlPackageVersions);
-        let maximumVersion = sqlPackageVersions[0];
-        let sqlPackagePath = '';
-        if (maximumVersion === sqlPackagePathInstalledWithDotnetTool[1]) {
-            sqlPackagePath = sqlPackagePathInstalledWithDotnetTool[0];
+        if (sqlPackagePathInstalledWithDacMsi === this._emptySqlPackageInstall()) {
+            core.debug('SqlPackage installed with DacFramework MSI not found on machine.');
+        } else {
+            sqlPackageVersions.push(sqlPackagePathInstalledWithDacMsi);
         }
-        else if (maximumVersion === sqlPackagePathInstalledWithSSMS[1]) {
-            sqlPackagePath = sqlPackagePathInstalledWithSSMS[0];
-        }
-        else if (maximumVersion === sqlPackagePathInstalledWithDacMsi[1]) {
-            sqlPackagePath = sqlPackagePathInstalledWithDacMsi[0];
-        }
-        else if (maximumVersion === sqlPackagePatInstalledWithSSDT[1]) {
-            sqlPackagePath = sqlPackagePatInstalledWithSSDT[0];
-        }
-        
 
-        if (sqlPackagePath == '') {
+        let sqlPackagePathInstalledWithSSDT = await this._getSqlPackageInstalledWithSSDT();
+        if (sqlPackagePathInstalledWithSSDT === this._emptySqlPackageInstall()) {
+            core.debug('SqlPackage installed with SSDT not found on machine.');
+        } else {
+            sqlPackageVersions.push(sqlPackagePathInstalledWithSSDT);
+        }
+
+
+        // sort the versions in ascending order, remove max version from the end
+        sqlPackageVersions.sort((sqlPackage1, sqlPackage2) => {
+            return semver.compareBuild(sqlPackage2.sqlPackageVersion, sqlPackage1.sqlPackageVersion);
+        });
+        let maximumVersion = sqlPackageVersions.pop();
+
+        if (maximumVersion === undefined || maximumVersion.sqlPackagePath === '') {
             throw new Error('Unable to find the location of SqlPackage');
         }
 
-        core.debug(`SqlPackage ${maximumVersion} selected at location: ${sqlPackagePath}`);
-        return sqlPackagePath;
+        core.debug(`SqlPackage ${maximumVersion.sqlPackageVersion} selected at location: ${maximumVersion.sqlPackagePath}`);
+        return maximumVersion.sqlPackagePath;
     }
 
     /** SqlPackage returns a multi-part version number major.minor.patch
@@ -197,19 +207,22 @@ export default class AzureSqlActionHelper {
         return version;
     }
 
-    private static async _getSqlPackageExeInstalledDotnetTool(): Promise<[string, semver.SemVer]> {
+    private static async _getSqlPackageExeInstalledDotnetTool(): Promise<ISqlPackageInstall> {
         let globalDotnetToolsPath = path.join(process.env['USERPROFILE'] as string, '.dotnet', 'tools');
         let sqlPackagePath = path.join(globalDotnetToolsPath, 'SqlPackage.exe');
         if (fs.existsSync(sqlPackagePath)) {
-            core.debug(`SqlPackage (installed with dotnet tool) found at location: ${sqlPackagePath}`);
-            let sqlpackageVersion = await this._getSqlPackageExecutableVersion(sqlPackagePath);
-            return [sqlPackagePath, sqlpackageVersion];
+            let sqlPackageVersion = await this._getSqlPackageExecutableVersion(sqlPackagePath);
+            core.debug(`SqlPackage version ${sqlPackageVersion} (installed with dotnet tool) found at location: ${sqlPackagePath}`);
+            return {
+                sqlPackagePath: sqlPackagePath, 
+                sqlPackageVersion: sqlPackageVersion
+            };
         }
 
-        return ['', new semver.SemVer('0.0.0')];
+        return this._emptySqlPackageInstall();
     }
 
-    private static async _getSqlPackageInstalledWithSSDT(): Promise<[string, semver.SemVer]> {
+    private static async _getSqlPackageInstalledWithSSDT(): Promise<ISqlPackageInstall> {
         let visualStudioInstallationPath = await this._getLatestVisualStudioInstallationPath();
         if (!!visualStudioInstallationPath) {
             let dacParentDir = path.join(visualStudioInstallationPath, 'Common7', 'IDE', 'Extensions', 'Microsoft', 'SQLDB', 'DAC');
@@ -226,7 +239,7 @@ export default class AzureSqlActionHelper {
         if (!await AzureSqlActionHelper.registryKeyExists(vsRegKey)) {
             vsRegKey = vsRegKeyWow6432;
             if (!await AzureSqlActionHelper.registryKeyExists(vsRegKey)) {
-                return ['', new semver.SemVer('0.0.0')];
+                return this._emptySqlPackageInstall();
             }
         }
 
@@ -243,10 +256,10 @@ export default class AzureSqlActionHelper {
         }
 
         core.debug('Dac Framework (installed with Visual Studio) not found on machine.');
-        return ['', new semver.SemVer('0.0.0')];
+        return this._emptySqlPackageInstall();
     }
 
-    private static async _getSqlPackageInVSDacDirectory(dacParentDir: string): Promise<[string, semver.SemVer]> {
+    private static async _getSqlPackageInVSDacDirectory(dacParentDir: string): Promise<ISqlPackageInstall> {
         if (fs.existsSync(dacParentDir)) {
             let dacVersionDirs = fs.readdirSync(dacParentDir).filter((dir) => !isNaN(path.basename(dir) as any)).sort((dir1, dir2) => {
                 let version1 = path.basename(dir1);
@@ -264,16 +277,19 @@ export default class AzureSqlActionHelper {
             }).map((dir) => path.join(dacParentDir, dir));
 
             for (let dacDir of dacVersionDirs) {
-                let sqlPackagaePath = path.join(dacDir, 'SqlPackage.exe');
-                if (fs.existsSync(sqlPackagaePath)) {
-                    core.debug(`Dac Framework installed with Visual Studio found at ${sqlPackagaePath}`);
-                    let sqlpackageVersion = await this._getSqlPackageExecutableVersion(sqlPackagaePath);
-                    return [sqlPackagaePath, sqlpackageVersion]
+                let sqlPackagePath = path.join(dacDir, 'SqlPackage.exe');
+                if (fs.existsSync(sqlPackagePath)) {
+                    let sqlPackageVersion = await this._getSqlPackageExecutableVersion(sqlPackagePath);
+                    core.debug(`Dac Framework version ${sqlPackageVersion} installed with Visual Studio found at ${sqlPackagePath}`);
+                    return {
+                        sqlPackagePath: sqlPackagePath, 
+                        sqlPackageVersion: sqlPackageVersion
+                    };
                 }
             }
         }
 
-        return ['', new semver.SemVer('0.0.0')];
+        return this._emptySqlPackageInstall();
     }
 
     private static async _getLatestVisualStudioInstallationPath(): Promise<string> {
@@ -297,14 +313,14 @@ export default class AzureSqlActionHelper {
         return vswhereOutput[0] && vswhereOutput[0]['installationPath'];
     }
 
-    private static async _getSqlPackageInstalledWithDacMsi(): Promise<[string, semver.SemVer]> {
+    private static async _getSqlPackageInstalledWithDacMsi(): Promise<ISqlPackageInstall> {
         let sqlDataTierFrameworkRegKey = path.join('\\', 'SOFTWARE', 'Microsoft', 'Microsoft SQL Server', 'Data-Tier Application Framework');
         let sqlDataTierFrameworkRegKeyWow6432 = path.join('\\', 'SOFTWARE', 'Wow6432Node', 'Microsoft', 'Microsoft SQL Server', 'Data-Tier Application Framework');
         
         if (!await AzureSqlActionHelper.registryKeyExists(sqlDataTierFrameworkRegKey)) {
             sqlDataTierFrameworkRegKey = sqlDataTierFrameworkRegKeyWow6432;
             if (!await AzureSqlActionHelper.registryKeyExists(sqlDataTierFrameworkRegKey)) {
-                return ['', new semver.SemVer('0.0.0')];
+                return this._emptySqlPackageInstall();
             }
         }
 
@@ -316,24 +332,27 @@ export default class AzureSqlActionHelper {
             if (!!installDir) {
                 let sqlPackagePath = path.join(installDir, 'SqlPackage.exe');
                 if (fs.existsSync(sqlPackagePath)) {
-                    core.debug(`SqlPackage (installed with DacFramework) found at location: ${sqlPackagePath}`);
-                    let sqlpackageVersion = await this._getSqlPackageExecutableVersion(sqlPackagePath);
-                    return [sqlPackagePath, sqlpackageVersion];
+                    let sqlPackageVersion = await this._getSqlPackageExecutableVersion(sqlPackagePath);
+                    core.debug(`SqlPackage version ${sqlPackageVersion} (installed with DacFramework) found at location: ${sqlPackagePath}`);
+                    return {
+                        sqlPackagePath: sqlPackagePath, 
+                        sqlPackageVersion: sqlPackageVersion
+                    };
                 }
             }
         }
 
-        return ['', new semver.SemVer('0.0.0')];
+        return this._emptySqlPackageInstall();
     }
 
-    private static async _getSqlPackageInstalledWithSSMS(): Promise<[string, semver.SemVer]> {
+    private static async _getSqlPackageInstalledWithSSMS(): Promise<ISqlPackageInstall> {
         let sqlServerRegistryKey = path.join('\\', 'SOFTWARE', 'Microsoft', 'Microsoft SQL Server');
         let sqlServerRegistryKeyWow6432 = path.join('\\', 'SOFTWARE', 'Wow6432Node', 'Microsoft', 'Microsoft SQL Server'); 
         
         if (!await AzureSqlActionHelper.registryKeyExists(sqlServerRegistryKey)) {
             sqlServerRegistryKey = sqlServerRegistryKeyWow6432;
             if (!await AzureSqlActionHelper.registryKeyExists(sqlServerRegistryKey)) {
-                return ['', new semver.SemVer('0.0.0')];
+                return this._emptySqlPackageInstall();
             }
         }
 
@@ -345,14 +364,17 @@ export default class AzureSqlActionHelper {
             if (!!versionSpecificRootDir) {
                 let sqlPackagePath = path.join(versionSpecificRootDir, 'Dac', 'bin', 'SqlPackage.exe');
                 if (fs.existsSync(sqlPackagePath)) {
-                    core.debug(`SqlPackage (installed with SSMS) found at location: ${sqlPackagePath}`);
-                    let sqlpackageVersion = await this._getSqlPackageExecutableVersion(sqlPackagePath);
-                    return [sqlPackagePath, sqlpackageVersion];
+                    let sqlPackageVersion = await this._getSqlPackageExecutableVersion(sqlPackagePath);
+                    core.debug(`SqlPackage version ${sqlPackageVersion} (installed with SSMS) found at location: ${sqlPackagePath}`);
+                    return {
+                        sqlPackagePath: sqlPackagePath, 
+                        sqlPackageVersion: sqlPackageVersion
+                    };
                 }
             }
         }
 
-        return ['', new semver.SemVer('0.0.0')];
+        return this._emptySqlPackageInstall();
     }
 
     /***
@@ -377,10 +399,17 @@ export default class AzureSqlActionHelper {
         );
     }
 
+    private static _emptySqlPackageInstall(): ISqlPackageInstall {
+        return {
+            sqlPackagePath: '',
+            sqlPackageVersion: new semver.SemVer('0.0.0')
+        }
+    }
+
     private static _getSqlPackageBinaryPathLinux(): string {
         // check in dotnet tool default global path ~/.dotnet/tools
-        if (fs.existsSync('~/.dotnet/tools/sqlpackage')) {
-            return '~/.dotnet/tools/sqlpackage';
+        if (fs.existsSync(dotnetLinuxPath)) {
+            return dotnetLinuxPath;
         }
 
         // default on path
