@@ -22,9 +22,9 @@ export default class SqlConnectionConfig {
         if (server?.includes(',')) {
             server = server.split(',')[0].trim();
         }
-        // Remove protocol
-        if (server?.includes(':')) {
-            server = server.split(':')[1].trim();
+        // Remove tcp protocol
+        if (server?.startsWith('tcp:')) {
+            server = server.slice(4).trim();
         }
         return server;
     }
