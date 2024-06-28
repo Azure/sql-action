@@ -40,7 +40,7 @@ describe('FirewallManager tests', () => {
             firewallManager.removeFirewallRule();
     
             expect(removeFirewallRuleSpy).toHaveBeenCalledTimes(1);
-            expect(removeFirewallRuleSpy.mock.calls[0][0].name).toMatch('FirewallRuleName');
+            expect(removeFirewallRuleSpy.mock.calls[0][0].name).toBe('FirewallRuleName');
         });
     });
 

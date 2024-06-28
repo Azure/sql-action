@@ -23,10 +23,10 @@ describe('SqlConnectionConfig tests', () => {
         it.each(validConnectionStrings)('Input `%s` %s', (connectionStringInput, testDescription, passwordOutput) => {
             const connectionString = new SqlConnectionConfig(connectionStringInput);
     
-            expect(connectionString.Password).toMatch(passwordOutput);
-            expect(connectionString.UserId).toMatch(`user`);
-            expect(connectionString.Database).toMatch('testdb');
-            expect(connectionString.Server).toMatch('test1.database.windows.net');
+            expect(connectionString.Password).toBe(passwordOutput);
+            expect(connectionString.UserId).toBe(`user`);
+            expect(connectionString.Database).toBe('testdb');
+            expect(connectionString.Server).toBe('test1.database.windows.net');
         });
     })
 
@@ -80,17 +80,17 @@ describe('SqlConnectionConfig tests', () => {
         it.each(connectionStrings)('should parse different authentication types successfully', (connectionStringInput, expectedAuthType) => {
             const config = new SqlConnectionConfig(connectionStringInput);
     
-            expect(config.Server).toMatch('test1.database.windows.net');
-            expect(config.Database).toMatch('testdb');
+            expect(config.Server).toBe('test1.database.windows.net');
+            expect(config.Database).toBe('testdb');
             expect(config.EscapedConnectionString.replace(/""/g, '"')).toMatch(connectionStringInput);
-            expect(config.FormattedAuthentication ?? '').toMatch(expectedAuthType);
+            expect(config.FormattedAuthentication ?? '').toBe(expectedAuthType);
             switch (expectedAuthType) {
                 case '':
                 case 'sqlpassword':
                 case 'activedirectorypassword':
                 case 'activedirectoryserviceprincipal': {
-                    expect(config.UserId).toMatch('user');
-                    expect(config.Password).toMatch('placeholder');
+                    expect(config.UserId).toBe('user');
+                    expect(config.Password).toBe('placeholder');
                     break;
                 }
                 case 'activedirectorydefault': {
@@ -114,9 +114,9 @@ describe('SqlConnectionConfig tests', () => {
         it.each(connectionStrings)('should parse server name successfully', (connectionStringInput, expectedServerName, expectedPortNumber) => {
             const config = new SqlConnectionConfig(connectionStringInput);
     
-            expect(config.Server).toMatch(expectedServerName);
-            expect(config.Port?.toString() || '').toMatch(expectedPortNumber);
-            expect(config.Database).toMatch('testdb');
+            expect(config.Server).toBe(expectedServerName);
+            expect(config.Port?.toString() || '').toBe(expectedPortNumber);
+            expect(config.Database).toBe('testdb');
             expect(config.EscapedConnectionString).toMatch(connectionStringInput);
         });
     });

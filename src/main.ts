@@ -28,7 +28,7 @@ export default async function run() {
         if (inputs.skipFirewallCheck !== true) {
             const runnerIPAddress = await SqlUtils.detectIPAddress(inputs.connectionConfig);
             if (runnerIPAddress) {
-                core.debug(`Getting Azure resource manager for server ${inputs.connectionConfig.Server}.`);
+                core.debug(`Temporarily adding '${runnerIPAddress}' to the firewall of ${inputs.connectionConfig.Server}.`);
                 let azureResourceAuthorizer = await AuthorizerFactory.getAuthorizer();
                 let azureSqlResourceManager = await AzureSqlResourceManager.getResourceManager(inputs.connectionConfig.Server, azureResourceAuthorizer);
                 firewallManager = new FirewallManager(azureSqlResourceManager);

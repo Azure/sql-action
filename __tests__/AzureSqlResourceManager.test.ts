@@ -44,7 +44,7 @@ describe.only('AzureSqlResourceManager tests', () => {
         let resourceManager = await AzureSqlResourceManager.getResourceManager('testServer.database.windows.net', await AuthorizerFactory.getAuthorizer());
         let server = resourceManager.getSqlServer();
         
-        expect(server!.name).toMatch('testServer');
+        expect(server!.name).toBe('testServer');
         expect(getRequestUrlSpy).toHaveBeenCalledTimes(1);
         expect(beginRequestSpy).toHaveBeenCalledTimes(1);
     });
@@ -116,7 +116,7 @@ describe.only('AzureSqlResourceManager tests', () => {
             let firewallRule = await resourceManager.addFirewallRule('1.2.3.4', '1.2.3.4');
             
             expect(beginRequestSpy).toHaveBeenCalledTimes(1);
-            expect(firewallRule.name).toMatch('FirewallRuleName');
+            expect(firewallRule.name).toBe('FirewallRuleName');
             beginRequestSpy.mockReset();
         }) 
         
