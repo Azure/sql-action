@@ -43,7 +43,7 @@ jobs:
     - name: Test DACPAC Action
       uses: ./
       with:
-        connection-string: '${{ secrets.ADHOC_CONNECTION_STRING_NO_DATABASE }}Initial Catalog=${{ env.TEST_DB }};'
+        connection-string: 'Server=tcp:${{ secrets.TEST_SERVER }};Initial Catalog=${{ env.TEST_DB }};Authentication=Active Directory Default;'
         path: ./__testdata__/sql-action.dacpac
         action: 'publish'
 
@@ -51,7 +51,7 @@ jobs:
     - name: Test Build and Publish
       uses: ./
       with:
-        connection-string: '${{ secrets.ADHOC_CONNECTION_STRING_NO_DATABASE }}Initial Catalog=${{ env.TEST_DB }};'
+        connection-string: 'Server=tcp:${{ secrets.TEST_SERVER }};Initial Catalog=${{ env.TEST_DB }};Authentication=Active Directory Default;'
         path: ./__testdata__/TestProject/sql-action.sqlproj
         action: 'publish'
 
@@ -59,13 +59,13 @@ jobs:
     - name: Test SQL Action
       uses: ./
       with:
-        connection-string: '${{ secrets.ADHOC_CONNECTION_STRING_NO_DATABASE }}Initial Catalog=${{ env.TEST_DB }};'
+        connection-string: 'Server=tcp:${{ secrets.TEST_SERVER }};Initial Catalog=${{ env.TEST_DB }};Authentication=Active Directory Default;'
         path: ./__testdata__/testsql.sql
 
     - name: Cleanup Test Database
       if: always()
       uses: ./
       with: 
-        connection-string: '${{ secrets.ADHOC_CONNECTION_STRING_NO_DATABASE }}Initial Catalog=master;'
+        connection-string: 'Server=${{ secrets.TEST_SERVER }};Initial Catalog=master;Authentication=Active Directory Default;'
         path: ./__testdata__/cleanup.sql
         arguments: '-v DbName="${{ env.TEST_DB }}"'
