@@ -171,14 +171,17 @@ export default class AzureSqlActionHelper {
             sqlPackageVersions.push(sqlPackagePathInstalledWithSSDT);
         }
 
+        core.debug("Array size ${sqlPackageVersions.length}"); // TODO remove
 
         // sort the versions in ascending order, remove max version from the end
         sqlPackageVersions.sort((sqlPackage1, sqlPackage2) => {
             return semver.compareBuild(sqlPackage2.sqlPackageVersion, sqlPackage1.sqlPackageVersion);
         });
+
+        core.debug(sqlPackageVersions.map((sqlPackage) => `SqlPackage version ${sqlPackage.sqlPackageVersion} found at location: ${sqlPackage.sqlPackagePath}`).join('\n')); // TODO remove
         let maximumVersion = sqlPackageVersions.pop();
 
-        if (maximumVersion === undefined || maximumVersion.sqlPackagePath === '') {
+        if (maximumVersion === undefined ) { // || maximumVersion.sqlPackagePath === ''
             throw new Error('Unable to find the location of SqlPackage');
         }
 
