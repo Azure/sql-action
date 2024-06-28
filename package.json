@@ -20,13 +20,12 @@
   "author": "Microsoft",
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^1.2.6",
+    "@actions/core": "^1.9.1",
     "@actions/exec": "^1.0.1",
     "@actions/tool-cache": "^2.0.1",
     "@tediousjs/connection-string": "^0.5.0",
     "azure-actions-webclient": "^1.0.3",
     "glob": "^10.3.12",
-    "mssql": "^8.1.0",
     "semver": "^7.6.2",
     "uuid": "^3.3.2",
     "winreg": "^1.2.4"
