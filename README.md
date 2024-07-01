@@ -14,7 +14,7 @@ Looking to develop with SQL for free, locally and offline, before deploying with
 The definition of this GitHub Action is in [action.yml](https://github.com/Azure/sql-action/blob/master/action.yml).  Learn more in the [user guide](#📓-user-guide).
 
 ```yaml
-- uses: azure/sql-action@v2.2.1
+- uses: azure/sql-action@v2.3
   with:
     # required, connection string incl the database and user authentication information
     connection-string:
@@ -28,6 +28,9 @@ The definition of this GitHub Action is in [action.yml](https://github.com/Azure
 
     # optional additional sqlpackage or go-sqlcmd arguments
     arguments:
+
+    # optional SqlPackage executable location, overrides default locations
+    sqlpackage-path:
 
     # optional additional dotnet build options when building a database project file
     build-arguments:
@@ -51,7 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: azure/sql-action@v2.2.1
+    - uses: azure/sql-action@v2.3
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './Database.sqlproj'
@@ -74,7 +77,7 @@ jobs:
     - uses: azure/login@v1                            # Azure login required to add a temporary firewall rule
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
-    - uses: azure/sql-action@v2.2.1
+    - uses: azure/sql-action@v2.3
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './sqlscripts/*.sql'
@@ -91,7 +94,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: azure/sql-action@v2.2.1
+    - uses: azure/sql-action@v2.3
       with:
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './Database.dacpac'
@@ -120,16 +123,18 @@ sql-action is supported on both Windows and Linux environments.  The [default im
 - sqlpackage (for sqlproj or dacpac deployment)
 - dotnet (for sqlproj build)
 
+On Windows, sql-action attempts to locate SqlPackage as a dotnet tool, in the [default MSI install location](https://learn.microsoft.com/sql/tools/sqlpackage/sqlpackage-download#windows-net-framework) `C:\Program Files\Microsoft SQL Server\160\DAC\bin`, and as a last resort for versions installed by Visual Studio. On Linux, sql-action attempts to locate SqlPackage as a dotnet tool before falling back to PATH.  In both operating systems, the input `sqlpackage-path` can be used to override the default locations. For custom images installing SqlPackage as a [dotnet tool](https://learn.microsoft.com/sql/tools/sqlpackage/sqlpackage-download#installation-cross-platform) is recommended.
+
+sql-action installs [go-sqlcmd](https://github.com/microsoft/go-sqlcmd) at runtime for SQL script deployments.
+
 ### Firewall Rules/Access
 
 > [!NOTE]
 > This Firewall Rules section of the document is specific to Azure SQL Database. For Azure SQL Managed Instance and SQL Server it is recommended to review the [connection](CONNECTION.md) guide.
 
-If you *can* use the option [Allow Azure Services and resources to access this server](https://docs.microsoft.com/en-us/azure/azure-sql/database/firewall-configure#connections-from-inside-azure) on Azure SQL Database, you are all set and you don't need to to anything else to allow GitHub Action to connect to your Azure SQL Database.
+If you *can* use the option [Allow Azure Services and resources to access this server](https://docs.microsoft.com/azure/azure-sql/database/firewall-configure#connections-from-inside-azure) on Azure SQL Database, you are all set and you don't need to to anything else to allow GitHub Action to connect to your Azure SQL Database.
 
 If you *cannot* use the aforementioned option on Azure SQL Database, the action can automatically add and remove a [SQL server firewall rule](https://docs.microsoft.com/azure/sql-database/sql-database-server-level-firewall-rule) specific to the GitHub Action runner's IP address. Without the firewall rule, the runner cannot communicate with Azure SQL Database. Read more about this in the [connection](CONNECTION.md) guide.
-
-
 
 
 #### Azure Credentials for Login (quickstart)
@@ -177,7 +182,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: azure/sql-action@v2.2.1
+    - uses: azure/sql-action@v2.3
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './Database.sqlproj'
@@ -230,7 +235,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: azure/sql-action@v2.2.1
+    - uses: azure/sql-action@v2.3
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './PreviousDatabase.dacpac'
