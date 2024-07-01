@@ -75,8 +75,8 @@ export default class SqlUtils {
             };
         }
         catch (error) {
-            console.log(`${error.message}`);
-            console.log(`SqlCmd stderr: ${sqlCmdError}`);
+            core.debug(`${error.message}`);
+            core.debug(`SqlCmd stderr: ${sqlCmdError}`);
             return {
                 success: false,
                 errorMessage: sqlCmdError,

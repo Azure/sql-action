@@ -17,9 +17,14 @@ export default class SqlConnectionConfig {
     }
 
     public get Server(): string {
-        const server = this._parsedConnectionString['data source'] as string;
+        let server = this._parsedConnectionString['data source'] as string;
+        // Remove port number
         if (server?.includes(',')) {
-            return server.split(',')[0].trim();
+            server = server.split(',')[0].trim();
+        }
+        // Remove tcp protocol
+        if (server?.startsWith('tcp:')) {
+            server = server.slice(4).trim();
         }
         return server;
     }
