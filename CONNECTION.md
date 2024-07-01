@@ -7,6 +7,9 @@ GitHub sql-action access is coupled with two concepts necessary for the action t
 
 # 🔌 Network connectivity
 
+> [!TIP]
+> This action checks if the runner is able to connect to the database before executing the scripts or deployment to determine whether a firewall rule should be added. In some environments this can cause the action to fail so the connectivity check can be skipped by setting the input `skip-firewall-check` to `true`.
+
 ## Azure SQL Database
 
 If you *can* use the option [Allow Azure Services and resources to access this server](https://docs.microsoft.com/azure/azure-sql/database/firewall-configure#connections-from-inside-azure), you are all set and you don't need to to anything else to allow GitHub Action to connect to your Azure SQL database.
