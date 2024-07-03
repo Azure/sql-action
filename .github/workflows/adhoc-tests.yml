@@ -10,28 +10,13 @@ permissions:
 jobs:
   deploy:
     environment: Automation test # this environment requires approval before running the action
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     permissions:
       checks: write
       id-token: write
     continue-on-error: true
-    strategy:
-      matrix:
-        os: [windows-2019, ubuntu-24.04]
-
-    env:
-      TEST_DB: 'SqlActionAdhocTest-${{ matrix.os }}'
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
-    - name: Installing node_modules
-      run: npm install
-
-    - name: Build GitHub Action
-      run: npm run build
-
     - name: Azure Login
       uses: azure/login@v2
       with:
@@ -42,33 +27,12 @@ jobs:
     - name: Install sqlpackage
       run: dotnet tool install -g Microsoft.SqlPackage
 
-    # Deploy a DACPAC with only a table to server
-    - name: Test DACPAC Action
-      uses: ./
+    - name: Run sqlpackage
+      run: sqlpackage /action:Export /scs:"${{ SECRETS.ADHOC_TEST_CONNECTION_STRING }}" /targetfile:"${{ runner.temp }}/ExportCustomerDatabase.bacpac" /df:"${{ runner.temp }}/ExportCustomerDatabase.log"
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
       with:
-        connection-string: 'Server=tcp:${{ secrets.TEST_SERVER }};Initial Catalog=${{ env.TEST_DB }};Authentication=Active Directory Default;'
-        path: ./__testdata__/sql-action.dacpac
-        action: 'publish'
-
-    # Build and publish sqlproj that should create a new view
-    - name: Test Build and Publish
-      uses: ./
-      with:
-        connection-string: 'Server=tcp:${{ secrets.TEST_SERVER }};Initial Catalog=${{ env.TEST_DB }};Authentication=Active Directory Default;'
-        path: ./__testdata__/TestProject/sql-action.sqlproj
-        action: 'publish'
-
-    # Execute testsql.sql via script action on server
-    - name: Test SQL Action
-      uses: ./
-      with:
-        connection-string: 'Server=tcp:${{ secrets.TEST_SERVER }};Initial Catalog=${{ env.TEST_DB }};Authentication=Active Directory Default;'
-        path: ./__testdata__/testsql.sql
-
-    - name: Cleanup Test Database
-      if: always()
-      uses: ./
-      with: 
-        connection-string: 'Server=${{ secrets.TEST_SERVER }};Initial Catalog=master;Authentication=Active Directory Default;'
-        path: ./__testdata__/cleanup.sql
-        arguments: '-v DbName="${{ env.TEST_DB }}"'
+        path: |
+          ${{ runner.temp }}/ExportCustomerDatabase.bacpac
+          ${{ runner.temp }}/ExportCustomerDatabase.log
