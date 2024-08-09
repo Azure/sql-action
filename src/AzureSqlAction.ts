@@ -126,29 +126,45 @@ export default class AzureSqlAction {
         
         try {
             if (buildOutput.includes('Build succeeded.')) {
-                if (!buildOutput.includes('0 Warning(s)')) {
-                    core.summary.addHeading(':warning: SQL project build succeeded with warnings.');
-                    core.summary.addEOL();
-
-                    // parse buildOutput into lines, filter out warnings, and deduplicate
-                    const lines = buildOutput.split(/\r?\n/);
-                    let warnings = lines.filter(line => (line.includes('Build warning') || line.includes('StaticCodeAnalysis warning')));
-                    warnings = [...new Set(warnings)];
-                    
-                    warnings.forEach(warning => {
-                        // remove [project path] from the end of the line
-                        warning = warning.lastIndexOf('[') > 0 ? warning.substring(0, warning.lastIndexOf('[')-1) : warning;
-                    
-                        // move the file info from the beginning of the line to the end
-                        warning = '- **'+warning.substring(warning.indexOf(':')+2) + '** ' + warning.substring(0, warning.indexOf(':')); 
-                        core.summary.addRaw(warning, true);
-                    });
-                    core.summary.addRaw('See the full build log for more details.');
-                } else { // no build warnings
-                    core.summary.addHeading(':white_check_mark: SQL project build succeeded.');
-                }
+                core.summary.addHeading(':white_check_mark: SQL project build succeeded.');
             } else {
-                core.summary.addHeading(':x: Build failed.');
+                core.summary.addHeading(':rotating_light: SQL project build failed.');
+            }
+            core.summary.addEOL();
+            core.summary.addRaw('See the full build log for more details.', true);
+
+            const lines = buildOutput.split(/\r?\n/);
+            let warnings = lines.filter(line => (line.includes('Build warning') || line.includes('StaticCodeAnalysis warning')));
+            let errorMessages = lines.filter(line => (line.includes('Build error') || line.includes('StaticCodeAnalysis error')));
+
+            if (errorMessages.length > 0) {
+                errorMessages = [...new Set(errorMessages)];
+                core.summary.addHeading(':x: Errors', 2);
+                core.summary.addEOL();
+
+                errorMessages.forEach(error => {
+                    // remove [project path] from the end of the line
+                    error = error.lastIndexOf('[') > 0 ? error.substring(0, error.lastIndexOf('[')-1) : error;
+                
+                    // move the file info from the beginning of the line to the end
+                    error = '- **'+error.substring(error.indexOf(':')+2) + '** ' + error.substring(0, error.indexOf(':')); 
+                    core.summary.addRaw(error, true);
+                });
+            }
+
+            if (warnings.length > 0) {
+                warnings = [...new Set(warnings)];
+                core.summary.addHeading(':warning: Warnings', 2);
+                core.summary.addEOL();
+                
+                warnings.forEach(warning => {
+                    // remove [project path] from the end of the line
+                    warning = warning.lastIndexOf('[') > 0 ? warning.substring(0, warning.lastIndexOf('[')-1) : warning;
+                
+                    // move the file info from the beginning of the line to the end
+                    warning = '- **'+warning.substring(warning.indexOf(':')+2) + '** ' + warning.substring(0, warning.indexOf(':')); 
+                    core.summary.addRaw(warning, true);
+                });
             }
         } catch (err) {
             core.notice(`Error parsing build output for job summary: ${err}`);
