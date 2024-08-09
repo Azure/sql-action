@@ -78,7 +78,7 @@ function getInputs(): IActionInputs {
                 filePath: filePath,
                 additionalArguments: core.getInput('arguments') || undefined,
                 skipFirewallCheck: core.getBooleanInput('skip-firewall-check'),
-                noJobSummary: core.getBooleanInput('no-job-summary')
+                skipJobSummary: core.getBooleanInput('skip-job-summary') || false
             };
 
         case Constants.dacpacExtension:
@@ -94,7 +94,7 @@ function getInputs(): IActionInputs {
                 sqlpackagePath: core.getInput('sqlpackage-path') || undefined,
                 additionalArguments: core.getInput('arguments') || undefined,
                 skipFirewallCheck: core.getBooleanInput('skip-firewall-check'),
-                noJobSummary: core.getBooleanInput('no-job-summary')
+                skipJobSummary: core.getBooleanInput('skip-job-summary') || false
             } as IDacpacActionInputs;
 
         case Constants.sqlprojExtension:
@@ -111,7 +111,7 @@ function getInputs(): IActionInputs {
                 sqlpackagePath: core.getInput('sqlpackage-path') || undefined,
                 additionalArguments: core.getInput('arguments') || undefined,
                 skipFirewallCheck: core.getBooleanInput('skip-firewall-check'),
-                noJobSummary: core.getBooleanInput('no-job-summary')
+                skipJobSummary: core.getBooleanInput('skip-job-summary') || false
             } as IBuildAndPublishInputs;
 
         default:

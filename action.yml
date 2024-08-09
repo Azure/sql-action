@@ -23,8 +23,8 @@ inputs:
     description: 'Skip the firewall check when connecting to the Azure SQL Server.'
     required: false
     default: false
-  no-job-summary:
-    description: 'Do not provide a job summary from this step.'
+  skip-job-summary:
+    description: 'Skip providing a job summary from this step.'
     required: false
     default: false
 runs:
