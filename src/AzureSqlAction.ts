@@ -117,13 +117,36 @@ export default class AzureSqlAction {
         }
 
         let buildOutput = '';
-        await exec.exec(`dotnet build "${inputs.filePath}" -p:NetCoreBuild=true ${additionalBuildArguments}`, [], {
-            listeners: {
-                stderr: (data: Buffer) => buildOutput += data.toString(),
-                stdout: (data: Buffer) => buildOutput += data.toString()
+
+        try {
+            await exec.exec(`dotnet build "${inputs.filePath}" -p:NetCoreBuild=true ${additionalBuildArguments}`, [], {
+                listeners: {
+                    stderr: (data: Buffer) => buildOutput += data.toString(),
+                    stdout: (data: Buffer) => buildOutput += data.toString()
+                }
+            });
+
+            if (!inputs.noJobSummary) {
+                this._projectBuildJobSummary(buildOutput);
             }
-        });
+        } catch (error) {
+            if (!inputs.noJobSummary) {
+                this._projectBuildJobSummary(buildOutput);
+            }
+            core.setFailed(`Failed to build SQL project. ${error.message}`);
+        }
         
+        const dacpacPath = path.join(outputDir, projectName + Constants.dacpacExtension);
+        console.log(`Successfully built database project to ${dacpacPath}`);
+        return dacpacPath;
+    }
+
+    /**
+     * parses the build output and adds a summary to the github job
+     * displays errors and warnings
+     * @param buildOutput The output of the dotnet build exec
+     */
+    private _projectBuildJobSummary(buildOutput: string) {
         try {
             if (buildOutput.includes('Build succeeded.')) {
                 core.summary.addHeading(':white_check_mark: SQL project build succeeded.');
@@ -166,13 +189,11 @@ export default class AzureSqlAction {
                     core.summary.addRaw(warning, true);
                 });
             }
+
+            core.summary.write();
         } catch (err) {
             core.notice(`Error parsing build output for job summary: ${err}`);
         }
-
-        const dacpacPath = path.join(outputDir, projectName + Constants.dacpacExtension);
-        console.log(`Successfully built database project to ${dacpacPath}`);
-        return dacpacPath;
     }
 
     private _getSqlPackageArguments(inputs: IDacpacActionInputs) {

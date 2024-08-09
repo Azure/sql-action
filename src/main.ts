@@ -37,10 +37,6 @@ export default async function run() {
         }
 
         await azureSqlAction.execute();
-
-        if (inputs.noJobSummary != true) {
-            core.summary.write();
-        }
     }
     catch (error) {
         core.setFailed(error.message);
