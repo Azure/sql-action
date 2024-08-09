@@ -124,31 +124,36 @@ export default class AzureSqlAction {
             }
         });
         
-        if (buildOutput.includes('Build succeeded.')) {
-            if (!buildOutput.includes('0 Warning(s)')) {
-                core.summary.addHeading(':warning: Build succeeded with warnings.');
+        try {
+            if (buildOutput.includes('Build succeeded.')) {
+                if (!buildOutput.includes('0 Warning(s)')) {
+                    core.summary.addHeading(':warning: SQL project build succeeded with warnings.');
 
-                // parse buildOutput into lines, filter out warnings, and deduplicate
-                const lines = buildOutput.split(/\r?\n/);
-                let warnings = lines.filter(line => (line.includes('Build warning') || line.includes('StaticCodeAnalysis warning')));
-                warnings = [...new Set(warnings)];
-                warnings.forEach(warning => {
-                    // remove [project path] from the end of the line
-                    warning = warning.lastIndexOf('[') > 0 ? warning.substring(0, warning.lastIndexOf('[')-1) : warning;
-                
-                    // move the file info from the beginning of the line to the end
-                    warning = '**'+warning.substring(warning.indexOf(':')+2) + '** ' + warning.substring(0, warning.indexOf(':')); 
-                    console.log(warning);
-                });
-                
+                    // parse buildOutput into lines, filter out warnings, and deduplicate
+                    const lines = buildOutput.split(/\r?\n/);
+                    let warnings = lines.filter(line => (line.includes('Build warning') || line.includes('StaticCodeAnalysis warning')));
+                    warnings = [...new Set(warnings)];
+                    let formattedWarnings: string[] = [];
+                    warnings.forEach(warning => {
+                        // remove [project path] from the end of the line
+                        warning = warning.lastIndexOf('[') > 0 ? warning.substring(0, warning.lastIndexOf('[')-1) : warning;
+                    
+                        // move the file info from the beginning of the line to the end
+                        warning = '**'+warning.substring(warning.indexOf(':')+2) + '** ' + warning.substring(0, warning.indexOf(':')); 
+                        formattedWarnings.push(warning);
+                    });
+                    
 
-                core.summary.addList(warnings, false);
-                core.summary.addRaw('See the full build log for more details.');
-            } else { // no warnings
-                core.summary.addHeading(':white_check_mark: Build succeeded.');
+                    core.summary.addList(warnings, false);
+                    core.summary.addRaw('See the full build log for more details.');
+                } else { // no build warnings
+                    core.summary.addHeading(':white_check_mark: SQL project build succeeded.');
+                }
+            } else {
+                core.summary.addHeading(':x: Build failed.');
             }
-        } else {
-            core.summary.addHeading(':x: Build failed.');
+        } catch (err) {
+            core.warning(`Error parsing build output for job summary: ${err}`);
         }
 
         const dacpacPath = path.join(outputDir, projectName + Constants.dacpacExtension);
