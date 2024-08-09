@@ -125,15 +125,27 @@ export default class AzureSqlAction {
         });
         
         if (buildOutput.includes('Build succeeded.')) {
-            core.summary.addHeading(':white_check_mark: Build succeeded.');
-
             if (!buildOutput.includes('0 Warning(s)')) {
+                core.summary.addHeading(':warning: Build succeeded with warnings.');
+
                 // parse buildOutput into lines, filter out warnings, and deduplicate
                 const lines = buildOutput.split(/\r?\n/);
-                let warnings = lines.filter(line => line.includes('Build warning'));
+                let warnings = lines.filter(line => (line.includes('Build warning') || line.includes('StaticCodeAnalysis warning')));
                 warnings = [...new Set(warnings)];
+                warnings.forEach(warning => {
+                    // remove [project path] from the end of the line
+                    warning = warning.lastIndexOf('[') > 0 ? warning.substring(0, warning.lastIndexOf('[')-1) : warning;
+                
+                    // move the file info from the beginning of the line to the end
+                    warning = '**'+warning.substring(warning.indexOf(':')+2) + '** ' + warning.substring(0, warning.indexOf(':')); 
+                    console.log(warning);
+                });
+                
 
                 core.summary.addList(warnings, false);
+                core.summary.addRaw('See the full build log for more details.');
+            } else { // no warnings
+                core.summary.addHeading(':white_check_mark: Build succeeded.');
             }
         } else {
             core.summary.addHeading(':x: Build failed.');
