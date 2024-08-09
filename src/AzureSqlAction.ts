@@ -133,7 +133,7 @@ export default class AzureSqlAction {
             if (!inputs.noJobSummary) {
                 this._projectBuildJobSummary(buildOutput);
             }
-            core.setFailed(`Failed to build SQL project. ${error.message}`);
+            throw new Error(`Failed to build project: ${error}`);
         }
         
         const dacpacPath = path.join(outputDir, projectName + Constants.dacpacExtension);
