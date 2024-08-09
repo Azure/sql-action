@@ -23,6 +23,10 @@ inputs:
     description: 'Skip the firewall check when connecting to the Azure SQL Server.'
     required: false
     default: false
+  no-job-summary:
+    description: 'Do not contribute to a job summary displayed as a job result.'
+    required: false
+    default: false
 runs:
   using: 'node20'
   main: 'lib/main.js'

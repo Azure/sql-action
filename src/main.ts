@@ -37,6 +37,10 @@ export default async function run() {
         }
 
         await azureSqlAction.execute();
+
+        if (inputs.noJobSummary != true) {
+            core.summary.write();
+        }
     }
     catch (error) {
         core.setFailed(error.message);
@@ -77,7 +81,8 @@ function getInputs(): IActionInputs {
                 connectionConfig: connectionConfig,
                 filePath: filePath,
                 additionalArguments: core.getInput('arguments') || undefined,
-                skipFirewallCheck: core.getBooleanInput('skip-firewall-check')
+                skipFirewallCheck: core.getBooleanInput('skip-firewall-check'),
+                noJobSummary: core.getBooleanInput('no-job-summary')
             };
 
         case Constants.dacpacExtension:
@@ -92,7 +97,8 @@ function getInputs(): IActionInputs {
                 sqlpackageAction: AzureSqlActionHelper.getSqlpackageActionTypeFromString(action),
                 sqlpackagePath: core.getInput('sqlpackage-path') || undefined,
                 additionalArguments: core.getInput('arguments') || undefined,
-                skipFirewallCheck: core.getBooleanInput('skip-firewall-check')
+                skipFirewallCheck: core.getBooleanInput('skip-firewall-check'),
+                noJobSummary: core.getBooleanInput('no-job-summary')
             } as IDacpacActionInputs;
 
         case Constants.sqlprojExtension:
@@ -108,7 +114,8 @@ function getInputs(): IActionInputs {
                 sqlpackageAction: AzureSqlActionHelper.getSqlpackageActionTypeFromString(action),
                 sqlpackagePath: core.getInput('sqlpackage-path') || undefined,
                 additionalArguments: core.getInput('arguments') || undefined,
-                skipFirewallCheck: core.getBooleanInput('skip-firewall-check')
+                skipFirewallCheck: core.getBooleanInput('skip-firewall-check'),
+                noJobSummary: core.getBooleanInput('no-job-summary')
             } as IBuildAndPublishInputs;
 
         default:

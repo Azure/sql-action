@@ -20,6 +20,7 @@ export interface IActionInputs {
     filePath: string;
     additionalArguments?: string;
     skipFirewallCheck: boolean;
+    noJobSummary: boolean;
 }
 
 export interface IDacpacActionInputs extends IActionInputs {
@@ -115,7 +116,28 @@ export default class AzureSqlAction {
             outputDir = path.join(path.dirname(inputs.filePath), "bin", configuration);
         }
 
-        await exec.exec(`dotnet build "${inputs.filePath}" -p:NetCoreBuild=true ${additionalBuildArguments}`);
+        let buildOutput = '';
+        await exec.exec(`dotnet build "${inputs.filePath}" -p:NetCoreBuild=true ${additionalBuildArguments}`, [], {
+            listeners: {
+                stderr: (data: Buffer) => buildOutput += data.toString(),
+                stdout: (data: Buffer) => buildOutput += data.toString()
+            }
+        });
+        
+        if (buildOutput.includes('Build succeeded.')) {
+            core.summary.addHeading(':white_check_mark: Build succeeded.');
+
+            if (!buildOutput.includes('0 Warning(s)')) {
+                // parse buildOutput into lines, filter out warnings, and deduplicate
+                const lines = buildOutput.split(/\r?\n/);
+                let warnings = lines.filter(line => line.includes('Build warning'));
+                warnings = [...new Set(warnings)];
+
+                core.summary.addList(warnings, false);
+            }
+        } else {
+            core.summary.addHeading(':x: Build failed.');
+        }
 
         const dacpacPath = path.join(outputDir, projectName + Constants.dacpacExtension);
         console.log(`Successfully built database project to ${dacpacPath}`);
