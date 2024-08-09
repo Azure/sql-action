@@ -20,7 +20,7 @@ export interface IActionInputs {
     filePath: string;
     additionalArguments?: string;
     skipFirewallCheck: boolean;
-    noJobSummary: boolean;
+    skipJobSummary: boolean;
 }
 
 export interface IDacpacActionInputs extends IActionInputs {
@@ -39,7 +39,8 @@ export enum SqlPackageAction {
     Import,
     DriftReport,
     DeployReport,
-    Script
+    Script,
+    BuildOnly
 }
 
 export default class AzureSqlAction {
@@ -75,6 +76,11 @@ export default class AzureSqlAction {
     }
 
     private async _executeDacpacAction(inputs: IDacpacActionInputs) {
+        if (inputs.sqlpackageAction === SqlPackageAction.BuildOnly) {
+            core.debug('Skipping sqlpackage action as action is set to BuildOnly');
+            return;
+        }
+
         core.debug('Begin executing sqlpackage');
         let sqlPackagePath = await AzureSqlActionHelper.getSqlPackagePath(inputs);
         let sqlPackageArgs = this._getSqlPackageArguments(inputs);
@@ -119,18 +125,21 @@ export default class AzureSqlAction {
         let buildOutput = '';
 
         try {
-            await exec.exec(`dotnet build "${inputs.filePath}" -p:NetCoreBuild=true ${additionalBuildArguments}`, [], {
+            await exec.exec(`dotnet build "${inputs.filePath}" -p:NetCoreBuild=true ${additionalBuildArguments}`
+                , [], {
                 listeners: {
                     stderr: (data: Buffer) => buildOutput += data.toString(),
                     stdout: (data: Buffer) => buildOutput += data.toString()
                 }
-            });
+            }
+        );
 
-            if (!inputs.noJobSummary) {
+            // check for process.env.GITHUB_STEP_SUMMARY to support unit tests and older GitHub enterprise environments
+            if (!inputs.skipJobSummary && process.env.GITHUB_STEP_SUMMARY) {
                 this._projectBuildJobSummary(buildOutput);
             }
         } catch (error) {
-            if (!inputs.noJobSummary) {
+            if (!inputs.skipJobSummary && process.env.GITHUB_STEP_SUMMARY) {
                 this._projectBuildJobSummary(buildOutput);
             }
             throw new Error(`Failed to build project: ${error}`);
@@ -208,7 +217,6 @@ export default class AzureSqlAction {
             case SqlPackageAction.DriftReport:
                 args += `/Action:${SqlPackageAction[inputs.sqlpackageAction]} /TargetConnectionString:"${inputs.connectionConfig.EscapedConnectionString}"`;
                 break;
-
             default:
                 throw new Error(`Not supported SqlPackage action: '${SqlPackageAction[inputs.sqlpackageAction]}'`);
         }
