@@ -143,8 +143,7 @@ export default class AzureSqlAction {
                         formattedWarnings.push(warning);
                     });
                     
-
-                    core.summary.addList(warnings, false);
+                    core.summary.addList(formattedWarnings, false);
                     core.summary.addRaw('See the full build log for more details.');
                 } else { // no build warnings
                     core.summary.addHeading(':white_check_mark: SQL project build succeeded.');
