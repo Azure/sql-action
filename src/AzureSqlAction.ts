@@ -133,17 +133,15 @@ export default class AzureSqlAction {
                     const lines = buildOutput.split(/\r?\n/);
                     let warnings = lines.filter(line => (line.includes('Build warning') || line.includes('StaticCodeAnalysis warning')));
                     warnings = [...new Set(warnings)];
-                    let formattedWarnings: string[] = [];
+                    
                     warnings.forEach(warning => {
                         // remove [project path] from the end of the line
                         warning = warning.lastIndexOf('[') > 0 ? warning.substring(0, warning.lastIndexOf('[')-1) : warning;
                     
                         // move the file info from the beginning of the line to the end
-                        warning = '**'+warning.substring(warning.indexOf(':')+2) + '** ' + warning.substring(0, warning.indexOf(':')); 
-                        formattedWarnings.push(warning);
+                        warning = '- **'+warning.substring(warning.indexOf(':')+2) + '** ' + warning.substring(0, warning.indexOf(':')); 
+                        core.summary.addRaw(warning, true);
                     });
-                    
-                    core.summary.addList(formattedWarnings, false);
                     core.summary.addRaw('See the full build log for more details.');
                 } else { // no build warnings
                     core.summary.addHeading(':white_check_mark: SQL project build succeeded.');
@@ -152,7 +150,7 @@ export default class AzureSqlAction {
                 core.summary.addHeading(':x: Build failed.');
             }
         } catch (err) {
-            core.warning(`Error parsing build output for job summary: ${err}`);
+            core.notice(`Error parsing build output for job summary: ${err}`);
         }
 
         const dacpacPath = path.join(outputDir, projectName + Constants.dacpacExtension);
