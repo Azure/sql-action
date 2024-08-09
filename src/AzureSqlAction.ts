@@ -128,6 +128,7 @@ export default class AzureSqlAction {
             if (buildOutput.includes('Build succeeded.')) {
                 if (!buildOutput.includes('0 Warning(s)')) {
                     core.summary.addHeading(':warning: SQL project build succeeded with warnings.');
+                    core.summary.addEOL();
 
                     // parse buildOutput into lines, filter out warnings, and deduplicate
                     const lines = buildOutput.split(/\r?\n/);
