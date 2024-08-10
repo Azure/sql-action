@@ -241,7 +241,7 @@ describe('main.ts tests', () => {
             expect(resolveFilePathSpy).toHaveBeenCalled();
             expect(getInputSpy).toHaveBeenCalled();
             expect(setFailedSpy).toHaveBeenCalled();
-            expect(setFailedSpy).toHaveBeenCalledWith(`Action ${actionName} is invalid. Supported action types are: Publish, Script, DriftReport, or DeployReport.`);
+            expect(setFailedSpy).toHaveBeenCalledWith(`Action ${actionName} is invalid. Supported action types are: Publish, Script, DriftReport, DeployReport, or BuildOnly.`);
         });
     });
 

@@ -16,12 +16,17 @@ export enum ActionType {
 
 export interface IActionInputs {
     actionType: ActionType;
-    connectionConfig: SqlConnectionConfig;
+    connectionConfig?: SqlConnectionConfig;
     filePath: string;
     additionalArguments?: string;
     skipFirewallCheck: boolean;
     skipJobSummary: boolean;
 }
+
+export interface ISqlCmdInputs extends IActionInputs {
+    connectionConfig: SqlConnectionConfig;
+}
+
 
 export interface IDacpacActionInputs extends IActionInputs {
     sqlpackageAction: SqlPackageAction;
@@ -53,7 +58,7 @@ export default class AzureSqlAction {
             await this._executeDacpacAction(this._inputs as IDacpacActionInputs);
         }
         else if (this._inputs.actionType === ActionType.SqlAction) {
-            await this._executeSqlFile(this._inputs);
+            await this._executeSqlFile(this._inputs as ISqlCmdInputs);
         }
         else if (this._inputs.actionType === ActionType.BuildAndPublish) {
             const buildAndPublishInputs = this._inputs as IBuildAndPublishInputs;
@@ -90,7 +95,7 @@ export default class AzureSqlAction {
         console.log(`Successfully executed action ${SqlPackageAction[inputs.sqlpackageAction]} on target database.`);
     }
 
-    private async _executeSqlFile(inputs: IActionInputs) {
+    private async _executeSqlFile(inputs: ISqlCmdInputs) {
         core.debug('Begin executing sql script');
 
         let sqlcmdCall = SqlUtils.buildSqlCmdCallWithConnectionInfo(inputs.connectionConfig);
@@ -207,6 +212,10 @@ export default class AzureSqlAction {
 
     private _getSqlPackageArguments(inputs: IDacpacActionInputs) {
         let args = '';
+
+        if (!inputs.connectionConfig) {
+            throw new Error('Connection string is required for action to call SqlPackgage');
+        }
 
         switch (inputs.sqlpackageAction) {
             case SqlPackageAction.Publish: 
