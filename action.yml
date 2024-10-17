@@ -3,7 +3,7 @@ description: 'Deploy a database project, DACPAC, or a SQL script to Azure SQL da
 inputs:
   connection-string:
     description: 'The connection string, including authentication information, for the Azure SQL Server database.'
-    required: true
+    required: false
   path:
     description: 'Path to the file used for this action. Supported file types are .sql, .dacpac, or .sqlproj.'
     required: true
@@ -21,6 +21,10 @@ inputs:
     required: false
   skip-firewall-check:
     description: 'Skip the firewall check when connecting to the Azure SQL Server.'
+    required: false
+    default: false
+  skip-job-summary:
+    description: 'Skip providing a job summary from this step.'
     required: false
     default: false
 runs:
