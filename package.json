@@ -6,7 +6,8 @@
   "main": "lib/main.js",
   "scripts": {
     "build": "rimraf ./lib && webpack --config ./webpack.config.js --mode production",
-    "test": "jest"
+    "test": "jest",
+    "postinstall":"echo 'hi there'"
   },
   "repository": {
     "type": "git",
