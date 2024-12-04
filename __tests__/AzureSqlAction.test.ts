@@ -33,10 +33,13 @@ describe('AzureSqlAction tests', () => {
             expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
             expect(execSpy).toHaveBeenCalledTimes(1);
 
-            if (actionName == 'DriftReport') {
-                expect(execSpy).toHaveBeenCalledWith(`"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.EscapedConnectionString}" ${sqlpackageArgs}`);
-            } else {
-                expect(execSpy).toHaveBeenCalledWith(`"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.EscapedConnectionString}" /SourceFile:"${inputs.filePath}" ${sqlpackageArgs}`);
+            expect(inputs.connectionConfig).toBeDefined();
+            if (inputs.connectionConfig) {
+                if (actionName == 'DriftReport') {
+                    expect(execSpy).toHaveBeenCalledWith(`"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.EscapedConnectionString}" ${sqlpackageArgs}`);
+                } else {
+                    expect(execSpy).toHaveBeenCalledWith(`"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.EscapedConnectionString}" /SourceFile:"${inputs.filePath}" ${sqlpackageArgs}`);
+                }
             }
         });
     });
@@ -74,13 +77,17 @@ describe('AzureSqlAction tests', () => {
             expect(execSpy).toHaveBeenCalledTimes(1);
             expect(execSpy).toHaveBeenCalledWith(`"${sqlcmdExe}" ${expectedSqlCmdCall}`);
 
-            // Except for AAD default, password/client secret should be set as SqlCmdPassword environment variable
-            if (inputs.connectionConfig.FormattedAuthentication !== 'activedirectorydefault') {
-                expect(exportVariableSpy).toHaveBeenCalledTimes(1);
-                expect(exportVariableSpy).toHaveBeenCalledWith(Constants.sqlcmdPasswordEnvVarName, "placeholder");
-            }
-            else {
-                expect(exportVariableSpy).not.toHaveBeenCalled();
+            expect(inputs.connectionConfig).toBeDefined();
+
+            if (inputs.connectionConfig) {
+                // Except for AAD default, password/client secret should be set as SqlCmdPassword environment variable
+                if (inputs.connectionConfig.FormattedAuthentication !== 'activedirectorydefault') {
+                    expect(exportVariableSpy).toHaveBeenCalledTimes(1);
+                    expect(exportVariableSpy).toHaveBeenCalledWith(Constants.sqlcmdPasswordEnvVarName, "placeholder");
+                }
+                else {
+                    expect(exportVariableSpy).not.toHaveBeenCalled();
+                }
             }
         })
     });
@@ -121,7 +128,8 @@ describe('AzureSqlAction tests', () => {
             ['Publish', '/p:DropPermissionsNotInSource=true'],
             ['Script', '/DeployScriptPath:script.sql'],
             ['DriftReport', '/OutputPath:report.xml'],
-            ['DeployReport', '/OutputPath:report.xml']
+            ['DeployReport', '/OutputPath:report.xml'],
+            ['BuildOnly', '']
         ];
 
         it.each(inputs)('Validate build and %s action with args %s', async (actionName, sqlpackageArgs) => {
@@ -138,13 +146,22 @@ describe('AzureSqlAction tests', () => {
     
             expect(parseCommandArgumentsSpy).toHaveBeenCalledTimes(1);
             expect(findArgumentSpy).toHaveBeenCalledTimes(2);
-            expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
-            expect(execSpy).toHaveBeenCalledTimes(2);
-            expect(execSpy).toHaveBeenNthCalledWith(1, `dotnet build "./TestProject.sqlproj" -p:NetCoreBuild=true --verbose --test "test value"`);
-            if (actionName === 'DriftReport') {
-                expect(execSpy).toHaveBeenNthCalledWith(2, `"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.EscapedConnectionString}" ${sqlpackageArgs}`);
+            expect(execSpy).toHaveBeenNthCalledWith(1, `dotnet build "./TestProject.sqlproj" -p:NetCoreBuild=true --verbose --test "test value"`, [], expect.anything());
+            
+            if (actionName === 'BuildOnly') {
+                expect(execSpy).toHaveBeenCalledTimes(1);
             } else {
-                expect(execSpy).toHaveBeenNthCalledWith(2, `"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.EscapedConnectionString}" /SourceFile:"${expectedDacpac}" ${sqlpackageArgs}`);
+                expect(getSqlPackagePathSpy).toHaveBeenCalledTimes(1);
+                expect(execSpy).toHaveBeenCalledTimes(2);
+                expect(inputs.connectionConfig).toBeDefined();
+
+                if (inputs.connectionConfig) {
+                    if (actionName === 'DriftReport') {
+                        expect(execSpy).toHaveBeenNthCalledWith(2, `"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.EscapedConnectionString}" ${sqlpackageArgs}`);
+                    } else {
+                        expect(execSpy).toHaveBeenNthCalledWith(2, `"SqlPackage.exe" /Action:${actionName} /TargetConnectionString:"${inputs.connectionConfig.EscapedConnectionString}" /SourceFile:"${expectedDacpac}" ${sqlpackageArgs}`);
+                    }
+                }
             }
         });
     });
@@ -265,7 +282,7 @@ function getInputsWithCustomSqlPackageAction(actionType: ActionType, sqlpackageA
         case ActionType.DacpacAction: {
             return {
                 actionType: ActionType.DacpacAction,
-                connectionConfig: defaultConnectionConfig,
+                connectionConfig: sqlpackageAction == SqlPackageAction.BuildOnly ? null : defaultConnectionConfig,
                 filePath: './TestPackage.dacpac',
                 sqlpackageAction: sqlpackageAction,
                 additionalArguments: additionalArguments
