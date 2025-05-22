@@ -13,6 +13,10 @@ module.exports = {
     stats: {
         warnings: false
     },
+    optimization: {
+        moduleIds: 'deterministic',
+        chunkIds: 'deterministic'
+    },
     module: {
         rules: [
             {
