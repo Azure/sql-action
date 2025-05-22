@@ -39,6 +39,12 @@ jobs:
 
     - name: Build GitHub Action
       run: npm run build
+      
+    - name: Install SqlPackage on Ubuntu
+      if: runner.os == 'Linux'
+      run: |
+        dotnet tool install -g microsoft.sqlpackage
+        echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
 
     - name: Azure Login
       uses: azure/login@v2
