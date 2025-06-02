@@ -146,6 +146,12 @@ ALTER ROLE [db_ddladmin]
 ADD MEMBER [sqldeployserviceprincipal];
 ```
 
+You might also need to create the user in the master database:
+```sql
+USE master
+CREATE USER [sqldeployserviceprincipal] FROM EXTERNAL PROVIDER;
+```
+
 The connection string for Azure Active Directory service principal authentication is:
 
 ```
