@@ -16,11 +16,17 @@ export enum ActionType {
 
 export interface IActionInputs {
     actionType: ActionType;
-    connectionConfig: SqlConnectionConfig;
+    connectionConfig?: SqlConnectionConfig;
     filePath: string;
     additionalArguments?: string;
     skipFirewallCheck: boolean;
+    skipJobSummary: boolean;
 }
+
+export interface ISqlCmdInputs extends IActionInputs {
+    connectionConfig: SqlConnectionConfig;
+}
+
 
 export interface IDacpacActionInputs extends IActionInputs {
     sqlpackageAction: SqlPackageAction;
@@ -38,7 +44,8 @@ export enum SqlPackageAction {
     Import,
     DriftReport,
     DeployReport,
-    Script
+    Script,
+    BuildOnly
 }
 
 export default class AzureSqlAction {
@@ -51,7 +58,7 @@ export default class AzureSqlAction {
             await this._executeDacpacAction(this._inputs as IDacpacActionInputs);
         }
         else if (this._inputs.actionType === ActionType.SqlAction) {
-            await this._executeSqlFile(this._inputs);
+            await this._executeSqlFile(this._inputs as ISqlCmdInputs);
         }
         else if (this._inputs.actionType === ActionType.BuildAndPublish) {
             const buildAndPublishInputs = this._inputs as IBuildAndPublishInputs;
@@ -74,6 +81,11 @@ export default class AzureSqlAction {
     }
 
     private async _executeDacpacAction(inputs: IDacpacActionInputs) {
+        if (inputs.sqlpackageAction === SqlPackageAction.BuildOnly) {
+            core.debug('Skipping sqlpackage action as action is set to BuildOnly');
+            return;
+        }
+
         core.debug('Begin executing sqlpackage');
         let sqlPackagePath = await AzureSqlActionHelper.getSqlPackagePath(inputs);
         let sqlPackageArgs = this._getSqlPackageArguments(inputs);
@@ -83,7 +95,7 @@ export default class AzureSqlAction {
         console.log(`Successfully executed action ${SqlPackageAction[inputs.sqlpackageAction]} on target database.`);
     }
 
-    private async _executeSqlFile(inputs: IActionInputs) {
+    private async _executeSqlFile(inputs: ISqlCmdInputs) {
         core.debug('Begin executing sql script');
 
         let sqlcmdCall = SqlUtils.buildSqlCmdCallWithConnectionInfo(inputs.connectionConfig);
@@ -115,15 +127,95 @@ export default class AzureSqlAction {
             outputDir = path.join(path.dirname(inputs.filePath), "bin", configuration);
         }
 
-        await exec.exec(`dotnet build "${inputs.filePath}" -p:NetCoreBuild=true ${additionalBuildArguments}`);
+        let buildOutput = '';
 
+        try {
+            await exec.exec(`dotnet build "${inputs.filePath}" -p:NetCoreBuild=true ${additionalBuildArguments}`
+                , [], {
+                listeners: {
+                    stderr: (data: Buffer) => buildOutput += data.toString(),
+                    stdout: (data: Buffer) => buildOutput += data.toString()
+                }
+            }
+        );
+
+            // check for process.env.GITHUB_STEP_SUMMARY to support unit tests and older GitHub enterprise environments
+            if (!inputs.skipJobSummary && process.env.GITHUB_STEP_SUMMARY) {
+                this._projectBuildJobSummary(buildOutput);
+            }
+        } catch (error) {
+            if (!inputs.skipJobSummary && process.env.GITHUB_STEP_SUMMARY) {
+                this._projectBuildJobSummary(buildOutput);
+            }
+            throw new Error(`Failed to build project: ${error}`);
+        }
+        
         const dacpacPath = path.join(outputDir, projectName + Constants.dacpacExtension);
         console.log(`Successfully built database project to ${dacpacPath}`);
         return dacpacPath;
     }
 
+    /**
+     * parses the build output and adds a summary to the github job
+     * displays errors and warnings
+     * @param buildOutput The output of the dotnet build exec
+     */
+    private _projectBuildJobSummary(buildOutput: string) {
+        try {
+            if (buildOutput.includes('Build succeeded.')) {
+                core.summary.addHeading(':white_check_mark: SQL project build succeeded.');
+            } else {
+                core.summary.addHeading(':rotating_light: SQL project build failed.');
+            }
+            core.summary.addEOL();
+            core.summary.addRaw('See the full build log for more details.', true);
+
+            const lines = buildOutput.split(/\r?\n/);
+            let warnings = lines.filter(line => (line.includes('Build warning') || line.includes('StaticCodeAnalysis warning')));
+            let errorMessages = lines.filter(line => (line.includes('Build error') || line.includes('StaticCodeAnalysis error')));
+
+            if (errorMessages.length > 0) {
+                errorMessages = [...new Set(errorMessages)];
+                core.summary.addHeading(':x: Errors', 2);
+                core.summary.addEOL();
+
+                errorMessages.forEach(error => {
+                    // remove [project path] from the end of the line
+                    error = error.lastIndexOf('[') > 0 ? error.substring(0, error.lastIndexOf('[')-1) : error;
+                
+                    // move the file info from the beginning of the line to the end
+                    error = '- **'+error.substring(error.indexOf(':')+2) + '** ' + error.substring(0, error.indexOf(':')); 
+                    core.summary.addRaw(error, true);
+                });
+            }
+
+            if (warnings.length > 0) {
+                warnings = [...new Set(warnings)];
+                core.summary.addHeading(':warning: Warnings', 2);
+                core.summary.addEOL();
+                
+                warnings.forEach(warning => {
+                    // remove [project path] from the end of the line
+                    warning = warning.lastIndexOf('[') > 0 ? warning.substring(0, warning.lastIndexOf('[')-1) : warning;
+                
+                    // move the file info from the beginning of the line to the end
+                    warning = '- **'+warning.substring(warning.indexOf(':')+2) + '** ' + warning.substring(0, warning.indexOf(':')); 
+                    core.summary.addRaw(warning, true);
+                });
+            }
+
+            core.summary.write();
+        } catch (err) {
+            core.notice(`Error parsing build output for job summary: ${err}`);
+        }
+    }
+
     private _getSqlPackageArguments(inputs: IDacpacActionInputs) {
         let args = '';
+
+        if (!inputs.connectionConfig) {
+            throw new Error('Connection string is required for action to call SqlPackgage');
+        }
 
         switch (inputs.sqlpackageAction) {
             case SqlPackageAction.Publish: 
@@ -134,7 +226,6 @@ export default class AzureSqlAction {
             case SqlPackageAction.DriftReport:
                 args += `/Action:${SqlPackageAction[inputs.sqlpackageAction]} /TargetConnectionString:"${inputs.connectionConfig.EscapedConnectionString}"`;
                 break;
-
             default:
                 throw new Error(`Not supported SqlPackage action: '${SqlPackageAction[inputs.sqlpackageAction]}'`);
         }

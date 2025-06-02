@@ -25,7 +25,7 @@ export default async function run() {
         const azureSqlAction = new AzureSqlAction(inputs);
         
         // Unless skip-firewall-check is set to true, check if the runner's IP address is allowed to connect to the server
-        if (inputs.skipFirewallCheck !== true) {
+        if (inputs.skipFirewallCheck !== true && inputs.connectionConfig) {
             const runnerIPAddress = await SqlUtils.detectIPAddress(inputs.connectionConfig);
             if (runnerIPAddress) {
                 core.debug(`Temporarily adding '${runnerIPAddress}' to the firewall of ${inputs.connectionConfig.Server}.`);
@@ -61,8 +61,11 @@ function setUserAgentVariable(): void {
 function getInputs(): IActionInputs {
     core.debug('Get action inputs.');
 
-    const connectionString = core.getInput('connection-string', { required: true });
-    const connectionConfig = new SqlConnectionConfig(connectionString);
+    let connectionString: string = '';
+    let connectionConfig: SqlConnectionConfig;
+
+    // const connectionString = core.getInput('connection-string', { required: false });
+    // const connectionConfig = new SqlConnectionConfig(connectionString);
 
     let filePath = core.getInput('path', { required: true });
     filePath = AzureSqlActionHelper.resolveFilePath(filePath);
@@ -72,18 +75,23 @@ function getInputs(): IActionInputs {
 
     switch (path.extname(filePath).toLowerCase()) {
         case Constants.sqlFileExtension:
+            connectionString = core.getInput('connection-string', { required: true });
+            connectionConfig = new SqlConnectionConfig(connectionString);
             return {
                 actionType: ActionType.SqlAction,
                 connectionConfig: connectionConfig,
                 filePath: filePath,
                 additionalArguments: core.getInput('arguments') || undefined,
-                skipFirewallCheck: core.getBooleanInput('skip-firewall-check')
+                skipFirewallCheck: core.getBooleanInput('skip-firewall-check'),
+                skipJobSummary: core.getBooleanInput('skip-job-summary') || false
             };
 
         case Constants.dacpacExtension:
             if (!action) {
                 throw new Error('The action input must be specified when using a .dacpac file.');
             }
+            connectionString = core.getInput('connection-string', { required: true });
+            connectionConfig = new SqlConnectionConfig(connectionString);
 
             return {
                 actionType: ActionType.DacpacAction,
@@ -92,23 +100,41 @@ function getInputs(): IActionInputs {
                 sqlpackageAction: AzureSqlActionHelper.getSqlpackageActionTypeFromString(action),
                 sqlpackagePath: core.getInput('sqlpackage-path') || undefined,
                 additionalArguments: core.getInput('arguments') || undefined,
-                skipFirewallCheck: core.getBooleanInput('skip-firewall-check')
+                skipFirewallCheck: core.getBooleanInput('skip-firewall-check'),
+                skipJobSummary: core.getBooleanInput('skip-job-summary') || false
             } as IDacpacActionInputs;
 
         case Constants.sqlprojExtension:
             if (!action) {
                 throw new Error('The action input must be specified when using a .sqlproj file.');
             }
+            connectionString = core.getInput('connection-string', { required: false });
 
+            if (AzureSqlActionHelper.getSqlpackageActionTypeFromString(action) === SqlPackageAction.BuildOnly) {
+                return {
+                    actionType: ActionType.BuildAndPublish,
+                    connectionConfig: undefined,
+                    filePath: filePath,
+                    buildArguments: core.getInput('build-arguments') || undefined,
+                    sqlpackageAction: SqlPackageAction.BuildOnly,
+                    sqlpackagePath: core.getInput('sqlpackage-path') || undefined,
+                    additionalArguments: core.getInput('arguments') || undefined,
+                    skipFirewallCheck:  true,
+                    skipJobSummary: core.getBooleanInput('skip-job-summary') || false
+                } as IBuildAndPublishInputs;
+            }
+
+            connectionConfig = new SqlConnectionConfig(connectionString);
             return {
                 actionType: ActionType.BuildAndPublish,
-                connectionConfig: connectionConfig,
+                connectionConfig: connectionConfig ,
                 filePath: filePath,
                 buildArguments: core.getInput('build-arguments') || undefined,
                 sqlpackageAction: AzureSqlActionHelper.getSqlpackageActionTypeFromString(action),
                 sqlpackagePath: core.getInput('sqlpackage-path') || undefined,
                 additionalArguments: core.getInput('arguments') || undefined,
-                skipFirewallCheck: core.getBooleanInput('skip-firewall-check')
+                skipFirewallCheck:  core.getBooleanInput('skip-firewall-check'),
+                skipJobSummary: core.getBooleanInput('skip-job-summary') || false
             } as IBuildAndPublishInputs;
 
         default:

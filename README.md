@@ -23,7 +23,7 @@ The definition of this GitHub Action is in [action.yml](https://github.com/Azure
     path:
 
     # optional when using a .sql script, required otherwise
-    # sqlpackage action on the .dacpac or .sqlproj file, supported options are: Publish, Script, DeployReport, DriftReport
+    # sqlpackage action on the .dacpac or .sqlproj file, supported options are: Publish, Script, DeployReport, DriftReport, BuildOnly
     action:
 
     # optional additional sqlpackage or go-sqlcmd arguments
@@ -37,6 +37,9 @@ The definition of this GitHub Action is in [action.yml](https://github.com/Azure
 
     # optional, set this to skip checking if the runner has access to the server. Default is false.
     skip-firewall-check:
+
+    # option, set this to skip adding a GitHub job summary for the SQL action. Default is false.
+    skip-job-summary:
 ```
 
 ## 🎨 Samples

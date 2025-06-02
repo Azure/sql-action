@@ -125,8 +125,10 @@ export default class AzureSqlActionHelper {
                 return SqlPackageAction.DeployReport;
             case 'script':
                 return SqlPackageAction.Script;
+            case 'buildonly':
+                return SqlPackageAction.BuildOnly;
             default:
-                throw new Error(`Action ${action} is invalid. Supported action types are: Publish, Script, DriftReport, or DeployReport.`);
+                throw new Error(`Action ${action} is invalid. Supported action types are: Publish, Script, DriftReport, DeployReport, or BuildOnly.`);
         }
     }
 
