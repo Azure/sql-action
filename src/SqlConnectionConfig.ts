@@ -84,6 +84,15 @@ export default class SqlConnectionConfig {
     }
 
     /**
+     * Returns the database name enclosed by quotes for use in sqlcmd commands.
+     * Escapes any quotes in the database name with \"
+     */
+    public get QuotedDatabaseName(): string {
+        let dbName = this.Database.replace(/"/g, '\\"');
+        return `"${dbName}"`;
+    }
+
+    /**
      * The basic format of a connection string includes a series of keyword/value pairs separated by semicolons. 
      * The equal sign (=) connects each keyword and its value. (Ex: Key1=Val1;Key2=Val2)
      * 
