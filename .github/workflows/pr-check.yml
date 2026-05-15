@@ -14,7 +14,7 @@ permissions: {}
 jobs:
   # Build job that safely builds artifacts from PR code without access to secrets
   build:
-    environment: Automation test # this environment requires approval before running the action
+    environment: Automation test # Require approval before running the action
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
