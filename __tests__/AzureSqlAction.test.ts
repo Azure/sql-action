@@ -55,10 +55,12 @@ describe('AzureSqlAction tests', () => {
     describe('sql script action tests for different auth types', () => {
         // Format: [test case description, connection string, expected sqlcmd arguments]
         const testCases = [
-            ['SQL login', 'Server=testServer.database.windows.net;Database=testDB;User Id=testUser;Password=placeholder', '-S testServer.database.windows.net,1433 -d testDB -U "testUser" -i "./TestFile.sql" -t 20'],
-            ['AAD password', 'Server=testServer.database.windows.net;Database=testDB;Authentication=Active Directory Password;User Id=testAADUser;Password=placeholder', '-S testServer.database.windows.net,1433 -d testDB --authentication-method=ActiveDirectoryPassword -U "testAADUser" -i "./TestFile.sql" -t 20'],
-            ['AAD service principal', 'Server=testServer.database.windows.net;Database=testDB;Authentication=Active Directory Service Principal;User Id=appId;Password=placeholder', '-S testServer.database.windows.net,1433 -d testDB --authentication-method=ActiveDirectoryServicePrincipal -U "appId" -i "./TestFile.sql" -t 20'],
-            ['AAD default', 'Server=testServer.database.windows.net;Database=testDB;Authentication=Active Directory Default;', '-S testServer.database.windows.net,1433 -d testDB --authentication-method=ActiveDirectoryDefault -i "./TestFile.sql" -t 20']
+            ['SQL login', 'Server=testServer.database.windows.net;Database=testDB;User Id=testUser;Password=placeholder', '-S testServer.database.windows.net,1433 -d "testDB" -U "testUser" -i "./TestFile.sql" -t 20'],
+            ['AAD password', 'Server=testServer.database.windows.net;Database=testDB;Authentication=Active Directory Password;User Id=testAADUser;Password=placeholder', '-S testServer.database.windows.net,1433 -d "testDB" --authentication-method=ActiveDirectoryPassword -U "testAADUser" -i "./TestFile.sql" -t 20'],
+            ['AAD service principal', 'Server=testServer.database.windows.net;Database=testDB;Authentication=Active Directory Service Principal;User Id=appId;Password=placeholder', '-S testServer.database.windows.net,1433 -d "testDB" --authentication-method=ActiveDirectoryServicePrincipal -U "appId" -i "./TestFile.sql" -t 20'],
+            ['AAD default', 'Server=testServer.database.windows.net;Database=testDB;Authentication=Active Directory Default;', '-S testServer.database.windows.net,1433 -d "testDB" --authentication-method=ActiveDirectoryDefault -i "./TestFile.sql" -t 20'],
+            ['SQL login (DB has space)', 'Server=testServer.database.windows.net;Database=test DB;User Id=testUser;Password=placeholder', '-S testServer.database.windows.net,1433 -d "test DB" -U "testUser" -i "./TestFile.sql" -t 20'],
+            ['SQL login (DB has quote)', 'Server=testServer.database.windows.net;Database=test"DB;User Id=testUser;Password=placeholder', '-S testServer.database.windows.net,1433 -d "test\\"DB" -U "testUser" -i "./TestFile.sql" -t 20']
         ];
 
         it.each(testCases)('%s', async (testCase, connectionString, expectedSqlCmdCall) => {
@@ -88,8 +90,8 @@ describe('AzureSqlAction tests', () => {
     describe('sql script action tests for different port numbers', () => {
         // Format: [test case description, connection string, expected sqlcmd arguments]
         const testCases = [
-            ['Default port', 'Server=testServer.database.windows.net;Database=testDB;User Id=testUser;Password=placeholder', '-S testServer.database.windows.net,1433 -d testDB -U "testUser" -i "./TestFile.sql" -t 20'],
-            ['Custom port', 'Server=testServer.database.windows.net,1234;Database=testDB;User Id=testUser;Password=placeholder', '-S testServer.database.windows.net,1234 -d testDB -U "testUser" -i "./TestFile.sql" -t 20']
+            ['Default port', 'Server=testServer.database.windows.net;Database=testDB;User Id=testUser;Password=placeholder', '-S testServer.database.windows.net,1433 -d "testDB" -U "testUser" -i "./TestFile.sql" -t 20'],
+            ['Custom port', 'Server=testServer.database.windows.net,1234;Database=testDB;User Id=testUser;Password=placeholder', '-S testServer.database.windows.net,1234 -d "testDB" -U "testUser" -i "./TestFile.sql" -t 20']
             ];
             
         it.each(testCases)('%s', async (testCase, connectionString, expectedSqlCmdCall) => {
