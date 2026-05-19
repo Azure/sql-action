@@ -82,11 +82,8 @@ jobs:
       with:
         name: action-build-${{ matrix.os }}
         path: |
-          lib/
-          node_modules/
+          lib/main.js
           action.yml
-          package.json
-          package-lock.json
         retention-days: 1
 
   # Deploy job that uses the built artifacts and has access to secrets
@@ -113,7 +110,63 @@ jobs:
       uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
       with:
         name: action-build-${{ matrix.os }}
-        path: .
+        path: ./pr-artifact
+
+    - name: Validate downloaded artifact
+      shell: pwsh
+      run: |
+        $artifactRoot = Join-Path $PWD 'pr-artifact'
+        if (-not (Test-Path $artifactRoot)) {
+          Write-Error "Artifact directory not found at $artifactRoot"
+          exit 1
+        }
+
+        $resolvedRoot = (Resolve-Path -LiteralPath $artifactRoot).Path
+
+        # Reject symlinks/reparse points and any path that escapes the artifact root
+        Get-ChildItem -Path $artifactRoot -Recurse -Force | ForEach-Object {
+          if ($_.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+            Write-Error "Symlink or reparse point detected in artifact: $($_.FullName)"
+            exit 1
+          }
+          $resolved = (Resolve-Path -LiteralPath $_.FullName).Path
+          if (-not $resolved.StartsWith($resolvedRoot)) {
+            Write-Error "Artifact entry escapes artifact root: $($_.FullName)"
+            exit 1
+          }
+        }
+
+        # Enforce exactly the two files the webpack build produces: lib/main.js and action.yml
+        $expectedFiles = @(
+          (Join-Path $artifactRoot 'lib' 'main.js'),
+          (Join-Path $artifactRoot 'action.yml')
+        )
+        foreach ($expected in $expectedFiles) {
+          if (-not (Test-Path -LiteralPath $expected -PathType Leaf)) {
+            Write-Error "Expected artifact file missing: $expected"
+            exit 1
+          }
+        }
+        $actualFiles = Get-ChildItem -Path $artifactRoot -Recurse -File -Force
+        if ($actualFiles.Count -ne $expectedFiles.Count) {
+          Write-Error "Artifact contains $($actualFiles.Count) file(s), expected $($expectedFiles.Count)"
+          $actualFiles | ForEach-Object { Write-Error "  Unexpected: $($_.FullName)" }
+          exit 1
+        }
+
+        # Sanity-check action.yml: must be small and reference lib/main.js
+        $actionYmlPath = Join-Path $artifactRoot 'action.yml'
+        if ((Get-Item -LiteralPath $actionYmlPath).Length -gt 64KB) {
+          Write-Error "action.yml is unexpectedly large"
+          exit 1
+        }
+        $actionYmlContent = Get-Content -Raw -LiteralPath $actionYmlPath
+        if ($actionYmlContent -notmatch "lib/main\.js") {
+          Write-Error "action.yml does not reference the expected entry point lib/main.js"
+          exit 1
+        }
+
+        Write-Host "Artifact validation passed"
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -132,7 +185,7 @@ jobs:
 
     # Deploy a DACPAC with only a table to server
     - name: Test DACPAC Action
-      uses: ./
+      uses: ./pr-artifact
       with:
         connection-string: 'Server=${{ secrets.TEST_SERVER }};Initial Catalog=${{ env.TEST_DB }};Authentication=Active Directory Default;'
         path: ./__testdata__/sql-action.dacpac
@@ -140,7 +193,7 @@ jobs:
 
     # Build and publish sqlproj that should create a new view
     - name: Test Build and Publish
-      uses: ./
+      uses: ./pr-artifact
       with:
         connection-string: 'Server=${{ secrets.TEST_SERVER }};Initial Catalog=${{ env.TEST_DB }};Authentication=Active Directory Default;'
         path: ./__testdata__/TestProject/sql-action.sqlproj
@@ -148,14 +201,14 @@ jobs:
 
     # Execute testsql.sql via script action on server
     - name: Test SQL Action
-      uses: ./
+      uses: ./pr-artifact
       with:
         connection-string: 'Server=${{ secrets.TEST_SERVER }};Initial Catalog=${{ env.TEST_DB }};Authentication=Active Directory Default;'
         path: ./__testdata__/testsql.sql
 
     - name: Cleanup Test Database
       if: always()
-      uses: ./
+      uses: ./pr-artifact
       with: 
         connection-string: 'Server=${{ secrets.TEST_SERVER }};Initial Catalog=master;Authentication=Active Directory Default;'
         path: ./__testdata__/cleanup.sql
