@@ -73,7 +73,7 @@ jobs:
           -Q "ALTER LOGIN sa WITH PASSWORD='${SA_PASSWORD}'"
         echo "BASE_CS=Server=localhost;User ID=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;" >> "$GITHUB_ENV"
 
-    # --- Windows setup: install SQL Server Express with SQL auth ---
+    # --- Windows setup: install SQL Server Express, then enable SQL auth with sa ---
 
     - name: Generate SA password (Windows)
       if: runner.os == 'Windows'
@@ -86,13 +86,37 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        choco install sql-server-express -y --no-progress `
-          --params "/SECURITYMODE=SQL /SAPWD=$env:SA_PASSWORD /TCPENABLED=1"
-        # SQL Server Browser helps named-instance resolution; not strictly required when using a port
-        Set-Service -Name SQLBrowser -StartupType Manual -ErrorAction SilentlyContinue
-        Start-Service -Name SQLBrowser -ErrorAction SilentlyContinue
-        # Confirm the engine service is running
+        choco install sql-server-express -y --no-progress
         Get-Service | Where-Object { $_.Name -like 'MSSQL*' } | Format-Table
+
+    - name: Enable mixed-mode auth and sa login (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        # Find sqlcmd.exe (installed by Express)
+        $sqlcmd = (Get-ChildItem 'C:\Program Files\Microsoft SQL Server' -Recurse -Filter sqlcmd.exe -ErrorAction SilentlyContinue |
+                   Select-Object -First 1).FullName
+        if (-not $sqlcmd) { throw "sqlcmd.exe not found after SQL Express install" }
+        Write-Host "Using sqlcmd at: $sqlcmd"
+
+        # Connect with Windows auth (runner is local admin), switch to mixed mode
+        & $sqlcmd -S 'localhost\SQLEXPRESS' -E -b -Q @"
+        EXEC xp_instance_regwrite N'HKEY_LOCAL_MACHINE',
+            N'Software\Microsoft\MSSQLServer\MSSQLServer',
+            N'LoginMode', REG_DWORD, 2;
+"@
+        if ($LASTEXITCODE -ne 0) { throw "Failed to set LoginMode" }
+
+        # Restart so LoginMode change takes effect
+        Restart-Service 'MSSQL$SQLEXPRESS' -Force
+
+        # Enable the sa login and set its password
+        & $sqlcmd -S 'localhost\SQLEXPRESS' -E -b -Q "ALTER LOGIN sa ENABLE; ALTER LOGIN sa WITH PASSWORD='$env:SA_PASSWORD';"
+        if ($LASTEXITCODE -ne 0) { throw "Failed to enable/set sa login" }
+
+        # Verify SQL auth works
+        & $sqlcmd -S 'localhost\SQLEXPRESS' -U sa -P $env:SA_PASSWORD -b -Q "SELECT @@VERSION"
+        if ($LASTEXITCODE -ne 0) { throw "SQL auth verification failed" }
 
     - name: Set connection string (Windows)
       if: runner.os == 'Windows'
