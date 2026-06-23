@@ -73,26 +73,25 @@ jobs:
           -Q "ALTER LOGIN sa WITH PASSWORD='${SA_PASSWORD}'"
         echo "BASE_CS=Server=localhost;User ID=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;" >> "$GITHUB_ENV"
 
-    # --- Windows setup: pre-installed SQL Server Express + Integrated Security ---
+    # --- Windows setup: install SqlLocalDB via Chocolatey, Integrated Security ---
 
-    - name: Start SQL Server Express service (Windows)
+    - name: Install SqlLocalDB (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        $service = Get-Service -Name 'MSSQL$SQLEXPRESS' -ErrorAction Stop
-        if ($service.Status -ne 'Running') {
-          Start-Service -Name 'MSSQL$SQLEXPRESS'
-        }
-        # SQL Server Browser helps with named-instance resolution
-        Set-Service -Name SQLBrowser -StartupType Manual
-        Start-Service -Name SQLBrowser -ErrorAction SilentlyContinue
-        Get-Service -Name 'MSSQL$SQLEXPRESS','SQLBrowser' | Format-Table
+        choco install sqllocaldb -y --no-progress
+        # Refresh PATH so SqlLocalDB.exe is reachable
+        $env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' +
+                    [System.Environment]::GetEnvironmentVariable('Path','User')
+        SqlLocalDB.exe info
+        SqlLocalDB.exe start MSSQLLocalDB
+        SqlLocalDB.exe info MSSQLLocalDB
 
     - name: Set connection string (Windows)
       if: runner.os == 'Windows'
       run: |
-        # Integrated Security uses the runner's local identity — no password needed
-        echo 'BASE_CS=Server=localhost\SQLEXPRESS;Integrated Security=True;TrustServerCertificate=True;' >> "$GITHUB_ENV"
+        # LocalDB uses a named-pipe instance; Integrated Security authenticates as the runner's local user
+        echo 'BASE_CS=Server=(localdb)\MSSQLLocalDB;Integrated Security=True;TrustServerCertificate=True;' >> "$GITHUB_ENV"
 
     # --- Common build and test steps ---
 
