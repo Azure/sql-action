@@ -73,25 +73,31 @@ jobs:
           -Q "ALTER LOGIN sa WITH PASSWORD='${SA_PASSWORD}'"
         echo "BASE_CS=Server=localhost;User ID=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;" >> "$GITHUB_ENV"
 
-    # --- Windows setup: install SqlLocalDB via Chocolatey, Integrated Security ---
+    # --- Windows setup: install SQL Server Express with SQL auth ---
 
-    - name: Install SqlLocalDB (Windows)
+    - name: Generate SA password (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        SA_PASSWORD="$(openssl rand -base64 18 | tr -d '/+=')Aa1!"
+        echo "::add-mask::${SA_PASSWORD}"
+        echo "SA_PASSWORD=${SA_PASSWORD}" >> "$GITHUB_ENV"
+
+    - name: Install SQL Server Express (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        choco install sqllocaldb -y --no-progress
-        # Refresh PATH so SqlLocalDB.exe is reachable
-        $env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' +
-                    [System.Environment]::GetEnvironmentVariable('Path','User')
-        SqlLocalDB.exe info
-        SqlLocalDB.exe start MSSQLLocalDB
-        SqlLocalDB.exe info MSSQLLocalDB
+        choco install sql-server-express -y --no-progress `
+          --params "/SECURITYMODE=SQL /SAPWD=$env:SA_PASSWORD /TCPENABLED=1"
+        # SQL Server Browser helps named-instance resolution; not strictly required when using a port
+        Set-Service -Name SQLBrowser -StartupType Manual -ErrorAction SilentlyContinue
+        Start-Service -Name SQLBrowser -ErrorAction SilentlyContinue
+        # Confirm the engine service is running
+        Get-Service | Where-Object { $_.Name -like 'MSSQL*' } | Format-Table
 
     - name: Set connection string (Windows)
       if: runner.os == 'Windows'
       run: |
-        # LocalDB uses a named-pipe instance; Integrated Security authenticates as the runner's local user
-        echo 'BASE_CS=Server=(localdb)\MSSQLLocalDB;Integrated Security=True;TrustServerCertificate=True;' >> "$GITHUB_ENV"
+        echo "BASE_CS=Server=localhost\SQLEXPRESS;User ID=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;" >> "$GITHUB_ENV"
 
     # --- Common build and test steps ---
 
