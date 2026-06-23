@@ -1,8 +1,7 @@
 name: pr-check
 
-# Tests PR code against a local SQL Server container so no Azure credentials are required.
-# This workflow uses the pull_request trigger (not pull_request_target), so fork PRs run
-# with no secrets and no elevated permissions.
+# Note: If you need to make changes to this file, please use a branch off the main branch instead of a fork.
+# The pull_request target from a forked repo will not have access to the secrets needed for this workflow.
 
 on:
   pull_request:
@@ -37,12 +36,6 @@ jobs:
       BASE_CS: 'Server=localhost;User ID=sa;TrustServerCertificate=True;'
 
     steps:
-    - name: Find sqlcmd
-      run: |
-        echo "=== which sqlcmd ===" && which sqlcmd || echo "not on PATH"
-        echo "=== find mssql-tools ===" && find /opt -name sqlcmd 2>/dev/null || echo "not found in /opt"
-        echo "=== sqlcmd in container ===" && docker exec $(docker ps -q --filter ancestor=mcr.microsoft.com/mssql/server:2022-latest) find / -name sqlcmd 2>/dev/null | head -5
-
     - name: Rotate SA password
       run: |
         SA_PASSWORD="$(openssl rand -base64 18 | tr -d '/+=')Aa1!"
