@@ -73,7 +73,7 @@ jobs:
           -Q "ALTER LOGIN sa WITH PASSWORD='${SA_PASSWORD}'"
         echo "BASE_CS=Server=localhost;User ID=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;" >> "$GITHUB_ENV"
 
-    # --- Windows setup: install SQL Server Express, then enable SQL auth with sa ---
+    # --- Windows setup: install SQL Server 2022 Express directly from Microsoft ---
 
     - name: Generate SA password (Windows)
       if: runner.os == 'Windows'
@@ -82,39 +82,70 @@ jobs:
         echo "::add-mask::${SA_PASSWORD}"
         echo "SA_PASSWORD=${SA_PASSWORD}" >> "$GITHUB_ENV"
 
-    - name: Install SQL Server Express (Windows)
+    - name: Download SQL Server 2022 Express installer (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        choco install sql-server-express -y --no-progress
+        $ssei  = Join-Path $env:RUNNER_TEMP 'SQL2022-SSEI-Expr.exe'
+        $media = Join-Path $env:RUNNER_TEMP 'sql-media'
+        # Stable Microsoft fwlink for the SQL Server 2022 Express bootstrapper (SSEI)
+        Invoke-WebRequest -Uri 'https://go.microsoft.com/fwlink/?linkid=2216019' -OutFile $ssei
+        # Tell the bootstrapper to download (not install) the full installer package
+        & $ssei /Quiet /Action=Download /Language=en-US /MediaPath=$media /MediaType=Core /HideProgressBar
+        if ($LASTEXITCODE -ne 0) { throw "SSEI download failed with exit code $LASTEXITCODE" }
+        Get-ChildItem $media
+
+    - name: Install SQL Server Express with SA auth (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $media = Join-Path $env:RUNNER_TEMP 'sql-media'
+        # SSEI produces a self-extracting installer (SQLEXPR*.exe). Extract its contents first.
+        $selfExtract = Get-ChildItem $media -Filter 'SQLEXPR*.exe' | Select-Object -First 1
+        if (-not $selfExtract) { throw "Installer EXE not found in $media" }
+        $extracted = Join-Path $env:RUNNER_TEMP 'sql-extracted'
+        Write-Host "Extracting $($selfExtract.FullName) -> $extracted"
+        & $selfExtract.FullName /Q /X:"$extracted" | Out-Null
+        # Self-extraction is async; wait for setup.exe to appear
+        $deadline = (Get-Date).AddMinutes(2)
+        while (-not (Test-Path (Join-Path $extracted 'setup.exe'))) {
+          if ((Get-Date) -gt $deadline) { throw "Extraction did not complete in time" }
+          Start-Sleep -Seconds 2
+        }
+
+        $setup = Join-Path $extracted 'setup.exe'
+        Write-Host "Running $setup with SECURITYMODE=SQL"
+        & $setup `
+          /Q `
+          /ACTION=Install `
+          /FEATURES=SQLEngine `
+          /INSTANCENAME=SQLEXPRESS `
+          /SECURITYMODE=SQL `
+          /SAPWD="$env:SA_PASSWORD" `
+          /TCPENABLED=1 `
+          /IACCEPTSQLSERVERLICENSETERMS `
+          /UPDATEENABLED=False `
+          /SQLSYSADMINACCOUNTS="BUILTIN\Administrators"
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "Setup failed with exit code $LASTEXITCODE"
+          # Surface the most recent setup logs to make failures diagnosable
+          $logDir = 'C:\Program Files\Microsoft SQL Server\160\Setup Bootstrap\Log'
+          if (Test-Path $logDir) {
+            Get-ChildItem $logDir -Recurse -Filter 'Summary*.txt' |
+              Sort-Object LastWriteTime -Descending | Select-Object -First 1 |
+              ForEach-Object { Write-Host "=== $($_.FullName) ==="; Get-Content $_.FullName }
+          }
+          throw "SQL Server install failed"
+        }
         Get-Service | Where-Object { $_.Name -like 'MSSQL*' } | Format-Table
 
-    - name: Enable mixed-mode auth and sa login (Windows)
+    - name: Verify SQL auth (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        # Find sqlcmd.exe (installed by Express)
         $sqlcmd = (Get-ChildItem 'C:\Program Files\Microsoft SQL Server' -Recurse -Filter sqlcmd.exe -ErrorAction SilentlyContinue |
                    Select-Object -First 1).FullName
-        if (-not $sqlcmd) { throw "sqlcmd.exe not found after SQL Express install" }
-        Write-Host "Using sqlcmd at: $sqlcmd"
-
-        # Connect with Windows auth (runner is local admin), switch to mixed mode
-        & $sqlcmd -S 'localhost\SQLEXPRESS' -E -b -Q @"
-        EXEC xp_instance_regwrite N'HKEY_LOCAL_MACHINE',
-            N'Software\Microsoft\MSSQLServer\MSSQLServer',
-            N'LoginMode', REG_DWORD, 2;
-"@
-        if ($LASTEXITCODE -ne 0) { throw "Failed to set LoginMode" }
-
-        # Restart so LoginMode change takes effect
-        Restart-Service 'MSSQL$SQLEXPRESS' -Force
-
-        # Enable the sa login and set its password
-        & $sqlcmd -S 'localhost\SQLEXPRESS' -E -b -Q "ALTER LOGIN sa ENABLE; ALTER LOGIN sa WITH PASSWORD='$env:SA_PASSWORD';"
-        if ($LASTEXITCODE -ne 0) { throw "Failed to enable/set sa login" }
-
-        # Verify SQL auth works
+        if (-not $sqlcmd) { throw "sqlcmd.exe not found after install" }
         & $sqlcmd -S 'localhost\SQLEXPRESS' -U sa -P $env:SA_PASSWORD -b -Q "SELECT @@VERSION"
         if ($LASTEXITCODE -ne 0) { throw "SQL auth verification failed" }
 
