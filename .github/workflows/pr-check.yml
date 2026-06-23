@@ -37,10 +37,18 @@ jobs:
       BASE_CS: 'Server=localhost;User ID=sa;TrustServerCertificate=True;'
 
     steps:
+    - name: Find sqlcmd
+      run: |
+        echo "=== which sqlcmd ===" && which sqlcmd || echo "not on PATH"
+        echo "=== find mssql-tools ===" && find /opt -name sqlcmd 2>/dev/null || echo "not found in /opt"
+        echo "=== sqlcmd in container ===" && docker exec $(docker ps -q --filter ancestor=mcr.microsoft.com/mssql/server:2022-latest) find / -name sqlcmd 2>/dev/null | head -5
+
     - name: Rotate SA password
       run: |
         SA_PASSWORD="$(openssl rand -base64 18 | tr -d '/+=')Aa1!"
-        /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Bootstrap1!' -C \
+        CONTAINER=$(docker ps -q --filter ancestor=mcr.microsoft.com/mssql/server:2022-latest)
+        docker exec "$CONTAINER" /opt/mssql-tools18/bin/sqlcmd \
+          -S localhost -U sa -P 'Bootstrap1!' -C \
           -Q "ALTER LOGIN sa WITH PASSWORD='${SA_PASSWORD}'"
         echo "SA_PASSWORD=${SA_PASSWORD}" >> "$GITHUB_ENV"
 
