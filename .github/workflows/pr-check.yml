@@ -1,8 +1,11 @@
 name: pr-check
 
-# Tests PR code against a local SQL Server container so no Azure credentials are required.
+# Tests PR code against a local SQL Server instance so no Azure credentials are required.
 # This workflow uses the pull_request trigger (not pull_request_target), so fork PRs run
 # with no secrets and no elevated permissions.
+#
+# - Linux runners: spin up SQL Server 2022 in a Docker container with SA auth.
+# - Windows runners: use the pre-installed SQL Server Express with Integrated Security.
 
 on:
   pull_request:
@@ -23,13 +26,9 @@ jobs:
     env:
       TEST_DB: SqlActionTest
       MSSQL_IMAGE: mcr.microsoft.com/mssql/server:2022-latest
-      # Password is appended after rotation; composed into connection strings below
-      BASE_CS: 'Server=localhost;User ID=sa;TrustServerCertificate=True;'
 
     defaults:
       run:
-        # Use bash on both Linux and Windows (Git Bash is preinstalled on windows-latest).
-        # This keeps the docker / openssl / sqlcmd commands identical across runners.
         shell: bash
 
     steps:
@@ -38,14 +37,10 @@ jobs:
       with:
         ref: ${{ github.event.pull_request.head.sha }}
 
-    - name: Switch Docker to Linux containers (Windows only)
-      if: runner.os == 'Windows'
-      shell: pwsh
-      run: |
-        & 'C:\Program Files\Docker\Docker\DockerCli.exe' -SwitchLinuxEngine
-        docker version
+    # --- Linux setup: Docker container + SA auth with rotated password ---
 
-    - name: Start SQL Server container
+    - name: Start SQL Server container (Linux)
+      if: runner.os == 'Linux'
       run: |
         docker run -d --name sqlserver \
           -e "ACCEPT_EULA=Y" \
@@ -53,7 +48,8 @@ jobs:
           -p 1433:1433 \
           "$MSSQL_IMAGE"
 
-    - name: Wait for SQL Server to be ready
+    - name: Wait for SQL Server to be ready (Linux)
+      if: runner.os == 'Linux'
       run: |
         for i in $(seq 1 30); do
           if docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd \
@@ -68,13 +64,37 @@ jobs:
         docker logs sqlserver
         exit 1
 
-    - name: Rotate SA password
+    - name: Rotate SA password and set connection string (Linux)
+      if: runner.os == 'Linux'
       run: |
         SA_PASSWORD="$(openssl rand -base64 18 | tr -d '/+=')Aa1!"
         docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd \
           -S localhost -U sa -P 'Bootstrap1!' -C \
           -Q "ALTER LOGIN sa WITH PASSWORD='${SA_PASSWORD}'"
-        echo "SA_PASSWORD=${SA_PASSWORD}" >> "$GITHUB_ENV"
+        echo "BASE_CS=Server=localhost;User ID=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;" >> "$GITHUB_ENV"
+
+    # --- Windows setup: pre-installed SQL Server Express + Integrated Security ---
+
+    - name: Start SQL Server Express service (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $service = Get-Service -Name 'MSSQL$SQLEXPRESS' -ErrorAction Stop
+        if ($service.Status -ne 'Running') {
+          Start-Service -Name 'MSSQL$SQLEXPRESS'
+        }
+        # SQL Server Browser helps with named-instance resolution
+        Set-Service -Name SQLBrowser -StartupType Manual
+        Start-Service -Name SQLBrowser -ErrorAction SilentlyContinue
+        Get-Service -Name 'MSSQL$SQLEXPRESS','SQLBrowser' | Format-Table
+
+    - name: Set connection string (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        # Integrated Security uses the runner's local identity — no password needed
+        echo 'BASE_CS=Server=localhost\SQLEXPRESS;Integrated Security=True;TrustServerCertificate=True;' >> "$GITHUB_ENV"
+
+    # --- Common build and test steps ---
 
     - name: Build GitHub Action
       run: npm ci --ignore-scripts && npm run build
@@ -91,7 +111,7 @@ jobs:
     - name: Test DACPAC Action
       uses: ./
       with:
-        connection-string: '${{ env.BASE_CS }}Password=${{ env.SA_PASSWORD }};Initial Catalog=${{ env.TEST_DB }};'
+        connection-string: '${{ env.BASE_CS }}Initial Catalog=${{ env.TEST_DB }};'
         path: ./__testdata__/sql-action.dacpac
         action: 'publish'
         skip-firewall-check: true
@@ -100,7 +120,7 @@ jobs:
     - name: Test Build and Publish
       uses: ./
       with:
-        connection-string: '${{ env.BASE_CS }}Password=${{ env.SA_PASSWORD }};Initial Catalog=${{ env.TEST_DB }};'
+        connection-string: '${{ env.BASE_CS }}Initial Catalog=${{ env.TEST_DB }};'
         path: ./__testdata__/TestProject/sql-action.sqlproj
         action: 'publish'
         skip-firewall-check: true
@@ -109,7 +129,7 @@ jobs:
     - name: Test SQL Action
       uses: ./
       with:
-        connection-string: '${{ env.BASE_CS }}Password=${{ env.SA_PASSWORD }};Initial Catalog=${{ env.TEST_DB }};'
+        connection-string: '${{ env.BASE_CS }}Initial Catalog=${{ env.TEST_DB }};'
         path: ./__testdata__/testsql.sql
         skip-firewall-check: true
 
@@ -117,11 +137,11 @@ jobs:
       if: always()
       uses: ./
       with:
-        connection-string: '${{ env.BASE_CS }}Password=${{ env.SA_PASSWORD }};Initial Catalog=master;'
+        connection-string: '${{ env.BASE_CS }}Initial Catalog=master;'
         path: ./__testdata__/cleanup.sql
         arguments: '-v DbName="${{ env.TEST_DB }}"'
         skip-firewall-check: true
 
-    - name: Stop SQL Server container
-      if: always()
+    - name: Stop SQL Server container (Linux)
+      if: always() && runner.os == 'Linux'
       run: docker rm -f sqlserver || true
