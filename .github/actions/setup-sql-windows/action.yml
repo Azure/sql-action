@@ -14,12 +14,9 @@ runs:
       run: |
         $ssei  = Join-Path $env:RUNNER_TEMP 'SQL2025-SSEI-Expr.exe'
         $media = Join-Path $env:RUNNER_TEMP 'sql-media'
-        # Stable Microsoft fwlink redirecting to the SQL Server 2025 Express bootstrapper (SSEI)
         Invoke-WebRequest -Uri 'https://go.microsoft.com/fwlink/?linkid=2216019' -OutFile $ssei
         Write-Host "Downloaded SSEI: $((Get-Item $ssei).Length) bytes"
 
-        # Run SSEI in download-only mode. Use Start-Process -Wait so we get a real exit code
-        # (PowerShell's `&` returns asynchronously for installer-class executables).
         $p = Start-Process -FilePath $ssei -Wait -PassThru -ArgumentList @(
           '/Quiet',
           '/Action=Download',
