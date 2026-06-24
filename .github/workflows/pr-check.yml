@@ -5,7 +5,7 @@ name: pr-check
 # with no secrets and no elevated permissions.
 #
 # - Linux runners: spin up SQL Server 2022 in a Docker container with SA auth.
-# - Windows runners: use the pre-installed SQL Server Express with Integrated Security.
+# - Windows runners: install SQL Server 2025 Express directly from Microsoft with SA auth.
 
 on:
   pull_request:
@@ -25,7 +25,6 @@ jobs:
 
     env:
       TEST_DB: SqlActionTest
-      MSSQL_IMAGE: mcr.microsoft.com/mssql/server:2022-latest
 
     defaults:
       run:
@@ -37,135 +36,23 @@ jobs:
       with:
         ref: ${{ github.event.pull_request.head.sha }}
 
-    # --- Linux setup: Docker container + SA auth with rotated password ---
-
-    - name: Start SQL Server container (Linux)
-      if: runner.os == 'Linux'
-      run: |
-        docker run -d --name sqlserver \
-          -e "ACCEPT_EULA=Y" \
-          -e "MSSQL_SA_PASSWORD=Bootstrap1!" \
-          -p 1433:1433 \
-          "$MSSQL_IMAGE"
-
-    - name: Wait for SQL Server to be ready (Linux)
-      if: runner.os == 'Linux'
-      run: |
-        for i in $(seq 1 30); do
-          if docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd \
-              -S localhost -U sa -P 'Bootstrap1!' -C -Q 'SELECT 1' >/dev/null 2>&1; then
-            echo "SQL Server is ready"
-            exit 0
-          fi
-          echo "Waiting for SQL Server... ($i/30)"
-          sleep 5
-        done
-        echo "SQL Server did not become ready in time"
-        docker logs sqlserver
-        exit 1
-
-    - name: Rotate SA password and set connection string (Linux)
-      if: runner.os == 'Linux'
-      run: |
-        SA_PASSWORD="$(openssl rand -base64 18 | tr -d '/+=')Aa1!"
-        docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd \
-          -S localhost -U sa -P 'Bootstrap1!' -C \
-          -Q "ALTER LOGIN sa WITH PASSWORD='${SA_PASSWORD}'"
-        echo "BASE_CS=Server=localhost;User ID=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;" >> "$GITHUB_ENV"
-
-    # --- Windows setup: install SQL Server 2022 Express directly from Microsoft ---
-
-    - name: Generate SA password (Windows)
-      if: runner.os == 'Windows'
+    - name: Generate SA password
       run: |
         SA_PASSWORD="$(openssl rand -base64 18 | tr -d '/+=')Aa1!"
         echo "::add-mask::${SA_PASSWORD}"
         echo "SA_PASSWORD=${SA_PASSWORD}" >> "$GITHUB_ENV"
 
-    - name: Download SQL Server 2025 Express installer (Windows)
+    - name: Set up SQL Server (Linux)
+      if: runner.os == 'Linux'
+      uses: ./.github/actions/setup-sql-linux
+      with:
+        sa-password: ${{ env.SA_PASSWORD }}
+
+    - name: Set up SQL Server (Windows)
       if: runner.os == 'Windows'
-      shell: pwsh
-      run: |
-        $ssei  = Join-Path $env:RUNNER_TEMP 'SQL2025-SSEI-Expr.exe'
-        $media = Join-Path $env:RUNNER_TEMP 'sql-media'
-        # Stable Microsoft fwlink redirecting to the SQL Server 2025 Express bootstrapper (SSEI)
-        Invoke-WebRequest -Uri 'https://go.microsoft.com/fwlink/?linkid=2216019' -OutFile $ssei
-        Write-Host "Downloaded SSEI: $((Get-Item $ssei).Length) bytes"
-
-        # Run SSEI in download-only mode. Use Start-Process -Wait so we get a real exit code
-        # (PowerShell's `&` returns asynchronously for installer-class executables).
-        $p = Start-Process -FilePath $ssei -Wait -PassThru -ArgumentList @(
-          '/Quiet',
-          '/Action=Download',
-          '/Language=en-US',
-          "/MediaPath=$media",
-          '/MediaType=Core',
-          '/HideProgressBar'
-        )
-        if ($p.ExitCode -ne 0) { throw "SSEI download failed with exit code $($p.ExitCode)" }
-
-        Write-Host "=== Media directory contents ==="
-        Get-ChildItem $media
-
-    - name: Install SQL Server Express with SA auth (Windows)
-      if: runner.os == 'Windows'
-      shell: pwsh
-      run: |
-        $media = Join-Path $env:RUNNER_TEMP 'sql-media'
-        $selfExtract = Get-ChildItem $media -Filter 'SQLEXPR*.exe' | Select-Object -First 1
-        if (-not $selfExtract) { throw "Installer EXE not found in $media" }
-
-        $extracted = Join-Path $env:RUNNER_TEMP 'sql-extracted'
-        Write-Host "Extracting $($selfExtract.FullName) -> $extracted"
-        $extract = Start-Process -FilePath $selfExtract.FullName -Wait -PassThru `
-          -ArgumentList '/Q', "/X:$extracted"
-        if ($extract.ExitCode -ne 0) { throw "Extraction failed with exit code $($extract.ExitCode)" }
-
-        $setup = Join-Path $extracted 'setup.exe'
-        if (-not (Test-Path $setup)) { throw "setup.exe not found at $setup" }
-
-        Write-Host "Running $setup with SECURITYMODE=SQL"
-        $install = Start-Process -FilePath $setup -Wait -PassThru -ArgumentList @(
-          '/Q',
-          '/ACTION=Install',
-          '/FEATURES=SQLEngine',
-          '/INSTANCENAME=MSSQLSERVER',
-          '/SECURITYMODE=SQL',
-          "/SAPWD=$env:SA_PASSWORD",
-          '/TCPENABLED=1',
-          '/IACCEPTSQLSERVERLICENSETERMS',
-          '/UPDATEENABLED=False',
-          '/SQLSYSADMINACCOUNTS=BUILTIN\Administrators'
-        )
-
-        if ($install.ExitCode -ne 0) {
-          Write-Host "Setup failed with exit code $($install.ExitCode)"
-          $logRoot = 'C:\Program Files\Microsoft SQL Server'
-          if (Test-Path $logRoot) {
-            Get-ChildItem $logRoot -Recurse -Filter 'Summary*.txt' -ErrorAction SilentlyContinue |
-              Sort-Object LastWriteTime -Descending | Select-Object -First 1 |
-              ForEach-Object { Write-Host "=== $($_.FullName) ==="; Get-Content $_.FullName }
-          }
-          throw "SQL Server install failed"
-        }
-        Get-Service | Where-Object { $_.Name -like 'MSSQL*' } | Format-Table
-
-    - name: Verify SQL auth (Windows)
-      if: runner.os == 'Windows'
-      shell: pwsh
-      run: |
-        $sqlcmd = (Get-ChildItem 'C:\Program Files\Microsoft SQL Server' -Recurse -Filter sqlcmd.exe -ErrorAction SilentlyContinue |
-                   Select-Object -First 1).FullName
-        if (-not $sqlcmd) { throw "sqlcmd.exe not found after install" }
-        & $sqlcmd -S 'localhost' -U sa -P $env:SA_PASSWORD -b -Q "SELECT @@VERSION"
-        if ($LASTEXITCODE -ne 0) { throw "SQL auth verification failed" }
-
-    - name: Set connection string (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        echo "BASE_CS=Server=localhost;User ID=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;" >> "$GITHUB_ENV"
-
-    # --- Common build and test steps ---
+      uses: ./.github/actions/setup-sql-windows
+      with:
+        sa-password: ${{ env.SA_PASSWORD }}
 
     - name: Build GitHub Action
       run: npm ci --ignore-scripts && npm run build

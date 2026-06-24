@@ -1,0 +1,96 @@
+name: 'Set up SQL Server on Windows'
+description: 'Installs SQL Server 2025 Express with SA auth and exports BASE_CS.'
+
+inputs:
+  sa-password:
+    description: 'SA password to use for the SQL Server instance.'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Download SQL Server 2025 Express installer
+      shell: pwsh
+      run: |
+        $ssei  = Join-Path $env:RUNNER_TEMP 'SQL2025-SSEI-Expr.exe'
+        $media = Join-Path $env:RUNNER_TEMP 'sql-media'
+        # Stable Microsoft fwlink redirecting to the SQL Server 2025 Express bootstrapper (SSEI)
+        Invoke-WebRequest -Uri 'https://go.microsoft.com/fwlink/?linkid=2216019' -OutFile $ssei
+        Write-Host "Downloaded SSEI: $((Get-Item $ssei).Length) bytes"
+
+        # Run SSEI in download-only mode. Use Start-Process -Wait so we get a real exit code
+        # (PowerShell's `&` returns asynchronously for installer-class executables).
+        $p = Start-Process -FilePath $ssei -Wait -PassThru -ArgumentList @(
+          '/Quiet',
+          '/Action=Download',
+          '/Language=en-US',
+          "/MediaPath=$media",
+          '/MediaType=Core',
+          '/HideProgressBar'
+        )
+        if ($p.ExitCode -ne 0) { throw "SSEI download failed with exit code $($p.ExitCode)" }
+
+        Write-Host "=== Media directory contents ==="
+        Get-ChildItem $media
+
+    - name: Install SQL Server Express with SA auth
+      shell: pwsh
+      env:
+        SA_PASSWORD: ${{ inputs.sa-password }}
+      run: |
+        $media = Join-Path $env:RUNNER_TEMP 'sql-media'
+        $selfExtract = Get-ChildItem $media -Filter 'SQLEXPR*.exe' | Select-Object -First 1
+        if (-not $selfExtract) { throw "Installer EXE not found in $media" }
+
+        $extracted = Join-Path $env:RUNNER_TEMP 'sql-extracted'
+        Write-Host "Extracting $($selfExtract.FullName) -> $extracted"
+        $extract = Start-Process -FilePath $selfExtract.FullName -Wait -PassThru `
+          -ArgumentList '/Q', "/X:$extracted"
+        if ($extract.ExitCode -ne 0) { throw "Extraction failed with exit code $($extract.ExitCode)" }
+
+        $setup = Join-Path $extracted 'setup.exe'
+        if (-not (Test-Path $setup)) { throw "setup.exe not found at $setup" }
+
+        Write-Host "Running $setup with SECURITYMODE=SQL"
+        $install = Start-Process -FilePath $setup -Wait -PassThru -ArgumentList @(
+          '/Q',
+          '/ACTION=Install',
+          '/FEATURES=SQLEngine',
+          '/INSTANCENAME=MSSQLSERVER',
+          '/SECURITYMODE=SQL',
+          "/SAPWD=$env:SA_PASSWORD",
+          '/TCPENABLED=1',
+          '/IACCEPTSQLSERVERLICENSETERMS',
+          '/UPDATEENABLED=False',
+          '/SQLSYSADMINACCOUNTS=BUILTIN\Administrators'
+        )
+
+        if ($install.ExitCode -ne 0) {
+          Write-Host "Setup failed with exit code $($install.ExitCode)"
+          $logRoot = 'C:\Program Files\Microsoft SQL Server'
+          if (Test-Path $logRoot) {
+            Get-ChildItem $logRoot -Recurse -Filter 'Summary*.txt' -ErrorAction SilentlyContinue |
+              Sort-Object LastWriteTime -Descending | Select-Object -First 1 |
+              ForEach-Object { Write-Host "=== $($_.FullName) ==="; Get-Content $_.FullName }
+          }
+          throw "SQL Server install failed"
+        }
+        Get-Service | Where-Object { $_.Name -like 'MSSQL*' } | Format-Table
+
+    - name: Verify SQL auth
+      shell: pwsh
+      env:
+        SA_PASSWORD: ${{ inputs.sa-password }}
+      run: |
+        $sqlcmd = (Get-ChildItem 'C:\Program Files\Microsoft SQL Server' -Recurse -Filter sqlcmd.exe -ErrorAction SilentlyContinue |
+                   Select-Object -First 1).FullName
+        if (-not $sqlcmd) { throw "sqlcmd.exe not found after install" }
+        & $sqlcmd -S 'localhost' -U sa -P $env:SA_PASSWORD -b -Q "SELECT @@VERSION"
+        if ($LASTEXITCODE -ne 0) { throw "SQL auth verification failed" }
+
+    - name: Set connection string
+      shell: bash
+      env:
+        SA_PASSWORD: ${{ inputs.sa-password }}
+      run: |
+        echo "BASE_CS=Server=localhost;User ID=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;" >> "$GITHUB_ENV"
