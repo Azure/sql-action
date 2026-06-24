@@ -8,7 +8,7 @@ inputs:
   image:
     description: 'SQL Server Docker image to use.'
     required: false
-    default: 'mcr.microsoft.com/mssql/server:2022-latest'
+    default: 'mcr.microsoft.com/mssql/server:2025-latest'
 
 runs:
   using: composite
