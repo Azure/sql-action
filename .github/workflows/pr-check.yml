@@ -129,7 +129,7 @@ jobs:
           '/Q',
           '/ACTION=Install',
           '/FEATURES=SQLEngine',
-          '/INSTANCENAME=SQLEXPRESS',
+          '/INSTANCENAME=MSSQLSERVER',
           '/SECURITYMODE=SQL',
           "/SAPWD=$env:SA_PASSWORD",
           '/TCPENABLED=1',
@@ -157,13 +157,13 @@ jobs:
         $sqlcmd = (Get-ChildItem 'C:\Program Files\Microsoft SQL Server' -Recurse -Filter sqlcmd.exe -ErrorAction SilentlyContinue |
                    Select-Object -First 1).FullName
         if (-not $sqlcmd) { throw "sqlcmd.exe not found after install" }
-        & $sqlcmd -S 'localhost\SQLEXPRESS' -U sa -P $env:SA_PASSWORD -b -Q "SELECT @@VERSION"
+        & $sqlcmd -S 'localhost' -U sa -P $env:SA_PASSWORD -b -Q "SELECT @@VERSION"
         if ($LASTEXITCODE -ne 0) { throw "SQL auth verification failed" }
 
     - name: Set connection string (Windows)
       if: runner.os == 'Windows'
       run: |
-        echo "BASE_CS=Server=localhost\SQLEXPRESS;User ID=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;" >> "$GITHUB_ENV"
+        echo "BASE_CS=Server=localhost;User ID=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;" >> "$GITHUB_ENV"
 
     # --- Common build and test steps ---
 
