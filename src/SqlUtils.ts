@@ -52,7 +52,7 @@ export default class SqlUtils {
      * @returns A ConnectionResult object indicating success/failure, the connection on success, or the error on failure.
      */
     private static async tryConnection(config: SqlConnectionConfig, useMaster?: boolean): Promise<ConnectionResult> {
-        const database = useMaster ? "master" : config.Database;
+        const database = useMaster ? "master" : config.QuotedDatabaseName;
         
         let sqlCmdError = '';
         try {
@@ -120,7 +120,7 @@ export default class SqlUtils {
         }
 
         if (!database) {
-            database = connectionConfig.Database;
+            database = connectionConfig.QuotedDatabaseName;
         }
 
         let sqlcmdCall = `"${sqlCmdPath}" -S ${connectionConfig.Server},${connectionConfig.Port ?? 1433} -d ${database}`;
