@@ -1,162 +1,105 @@
 name: pr-check
 
-# Note: If you need to make changes to this file, please use a branch off the main branch instead of a fork.
-# The pull_request target from a forked repo will not have access to the secrets needed for this workflow.
+# Tests PR code against a local SQL Server instance so no Azure credentials are required.
+# This workflow uses the pull_request trigger (not pull_request_target), so fork PRs run
+# with no secrets and no elevated permissions.
+#
+# - Linux runners: spin up SQL Server 2022 in a Docker container with SA auth.
+# - Windows runners: install SQL Server 2025 Express directly from Microsoft with SA auth.
 
 on:
-  pull_request_target:
   pull_request:
-    paths:
-      - '.github/workflows/pr-check.yml'
 
 permissions: {}
 
 jobs:
-  # Build job that safely builds artifacts from PR code without access to secrets
-  build:
-    environment: Automation test # Require approval before running the action
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
-    strategy:
-      matrix:
-        os: [windows-latest, ubuntu-latest]
-    steps:
-    - name: Checkout from PR branch
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      with:
-        repository: ${{ github.event.pull_request.head.repo.full_name }}
-        ref: ${{ github.event.pull_request.head.sha }}
-
-    - name: Verify package-lock.json exists
-      run: |
-        if (!(Test-Path package-lock.json)) {
-          Write-Error "package-lock.json not found. Please commit package-lock.json to ensure reproducible builds."
-          exit 1
-        }
-      shell: pwsh
-
-    - name: Check if package-lock.json was modified
-      run: |
-        # Check git log to see if package-lock.json was modified in this PR
-        git fetch origin ${{ github.base_ref }} --depth=1
-        $changedFiles = git diff --name-only origin/${{ github.base_ref }}...HEAD
-        
-        if ($changedFiles -match "package-lock.json") {
-          Write-Warning "⚠️ package-lock.json has been modified in this PR."
-          Write-Warning "This requires manual review to ensure no malicious dependencies were added."
-          Write-Warning "Reviewers: Please carefully examine the dependency changes before approving."
-        } else {
-          Write-Host "✓ package-lock.json unchanged - no new dependencies" -ForegroundColor Green
-        }
-      shell: pwsh
-      continue-on-error: true
-
-    - name: Verify package.json integrity
-      run: |
-        # Check for suspicious scripts that could be used for attacks
-        $packageJson = Get-Content package.json | ConvertFrom-Json
-        $suspiciousScripts = @('preinstall', 'postinstall', 'prepack', 'postpack')
-        
-        foreach ($script in $suspiciousScripts) {
-          if ($packageJson.scripts.$script) {
-            Write-Warning "⚠️ Found lifecycle script '$script' in package.json"
-            Write-Warning "Script content: $($packageJson.scripts.$script)"
-            Write-Warning "Reviewers: Please verify this script is legitimate"
-          }
-        }
-      shell: pwsh
-
-    - name: Installing node_modules with ci (uses lockfile, ignores scripts)
-      run: npm ci --ignore-scripts
-
-    - name: Audit dependencies for known vulnerabilities
-      run: npm audit --audit-level=high
-      continue-on-error: true
-
-    - name: Build GitHub Action
-      run: npm run build
-
-    - name: Upload build artifact
-      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
-      with:
-        name: action-build-${{ matrix.os }}
-        path: |
-          lib/
-          node_modules/
-          action.yml
-          package.json
-          package-lock.json
-        retention-days: 1
-
-  # Deploy job that uses the built artifacts and has access to secrets
-  deploy:
-    needs: build
-    environment: Automation test # this environment requires approval before running the action
-    runs-on: ${{ matrix.os }}
-    permissions:
       checks: write
-      id-token: write # This is needed for Azure login with OIDC
-    continue-on-error: true
-    strategy:
-      matrix:
-        os: [windows-latest, ubuntu-latest]
 
     env:
-      TEST_DB: 'SqlActionTest-${{ matrix.os }}'
+      TEST_DB: SqlActionTest
+
+    defaults:
+      run:
+        shell: bash
 
     steps:
-    - name: Checkout base repository (for test data only)
+    - name: Checkout PR
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-    - name: Download build artifact
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
       with:
-        name: action-build-${{ matrix.os }}
-        path: .
+        ref: ${{ github.event.pull_request.head.sha }}
+
+    - name: Generate SA password
+      run: |
+        SA_PASSWORD="$(openssl rand -base64 18 | tr -d '/+=')Aa1!"
+        echo "::add-mask::${SA_PASSWORD}"
+        echo "SA_PASSWORD=${SA_PASSWORD}" >> "$GITHUB_ENV"
+
+    - name: Set up SQL Server (Linux)
+      if: runner.os == 'Linux'
+      uses: ./.github/actions/setup-sql-linux
+      with:
+        sa-password: ${{ env.SA_PASSWORD }}
+
+    - name: Set up SQL Server (Windows)
+      if: runner.os == 'Windows'
+      uses: ./.github/actions/setup-sql-windows
+      with:
+        sa-password: ${{ env.SA_PASSWORD }}
+
+    - name: Build GitHub Action
+      run: npm ci --ignore-scripts && npm run build
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.x'
-    - name: Install SqlPackage (Linux only)
-      if: runner.os == 'Linux'
+        dotnet-version: '10.x'
+
+    - name: Install SqlPackage
       run: dotnet tool install -g microsoft.sqlpackage
 
-    - name: Azure Login
-      uses: azure/login@a65d910e8af852a8061c627c456678983e180302 # v2.2.0
-      with:
-        client-id: ${{ secrets.AZURE_CLIENT_ID }}
-        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-    # Deploy a DACPAC with only a table to server
+    # Deploy a DACPAC with only a table to server (sqlpackage creates the DB if needed)
     - name: Test DACPAC Action
       uses: ./
       with:
-        connection-string: 'Server=${{ secrets.TEST_SERVER }};Initial Catalog=${{ env.TEST_DB }};Authentication=Active Directory Default;'
+        connection-string: '${{ env.BASE_CS }}Initial Catalog=${{ env.TEST_DB }};'
         path: ./__testdata__/sql-action.dacpac
         action: 'publish'
+        skip-firewall-check: true
 
     # Build and publish sqlproj that should create a new view
     - name: Test Build and Publish
       uses: ./
       with:
-        connection-string: 'Server=${{ secrets.TEST_SERVER }};Initial Catalog=${{ env.TEST_DB }};Authentication=Active Directory Default;'
+        connection-string: '${{ env.BASE_CS }}Initial Catalog=${{ env.TEST_DB }};'
         path: ./__testdata__/TestProject/sql-action.sqlproj
         action: 'publish'
+        skip-firewall-check: true
 
     # Execute testsql.sql via script action on server
     - name: Test SQL Action
       uses: ./
       with:
-        connection-string: 'Server=${{ secrets.TEST_SERVER }};Initial Catalog=${{ env.TEST_DB }};Authentication=Active Directory Default;'
+        connection-string: '${{ env.BASE_CS }}Initial Catalog=${{ env.TEST_DB }};'
         path: ./__testdata__/testsql.sql
+        skip-firewall-check: true
 
     - name: Cleanup Test Database
       if: always()
       uses: ./
-      with: 
-        connection-string: 'Server=${{ secrets.TEST_SERVER }};Initial Catalog=master;Authentication=Active Directory Default;'
+      with:
+        connection-string: '${{ env.BASE_CS }}Initial Catalog=master;'
         path: ./__testdata__/cleanup.sql
         arguments: '-v DbName="${{ env.TEST_DB }}"'
+        skip-firewall-check: true
+
+    - name: Stop SQL Server container (Linux)
+      if: always() && runner.os == 'Linux'
+      run: docker rm -f sqlserver || true
