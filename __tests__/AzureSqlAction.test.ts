@@ -41,6 +41,69 @@ describe('AzureSqlAction tests', () => {
         });
     });
 
+    describe('deployment report capture', () => {
+        function getPublishInputs(captureDeploymentReport: boolean, additionalArguments?: string): IDacpacActionInputs {
+            return {
+                actionType: ActionType.DacpacAction,
+                connectionConfig: new SqlConnectionConfig('Server=testServer.database.windows.net;Initial Catalog=testDB;User Id=testUser;Password=placeholder'),
+                filePath: './TestPackage.dacpac',
+                sqlpackageAction: SqlPackageAction.Publish,
+                additionalArguments,
+                captureDeploymentReport
+            } as IDacpacActionInputs;
+        }
+
+        it('injects report and script capture arguments for a Publish when enabled', async () => {
+            const action = new AzureSqlAction(getPublishInputs(true));
+            jest.spyOn(AzureSqlActionHelper, 'getSqlPackagePath').mockResolvedValue('SqlPackage.exe');
+            const execSpy = jest.spyOn(exec, 'exec').mockResolvedValue(0);
+
+            const result = await action.execute();
+
+            expect(execSpy).toHaveBeenCalledWith(expect.stringContaining('/DeployReportPath:'));
+            expect(execSpy).toHaveBeenCalledWith(expect.stringContaining('/DeployScriptPath:'));
+            expect(result.reportPath).toBeDefined();
+            expect(result.scriptPath).toBeDefined();
+        });
+
+        it('does not inject capture arguments when disabled', async () => {
+            const action = new AzureSqlAction(getPublishInputs(false));
+            jest.spyOn(AzureSqlActionHelper, 'getSqlPackagePath').mockResolvedValue('SqlPackage.exe');
+            const execSpy = jest.spyOn(exec, 'exec').mockResolvedValue(0);
+
+            const result = await action.execute();
+
+            expect(execSpy).toHaveBeenCalledWith(expect.not.stringContaining('/DeployReportPath:'));
+            expect(result.reportPath).toBeUndefined();
+            expect(result.scriptPath).toBeUndefined();
+        });
+
+        it('reuses a report path supplied by the caller instead of injecting one', async () => {
+            const action = new AzureSqlAction(getPublishInputs(true, '/DeployReportPath:"custom.xml"'));
+            jest.spyOn(AzureSqlActionHelper, 'getSqlPackagePath').mockResolvedValue('SqlPackage.exe');
+            const execSpy = jest.spyOn(exec, 'exec').mockResolvedValue(0);
+
+            const result = await action.execute();
+
+            expect(result.reportPath).toBe('custom.xml');
+            const command = execSpy.mock.calls[0][0] as string;
+            expect(command.match(/\/DeployReportPath:/g)).toHaveLength(1);
+        });
+
+        it('does not inject capture arguments for a non-Publish action', async () => {
+            const inputs = getPublishInputs(true);
+            inputs.sqlpackageAction = SqlPackageAction.Script;
+            const action = new AzureSqlAction(inputs);
+            jest.spyOn(AzureSqlActionHelper, 'getSqlPackagePath').mockResolvedValue('SqlPackage.exe');
+            const execSpy = jest.spyOn(exec, 'exec').mockResolvedValue(0);
+
+            const result = await action.execute();
+
+            expect(execSpy).toHaveBeenCalledWith(expect.not.stringContaining('/DeployReportPath:'));
+            expect(result.reportPath).toBeUndefined();
+        });
+    });
+
     it('throws if SqlPackage.exe fails to publish dacpac', async () => {
         let inputs = getInputs(ActionType.DacpacAction) as IDacpacActionInputs;
         let action = new AzureSqlAction(inputs);
