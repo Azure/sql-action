@@ -13,6 +13,7 @@ jest.mock('../src/AzureSqlAction');
 jest.mock('../src/FirewallManager');
 jest.mock('../src/AzureSqlResourceManager');
 jest.mock('../src/Setup');
+jest.mock('../src/Reporter');
 
 describe('main.ts tests', () => {
     beforeEach(() => {
@@ -268,7 +269,7 @@ describe('main.ts tests', () => {
                 }
             });
             const detectIPAddressSpy = jest.spyOn(SqlUtils, 'detectIPAddress').mockResolvedValue('');
-            const executeSpy = jest.spyOn(AzureSqlAction.prototype, 'execute').mockResolvedValue();
+            const executeSpy = jest.spyOn(AzureSqlAction.prototype, 'execute').mockResolvedValue({});
             const removeFirewallRuleSpy = jest.spyOn(FirewallManager.prototype, 'removeFirewallRule');
     
             await run();

@@ -11,6 +11,7 @@ import SqlConnectionConfig from "./SqlConnectionConfig";
 import SqlUtils from "./SqlUtils";
 import Constants from "./Constants";
 import Setup from "./Setup";
+import Reporter from "./Reporter";
 
 const userAgentPrefix = !!process.env.AZURE_HTTP_USER_AGENT ? `${process.env.AZURE_HTTP_USER_AGENT}` : "";
 
@@ -36,7 +37,9 @@ export default async function run() {
             }
         }
 
-        await azureSqlAction.execute();
+        const deployStart = Date.now();
+        const actionResult = await azureSqlAction.execute();
+        await Reporter.report(inputs, { ...actionResult, durationMs: Date.now() - deployStart });
     }
     catch (error) {
         core.setFailed(error.message);
@@ -92,7 +95,8 @@ function getInputs(): IActionInputs {
                 sqlpackageAction: AzureSqlActionHelper.getSqlpackageActionTypeFromString(action),
                 sqlpackagePath: core.getInput('sqlpackage-path') || undefined,
                 additionalArguments: core.getInput('arguments') || undefined,
-                skipFirewallCheck: core.getBooleanInput('skip-firewall-check')
+                skipFirewallCheck: core.getBooleanInput('skip-firewall-check'),
+                captureDeploymentReport: true
             } as IDacpacActionInputs;
 
         case Constants.sqlprojExtension:
@@ -108,7 +112,8 @@ function getInputs(): IActionInputs {
                 sqlpackageAction: AzureSqlActionHelper.getSqlpackageActionTypeFromString(action),
                 sqlpackagePath: core.getInput('sqlpackage-path') || undefined,
                 additionalArguments: core.getInput('arguments') || undefined,
-                skipFirewallCheck: core.getBooleanInput('skip-firewall-check')
+                skipFirewallCheck: core.getBooleanInput('skip-firewall-check'),
+                captureDeploymentReport: true
             } as IBuildAndPublishInputs;
 
         default:
