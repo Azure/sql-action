@@ -260,9 +260,10 @@ function renderAlerts(alerts: DeploymentAlert[]): string[] {
  */
 function renderScript(script: string): string[] {
     const lines: string[] = [];
-    const batches = (script.match(/^\s*GO\s*$/gim) || []).length;
+    const stripped = stripLeadingBom(script);
+    const batches = (stripped.match(/^\s*GO\s*$/gim) || []).length;
 
-    let content = script;
+    let content = stripped;
     let truncated = false;
     if (content.length > MAX_SCRIPT_LENGTH) {
         content = content.slice(0, MAX_SCRIPT_LENGTH);
@@ -273,7 +274,7 @@ function renderScript(script: string): string[] {
     if (batches > 0) {
         metaParts.push(`${batches} batch${batches === 1 ? '' : 'es'}`);
     }
-    metaParts.push(`${script.length} chars`);
+    metaParts.push(`${stripped.length} chars`);
 
     lines.push('<details>');
     lines.push(`<summary>📄 Deployment T-SQL script · ${metaParts.join(' · ')}</summary>`);
@@ -394,6 +395,14 @@ function pastTenseAction(action: string): string {
         default:
             return 'Deployed';
     }
+}
+
+/**
+ * Removes a leading UTF-8 byte order mark, which SqlPackage writes at the start
+ * of the deployment script file.
+ */
+function stripLeadingBom(value: string): string {
+    return value.replace(/^\uFEFF/, '');
 }
 
 /**
