@@ -129,7 +129,7 @@ function renderMetadataTable(context: SummaryContext): string[] {
         rows.push(['Commit', `\`${context.commit}\``]);
     }
     if (context.options) {
-        rows.push(['Options', `\`${context.options}\``]);
+        rows.push(['Options', `\`${escapeCell(context.options)}\``]);
     }
 
     const lines: string[] = ['| | |', '|---|---|'];
@@ -221,7 +221,7 @@ function renderSection(title: string, items: DeploymentOperation[], open: boolea
 
     const shown = items.slice(0, MAX_ROWS_PER_SECTION);
     for (const item of shown) {
-        lines.push(`| \`${item.object}\` | ${item.type} |`);
+        lines.push(`| \`${escapeCell(item.object)}\` | ${escapeCell(item.type)} |`);
     }
     const remaining = items.length - shown.length;
     if (remaining > 0) {
@@ -361,6 +361,14 @@ function countBy(operations: DeploymentOperation[], selector: (operation: Deploy
  */
 function formatCounts(counts: Array<[string, number]>): string {
     return counts.map(([key, count]) => `${key} ×${count}`).join(' · ');
+}
+
+/**
+ * Escapes a value so it can be safely placed in a Markdown table cell, where an
+ * unescaped pipe would otherwise be interpreted as a column separator.
+ */
+function escapeCell(value: string): string {
+    return value.replace(/\|/g, '\\|');
 }
 
 /**

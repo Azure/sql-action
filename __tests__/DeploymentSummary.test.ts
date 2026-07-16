@@ -67,6 +67,11 @@ describe('DeploymentSummary tests', () => {
         expect(markdown).toContain('| `[dbo].[Reactions]` | Table |');
     });
 
+    it('escapes pipe characters in object names so the table is not broken', () => {
+        const markdown = buildSummary({ ...baseContext, report: { operations: [{ operation: 'Create', object: '[dbo].[Odd|Name]', type: 'Table' }], alerts: [] } });
+        expect(markdown).toContain('[dbo].[Odd\\|Name]');
+    });
+
     it('renders a data-loss callout when alerts are present', () => {
         const markdown = buildSummary({ ...baseContext, report });
         expect(markdown).toContain('### ⚠️ Possible data loss (1)');
