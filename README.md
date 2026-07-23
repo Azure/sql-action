@@ -249,3 +249,5 @@ jobs:
 
 For more information on contributing to this project, please see [Contributing](CONTRIBUTING.md).
 
+For maintainers, see [Creating a Release](https://github.com/Azure/sql-action/wiki/Creating-a-Release) for how to publish a new released version.
+
