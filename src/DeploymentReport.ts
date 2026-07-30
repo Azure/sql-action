@@ -33,8 +33,6 @@ export interface DeploymentReport {
     alerts: DeploymentAlert[];
 }
 
-const EMPTY_REPORT: DeploymentReport = { operations: [], alerts: [] };
-
 /**
  * Parses the XML of a SqlPackage deployment report into a structured summary.
  * The parse is namespace-agnostic and tolerant of missing or malformed input:
@@ -120,7 +118,7 @@ function friendlyType(type: string | undefined): string {
         return 'Object';
     }
 
-    const withoutPrefix = type.replace(/^Sql/, '');
+    const withoutPrefix = type.startsWith('Sql') ? type.slice(3) : type;
     const spaced = withoutPrefix.replace(/([a-z])([A-Z])/g, '$1 $2');
     return spaced || type;
 }

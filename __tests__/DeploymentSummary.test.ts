@@ -63,7 +63,7 @@ describe('DeploymentSummary tests', () => {
         const markdown = buildSummary({ ...baseContext, report });
         expect(markdown).toContain('<summary>➕ Created (1)</summary>');
         expect(markdown).toContain('<summary>🔄 Altered (1)</summary>');
-        expect(markdown).toContain('<summary>🗑️ Dropped (1)</summary>');
+        expect(markdown).toContain('<summary>❌ Dropped (1)</summary>');
         expect(markdown).toContain('| `[dbo].[Reactions]` | Table |');
     });
 
@@ -120,7 +120,7 @@ describe('DeploymentSummary tests', () => {
 
     it('ends with the sticky comment marker', () => {
         const markdown = buildSummary({ ...baseContext, report });
-        expect(markdown.replace(/\s+$/, '').endsWith(SUMMARY_MARKER)).toBe(true);
+        expect(markdown.trimEnd().endsWith(SUMMARY_MARKER)).toBe(true);
     });
 
     it('never includes a password even if one is present in the context object', () => {

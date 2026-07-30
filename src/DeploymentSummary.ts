@@ -23,7 +23,7 @@ interface OperationGroup {
 const OPERATION_GROUPS: OperationGroup[] = [
     { key: 'create', label: 'Created', icon: '➕' },
     { key: 'alter', label: 'Altered', icon: '🔄' },
-    { key: 'drop', label: 'Dropped', icon: '🗑️' }
+    { key: 'drop', label: 'Dropped', icon: '❌' }
 ];
 
 /**
@@ -280,7 +280,7 @@ function renderScript(script: string): string[] {
     lines.push(`<summary>📄 Deployment T-SQL script · ${metaParts.join(' · ')}</summary>`);
     lines.push('');
     lines.push('```sql');
-    lines.push(content.replace(/\s+$/, ''));
+    lines.push(content.trimEnd());
     if (truncated) {
         lines.push('');
         lines.push('-- Script truncated for display. See the deployment-script-path output for the full script.');
@@ -368,7 +368,7 @@ function formatCounts(counts: Array<[string, number]>): string {
  * unescaped pipe would otherwise be interpreted as a column separator.
  */
 function escapeCell(value: string): string {
-    return value.replace(/\|/g, '\\|');
+    return value.replaceAll('|', '\\|');
 }
 
 /**
@@ -410,7 +410,7 @@ function pastTenseAction(action: string): string {
  * of the deployment script file.
  */
 function stripLeadingBom(value: string): string {
-    return value.replace(/^\uFEFF/, '');
+    return value.startsWith('\uFEFF') ? value.slice(1) : value;
 }
 
 /**

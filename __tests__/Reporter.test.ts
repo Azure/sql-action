@@ -42,7 +42,8 @@ describe('Reporter tests', () => {
                     createComment: jest.fn().mockResolvedValue({}),
                     updateComment: jest.fn().mockResolvedValue({})
                 }
-            }
+            },
+            paginate: jest.fn().mockResolvedValue(comments)
         };
         (github.getOctokit as jest.Mock).mockReturnValue(octokit);
         return octokit;
@@ -73,6 +74,33 @@ describe('Reporter tests', () => {
 
         expect(core.setOutput).toHaveBeenCalledWith('changes-detected', 'true');
         expect(core.setOutput).toHaveBeenCalledWith('objects-changed', '4');
+    });
+
+    it('does not set the change outputs when no report was captured', async () => {
+        mockInputs({ summary: 'true', 'comment-pr': 'off' });
+
+        await Reporter.report(inputs, {});
+
+        expect(core.setOutput).not.toHaveBeenCalledWith('changes-detected', expect.anything());
+        expect(core.setOutput).not.toHaveBeenCalledWith('objects-changed', expect.anything());
+    });
+
+    it('redacts secret-looking additional arguments from the summary', async () => {
+        mockInputs({ summary: 'true', 'comment-pr': 'off' });
+
+        await Reporter.report({ ...inputs, additionalArguments: '/TargetPassword:hunter2' }, {});
+
+        const markdown = (core.summary.addRaw as jest.Mock).mock.calls[0][0];
+        expect(markdown).toContain('[redacted]');
+        expect(markdown).not.toContain('hunter2');
+    });
+
+    it('falls back to the default when the summary value is unrecognized', async () => {
+        mockInputs({ summary: 'yes', 'comment-pr': 'off' });
+
+        await Reporter.report(inputs, {});
+
+        expect(core.summary.addRaw).toHaveBeenCalled();
     });
 
     it('creates a new comment when none exists', async () => {
@@ -125,7 +153,8 @@ describe('Reporter tests', () => {
     it('warns without throwing when the comment API fails', async () => {
         mockInputs({ summary: 'false', 'comment-pr': 'auto', 'github-token': 'token' });
         (github.getOctokit as jest.Mock).mockReturnValue({
-            rest: { issues: { listComments: jest.fn().mockRejectedValue(new Error('forbidden')) } }
+            rest: { issues: { listComments: jest.fn() } },
+            paginate: jest.fn().mockRejectedValue(new Error('forbidden'))
         });
 
         await expect(Reporter.report(inputs, {})).resolves.toBeUndefined();

@@ -74,15 +74,19 @@ export default class Reporter {
     }
 
     /**
-     * Reads a boolean input, returning the default when the input is not set.
-     * Unlike core.getBooleanInput, this does not throw on an empty value.
+     * Reads a boolean input, returning the default when the input is empty or
+     * unrecognized. Unlike core.getBooleanInput, this does not throw on an empty
+     * or unexpected value.
      */
     private static _getBooleanInput(name: string, defaultValue: boolean): boolean {
         const raw = core.getInput(name).trim().toLowerCase();
-        if (raw === '') {
-            return defaultValue;
+        if (raw === 'true') {
+            return true;
         }
-        return raw === 'true';
+        if (raw === 'false') {
+            return false;
+        }
+        return defaultValue;
     }
 
     /**
@@ -98,7 +102,7 @@ export default class Reporter {
             report: this._readReport(result.reportPath),
             script: this._readScript(result.scriptPath),
             durationMs: result.durationMs,
-            options: inputs.additionalArguments,
+            options: this._redactSecrets(inputs.additionalArguments),
             actor: context.actor || undefined,
             commit: context.sha ? context.sha.substring(0, 7) : undefined,
             runUrl: this._buildRunUrl(context)
@@ -114,6 +118,18 @@ export default class Reporter {
         }
         const serverUrl = context.serverUrl || 'https://github.com';
         return `${serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+    }
+
+    /**
+     * Redacts additional arguments that may contain secrets before they are
+     * rendered into the summary or a pull request comment, neither of which is
+     * covered by GitHub secret masking.
+     */
+    private static _redactSecrets(args?: string): string | undefined {
+        if (args && /password|pwd|secret|token/i.test(args)) {
+            return '[redacted]';
+        }
+        return args;
     }
 
     /**
@@ -163,9 +179,11 @@ export default class Reporter {
      * Publishes the action outputs describing the deployment.
      */
     private static _setOutputs(context: SummaryContext, result: IActionResult): void {
-        const operations = context.report ? context.report.operations : [];
-        core.setOutput('changes-detected', operations.length > 0 ? 'true' : 'false');
-        core.setOutput('objects-changed', operations.length.toString());
+        if (context.report) {
+            const operations = context.report.operations;
+            core.setOutput('changes-detected', operations.length > 0 ? 'true' : 'false');
+            core.setOutput('objects-changed', operations.length.toString());
+        }
 
         if (result.reportPath) {
             core.setOutput('deployment-report-path', result.reportPath);
@@ -216,7 +234,7 @@ export default class Reporter {
      * Finds the id of a previously posted summary comment by its hidden marker.
      */
     private static async _findExistingComment(octokit: ReturnType<typeof github.getOctokit>, owner: string, repo: string, issueNumber: number): Promise<number | undefined> {
-        const { data: comments } = await octokit.rest.issues.listComments({ owner, repo, issue_number: issueNumber, per_page: 100 });
+        const comments = await octokit.paginate(octokit.rest.issues.listComments, { owner, repo, issue_number: issueNumber, per_page: 100 });
         const existing = comments.find(comment => !!comment.body && comment.body.includes(SUMMARY_MARKER));
         return existing ? existing.id : undefined;
     }

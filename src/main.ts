@@ -96,7 +96,7 @@ function getInputs(): IActionInputs {
                 sqlpackagePath: core.getInput('sqlpackage-path') || undefined,
                 additionalArguments: core.getInput('arguments') || undefined,
                 skipFirewallCheck: core.getBooleanInput('skip-firewall-check'),
-                captureDeploymentReport: true
+                captureDeploymentReport: isReportingEnabled()
             } as IDacpacActionInputs;
 
         case Constants.sqlprojExtension:
@@ -113,12 +113,26 @@ function getInputs(): IActionInputs {
                 sqlpackagePath: core.getInput('sqlpackage-path') || undefined,
                 additionalArguments: core.getInput('arguments') || undefined,
                 skipFirewallCheck: core.getBooleanInput('skip-firewall-check'),
-                captureDeploymentReport: true
+                captureDeploymentReport: isReportingEnabled()
             } as IBuildAndPublishInputs;
 
         default:
             throw new Error(`Invalid file type provided as input ${filePath}. File must be a .sql, .dacpac, or .sqlproj file.`)
     }
+}
+
+/**
+ * Determines whether deployment reporting is enabled, so the action only captures
+ * a deployment report and script when a summary or pull request comment will be
+ * produced. Mirrors the defaults used by the reporter: the summary is on unless
+ * explicitly set to false, and the pull request comment is on unless set to off.
+ */
+function isReportingEnabled(): boolean {
+    const summary = core.getInput('summary').trim().toLowerCase();
+    const commentPr = core.getInput('comment-pr').trim().toLowerCase();
+    const summaryEnabled = summary !== 'false';
+    const commentEnabled = commentPr !== 'off';
+    return summaryEnabled || commentEnabled;
 }
 
 run();
