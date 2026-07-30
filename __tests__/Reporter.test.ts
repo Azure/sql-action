@@ -76,13 +76,13 @@ describe('Reporter tests', () => {
         expect(core.setOutput).toHaveBeenCalledWith('objects-changed', '4');
     });
 
-    it('does not set the change outputs when no report was captured', async () => {
+    it('sets the change outputs to false when no report was captured', async () => {
         mockInputs({ summary: 'true', 'comment-pr': 'off' });
 
         await Reporter.report(inputs, {});
 
-        expect(core.setOutput).not.toHaveBeenCalledWith('changes-detected', expect.anything());
-        expect(core.setOutput).not.toHaveBeenCalledWith('objects-changed', expect.anything());
+        expect(core.setOutput).toHaveBeenCalledWith('changes-detected', 'false');
+        expect(core.setOutput).toHaveBeenCalledWith('objects-changed', '0');
     });
 
     it('redacts secret-looking additional arguments from the summary', async () => {

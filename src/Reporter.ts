@@ -179,11 +179,9 @@ export default class Reporter {
      * Publishes the action outputs describing the deployment.
      */
     private static _setOutputs(context: SummaryContext, result: IActionResult): void {
-        if (context.report) {
-            const operations = context.report.operations;
-            core.setOutput('changes-detected', operations.length > 0 ? 'true' : 'false');
-            core.setOutput('objects-changed', operations.length.toString());
-        }
+        const operations = context.report?.operations ?? [];
+        core.setOutput('changes-detected', operations.length > 0 ? 'true' : 'false');
+        core.setOutput('objects-changed', operations.length.toString());
 
         if (result.reportPath) {
             core.setOutput('deployment-report-path', result.reportPath);
