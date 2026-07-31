@@ -23,6 +23,27 @@ inputs:
     description: 'Skip the firewall check when connecting to the Azure SQL Server.'
     required: false
     default: false
+  summary:
+    description: 'Write a deployment summary to the GitHub Actions job summary. Default is true.'
+    required: false
+    default: true
+  comment-pr:
+    description: "Post the deployment summary as a sticky pull request comment. One of 'off', 'auto', or 'always'. 'auto' comments on pull request events when a token is available. Default is 'auto'."
+    required: false
+    default: 'auto'
+  github-token:
+    description: 'Token used to post the pull request comment. Defaults to the workflow-provided GITHUB_TOKEN.'
+    required: false
+    default: ${{ github.token }}
+outputs:
+  changes-detected:
+    description: "'true' if the deployment changed any database objects, otherwise 'false'."
+  objects-changed:
+    description: 'The number of database objects created, altered, or dropped by the deployment.'
+  deployment-report-path:
+    description: 'Path to the SqlPackage deployment report (XML) captured during a publish, if any.'
+  deployment-script-path:
+    description: 'Path to the SqlPackage deployment script (T-SQL) captured during a publish, if any.'
 runs:
   using: 'node24'
   main: 'lib/main.js'

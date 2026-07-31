@@ -37,7 +37,48 @@ The definition of this GitHub Action is in [action.yml](https://github.com/Azure
 
     # optional, set this to skip checking if the runner has access to the server. Default is false.
     skip-firewall-check:
+
+    # optional, write a deployment summary to the job summary. Default is true.
+    summary:
+
+    # optional, post the deployment summary as a sticky pull request comment.
+    # one of 'off', 'auto', or 'always'. Default is 'auto'.
+    comment-pr:
+
+    # optional, token used to post the pull request comment. Defaults to the workflow token.
+    github-token:
 ```
+
+## 📝 Deployment summary
+
+When deploying a `.dacpac` or `.sqlproj` with `action: publish`, sql-action captures the SqlPackage deployment report and script and publishes a concise summary of what changed — the objects created, altered, or dropped, any possible data-loss warnings, and the full deployment T-SQL in a collapsible block. The summary is written to the [GitHub Actions job summary](https://github.blog/2022-05-09-supercharging-github-actions-with-job-summaries/) and, on pull requests, to a single sticky comment that is updated on each run.
+
+```yaml
+- uses: azure/sql-action@v2.3
+  with:
+    connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+    path: './Database.sqlproj'
+    action: 'publish'
+    comment-pr: 'auto'                    # off | auto | always
+```
+
+To let the action post the pull request comment, grant the workflow `pull-requests: write`:
+
+```yaml
+permissions:
+  pull-requests: write
+```
+
+The reporting is best-effort and never fails a deployment: if the token or permission is missing, the action falls back to the job summary and logs a warning. Set `summary: false` and `comment-pr: off` to disable it entirely.
+
+The action also exposes these outputs:
+
+| Output | Description |
+|--------|-------------|
+| `changes-detected` | `'true'` if the deployment changed any database objects, otherwise `'false'`. |
+| `objects-changed` | The number of database objects created, altered, or dropped. |
+| `deployment-report-path` | Path to the captured SqlPackage deployment report (XML). |
+| `deployment-script-path` | Path to the captured SqlPackage deployment script (T-SQL). |
 
 ## 🎨 Samples
 

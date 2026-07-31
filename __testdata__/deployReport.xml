@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DeploymentReport xmlns="http://schemas.microsoft.com/sqlserver/dac/DeployReport/2012/02">
+  <Alerts>
+    <Alert Name="DataIssue">
+      <Issue Value="[dbo].[OldAudit] will be dropped, which may result in data loss." />
+    </Alert>
+  </Alerts>
+  <Operations>
+    <Operation Name="Create">
+      <Item Value="[dbo].[Reactions]" Type="SqlTable" />
+      <Item Value="[dbo].[GetUserMentions]" Type="SqlProcedure" />
+    </Operation>
+    <Operation Name="Alter">
+      <Item Value="[dbo].[Messages]" Type="SqlTable" />
+    </Operation>
+    <Operation Name="Drop">
+      <Item Value="[dbo].[OldAudit]" Type="SqlTable" />
+    </Operation>
+  </Operations>
+</DeploymentReport>

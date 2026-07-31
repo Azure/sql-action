@@ -11,6 +11,7 @@ import SqlConnectionConfig from "./SqlConnectionConfig";
 import SqlUtils from "./SqlUtils";
 import Constants from "./Constants";
 import Setup from "./Setup";
+import Reporter from "./Reporter";
 
 const userAgentPrefix = !!process.env.AZURE_HTTP_USER_AGENT ? `${process.env.AZURE_HTTP_USER_AGENT}` : "";
 
@@ -36,7 +37,9 @@ export default async function run() {
             }
         }
 
-        await azureSqlAction.execute();
+        const deployStart = Date.now();
+        const actionResult = await azureSqlAction.execute();
+        await Reporter.report(inputs, { ...actionResult, durationMs: Date.now() - deployStart });
     }
     catch (error) {
         core.setFailed(error.message);
@@ -92,7 +95,8 @@ function getInputs(): IActionInputs {
                 sqlpackageAction: AzureSqlActionHelper.getSqlpackageActionTypeFromString(action),
                 sqlpackagePath: core.getInput('sqlpackage-path') || undefined,
                 additionalArguments: core.getInput('arguments') || undefined,
-                skipFirewallCheck: core.getBooleanInput('skip-firewall-check')
+                skipFirewallCheck: core.getBooleanInput('skip-firewall-check'),
+                captureDeploymentReport: isReportingEnabled()
             } as IDacpacActionInputs;
 
         case Constants.sqlprojExtension:
@@ -108,12 +112,27 @@ function getInputs(): IActionInputs {
                 sqlpackageAction: AzureSqlActionHelper.getSqlpackageActionTypeFromString(action),
                 sqlpackagePath: core.getInput('sqlpackage-path') || undefined,
                 additionalArguments: core.getInput('arguments') || undefined,
-                skipFirewallCheck: core.getBooleanInput('skip-firewall-check')
+                skipFirewallCheck: core.getBooleanInput('skip-firewall-check'),
+                captureDeploymentReport: isReportingEnabled()
             } as IBuildAndPublishInputs;
 
         default:
             throw new Error(`Invalid file type provided as input ${filePath}. File must be a .sql, .dacpac, or .sqlproj file.`)
     }
+}
+
+/**
+ * Determines whether deployment reporting is enabled, so the action only captures
+ * a deployment report and script when a summary or pull request comment will be
+ * produced. Mirrors the defaults used by the reporter: the summary is on unless
+ * explicitly set to false, and the pull request comment is on unless set to off.
+ */
+function isReportingEnabled(): boolean {
+    const summary = core.getInput('summary').trim().toLowerCase();
+    const commentPr = core.getInput('comment-pr').trim().toLowerCase();
+    const summaryEnabled = summary !== 'false';
+    const commentEnabled = commentPr !== 'off';
+    return summaryEnabled || commentEnabled;
 }
 
 run();
