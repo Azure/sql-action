@@ -54,6 +54,9 @@ export function parseDeploymentReport(xml: string): DeploymentReport {
     try {
         parsed = parser.parse(xml);
     } catch {
+        // Reporting is best-effort and must never fail a deployment: malformed or
+        // unexpected report XML yields an empty result so the summary simply omits
+        // the changes section instead of surfacing an error.
         return { operations: [], alerts: [] };
     }
 
