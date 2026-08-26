@@ -2,19 +2,17 @@
 
 This repository contains the sql-action GitHub Action for deploying changes to Azure SQL Database, Azure SQL Managed Instance, or SQL Server in a dacpac, SQL scripts, or an SDK-style SQL project. With the Azure SQL Action for GitHub, you can automate your workflow to deploy updates to Azure SQL or SQL Server.
 
+Get started today for free with:
 
-
-Get started today with a [free Azure account](https://azure.com/free/open-source)!
-
-
-Looking to develop with SQL for free, locally and offline, before deploying with GitHub?  Check out the [Azure SQL local emulator](https://aka.ms/azuredbemulator) and [SQL Server Developer Edition](https://www.microsoft.com/sql-server/sql-server-downloads)!
+- [Azure SQL Database free tier](https://devblogs.microsoft.com/azure-sql/new-azure-sql-database-free-offer/), a free Azure SQL Database with 100,000 vCore seconds and 32GB of storage included
+- [Azure SQL Database container](https://github.com/microsoft/azure-sql-database-container), a free local development and testing environment for Azure SQL Database
 
 
 ## 🚀 Usage
 The definition of this GitHub Action is in [action.yml](https://github.com/Azure/sql-action/blob/master/action.yml).  Learn more in the [user guide](#📓-user-guide).
 
 ```yaml
-- uses: azure/sql-action@v2.3
+- uses: azure/sql-action@v2.4
   with:
     # required, connection string incl the database and user authentication information
     connection-string:
@@ -54,7 +52,7 @@ The definition of this GitHub Action is in [action.yml](https://github.com/Azure
 When deploying a `.dacpac` or `.sqlproj` with `action: publish`, sql-action captures the SqlPackage deployment report and script and publishes a concise summary of what changed — the objects created, altered, or dropped, any possible data-loss warnings, and the full deployment T-SQL in a collapsible block. The summary is written to the [GitHub Actions job summary](https://github.blog/2022-05-09-supercharging-github-actions-with-job-summaries/) and, on pull requests, to a single sticky comment that is updated on each run.
 
 ```yaml
-- uses: azure/sql-action@v2.3
+- uses: azure/sql-action@v2.4
   with:
     connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
     path: './Database.sqlproj'
@@ -94,8 +92,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: azure/sql-action@v2.3
+    - uses: actions/checkout@v7
+    - uses: azure/sql-action@v2.4
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './Database.sqlproj'
@@ -114,11 +112,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: azure/login@v1                            # Azure login required to add a temporary firewall rule
+    - uses: actions/checkout@v7
+    - uses: azure/login@v3                            # Azure login required to add a temporary firewall rule
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
-    - uses: azure/sql-action@v2.3
+    - uses: azure/sql-action@v2.4
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './sqlscripts/*.sql'
@@ -134,8 +132,8 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: azure/sql-action@v2.3
+    - uses: actions/checkout@v7
+    - uses: azure/sql-action@v2.4
       with:
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './Database.dacpac'
@@ -222,8 +220,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: azure/sql-action@v2.3
+    - uses: actions/checkout@v7
+    - uses: azure/sql-action@v2.4
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './Database.sqlproj'
@@ -275,8 +273,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: azure/sql-action@v2.3
+    - uses: actions/checkout@v7
+    - uses: azure/sql-action@v2.4
       with:        
         connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
         path: './PreviousDatabase.dacpac'
