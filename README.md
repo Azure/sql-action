@@ -4,7 +4,7 @@ This repository contains the sql-action GitHub Action for deploying changes to A
 
 Get started today for free with:
 
-- [Azure SQL Database free tier](https://devblogs.microsoft.com/azure-sql/new-azure-sql-database-free-offer/), a free Azure SQL Database with 100,000 vCore seconds and 32GB of storage included
+- [Azure SQL Database free tier](https://aka.ms/freesqldb), a free Azure SQL Database with 100,000 vCore seconds and 32GB of storage included
 - [Azure SQL Database container](https://github.com/microsoft/azure-sql-database-container), a free local development and testing environment for Azure SQL Database
 
 
